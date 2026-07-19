@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F6EFE3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15201C" media="(prefers-color-scheme: dark)">
+<title>Sam's Training Week</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --floor:#F6EFE3;        /* hardwood-washed off-white */
+    --panel:#FFFFFF;
+    --ink:#1B1F1E;
+    --court:#1E5E4E;        /* painted key green */
+    --court-deep:#154237;
+    --line:#D9CDB8;         /* court line tan */
+    --tape:#E4B33D;         /* athletic tape — caution/rehab */
+    --rest:#8C8577;
+    --row-line:#EFE9DC;
+    --finisher-bg:#F1F6F4;
+    --tap-flash:#E7F0ED;
+    --rehab-panel:#1B1F1E;
+    --rehab-text:#F6EFE3;
+    --rehab-muted:#CFC9BC;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --floor:#15201C;
+      --panel:#1D2A25;
+      --ink:#EDE8DC;
+      --court:#5FB396;
+      --court-deep:#8ECDB6;
+      --line:#33423C;
+      --tape:#E4B33D;
+      --rest:#93998F;
+      --row-line:#28352F;
+      --finisher-bg:#22322B;
+      --tap-flash:#2A3D35;
+      --rehab-panel:#0E1512;
+      --rehab-text:#EDE8DC;
+      --rehab-muted:#9BA398;
+    }
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    font-family:'Public Sans',system-ui,sans-serif;
+    background:var(--floor);
+    color:var(--ink);
+    line-height:1.45;
+    padding:0 14px 56px;
+  }
+  .sheet{max-width:680px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  header.masthead{
+    border-top:4px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    padding:16px 0 14px;
+    margin-bottom:12px;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--court);font-weight:600;margin-bottom:6px;
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;font-size:clamp(28px,6.5vw,40px);
+    text-transform:uppercase;letter-spacing:.01em;line-height:1.05;
+  }
+  .goals{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .goals span{
+    font-family:var(--mono);font-size:10.5px;font-weight:500;
+    border:1px solid var(--ink);padding:3px 8px;border-radius:2px;
+  }
+
+  /* ---------- sticky day nav ---------- */
+  .daynav{
+    position:sticky;top:0;z-index:10;
+    display:flex;gap:5px;
+    background:var(--floor);
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    margin-bottom:16px;
+  }
+  .daynav a{
+    flex:1;min-width:0;
+    display:flex;align-items:center;justify-content:center;
+    min-height:42px;
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink);text-decoration:none;
+    border:1px solid var(--line);border-radius:4px;
+    background:var(--panel);
+    position:relative;
+    touch-action:manipulation;
+  }
+  .daynav a.today{
+    background:var(--court);border-color:var(--court);color:#fff;
+  }
+  @media (prefers-color-scheme:dark){
+    .daynav a.today{color:#0E1512}
+  }
+  .daynav a.complete::after{
+    content:"";position:absolute;right:4px;top:4px;
+    width:6px;height:6px;border-radius:50%;background:var(--tape);
+  }
+  .daynav a:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+
+  /* ---------- day cards ---------- */
+  .day{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:5px solid var(--court);
+    border-radius:4px;
+    margin-bottom:14px;
+    overflow:hidden;
+    scroll-margin-top:72px;
+  }
+  .day.rest{border-left-color:var(--line);background:transparent}
+  .day.ball{border-left-color:var(--ink)}
+  .day.optional{border-left-style:dashed;border-left-color:var(--court)}
+  .day.today{box-shadow:0 0 0 2px var(--court)}
+  .day.rest.today{box-shadow:0 0 0 2px var(--rest)}
+
+  .day-head{
+    display:flex;align-items:baseline;gap:8px;
+    padding:12px 14px 8px;
+  }
+  .day-name{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:18px;
+    text-transform:uppercase;letter-spacing:.04em;
+  }
+  .today-badge{
+    display:none;
+    font-family:var(--mono);font-size:10px;font-weight:600;
+    letter-spacing:.1em;text-transform:uppercase;
+    background:var(--court);color:#fff;
+    padding:2px 6px;border-radius:2px;
+    align-self:center;
+  }
+  @media (prefers-color-scheme:dark){
+    .today-badge{color:#0E1512}
+  }
+  .day.today .today-badge{display:inline-block}
+  .day-focus{
+    margin-left:auto;
+    font-family:var(--mono);font-size:11px;color:var(--court);
+    font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:right;
+  }
+  .day.ball .day-focus{color:var(--ink)}
+  .day.rest .day-focus{color:var(--rest)}
+  .day-count{
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    color:var(--rest);white-space:nowrap;
+  }
+  .day-count.done{color:var(--court)}
+
+  /* ---------- exercise rows (tap to log a set) ---------- */
+  .rows{display:block}
+  .row{
+    display:flex;align-items:flex-start;gap:12px;
+    width:100%;text-align:left;
+    padding:11px 14px;
+    min-height:52px;
+    font:inherit;color:inherit;
+    background:none;border:none;
+    border-top:1px solid var(--row-line);
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+    user-select:none;-webkit-user-select:none;
+  }
+  .row:active{background:var(--tap-flash)}
+  .row:focus-visible{outline:2px solid var(--court);outline-offset:-2px}
+  .ex{flex:1;min-width:0;font-size:15px}
+  .why{display:block;font-size:11.5px;color:var(--rest);margin-top:1px}
+  .meta{
+    display:flex;flex-direction:column;align-items:flex-end;gap:5px;
+    flex-shrink:0;
+  }
+  .rx{
+    font-family:var(--mono);font-size:13px;font-weight:600;
+    white-space:nowrap;color:var(--court-deep);
+  }
+  .pips{display:flex;gap:4px}
+  .pip{
+    width:11px;height:11px;border-radius:2px;
+    border:1.5px solid var(--court);
+  }
+  .pip.filled{background:var(--court)}
+  .row.done .ex{opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
+  .row.done .rx{opacity:.5}
+  .row.finisher{background:var(--finisher-bg);font-weight:600}
+  .row.finisher.done{background:var(--finisher-bg)}
+  .row.finisher .rx{color:var(--court)}
+
+  .day.rest .day-head{padding-bottom:12px}
+  .rest-note{padding:0 14px 12px;font-size:13.5px;color:var(--rest)}
+
+  /* ---------- daily rehab strip ---------- */
+  .rehab{
+    background:var(--rehab-panel);color:var(--rehab-text);
+    border-radius:4px;padding:14px;margin-bottom:16px;
+    border-left:5px solid var(--tape);
+    scroll-margin-top:72px;
+  }
+  .rehab .tag{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--tape);font-weight:600;margin-bottom:5px;
+  }
+  .rehab strong{font-family:'Oswald',sans-serif;font-weight:600;font-size:16px;letter-spacing:.03em;text-transform:uppercase}
+  .rehab p{font-size:13px;margin-top:4px;color:var(--rehab-muted)}
+  .rehab .rx{font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--rehab-text)}
+  .rehab-track{
+    display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;
+  }
+  .rehab-btn{
+    font-family:var(--mono);font-size:12px;font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--rehab-panel);background:var(--tape);
+    border:none;border-radius:3px;
+    padding:10px 16px;min-height:42px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .rehab-btn[aria-pressed="true"]{
+    background:transparent;color:var(--tape);
+    box-shadow:inset 0 0 0 1.5px var(--tape);
+  }
+  .rehab-btn:focus-visible{outline:2px solid var(--tape);outline-offset:2px}
+  .rehab-week{display:flex;gap:6px}
+  .rehab-week span{
+    width:22px;height:22px;border-radius:3px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:9px;font-weight:600;
+    color:var(--rehab-muted);
+    border:1px solid #3d443f;
+  }
+  .rehab-week span.done{background:var(--tape);color:var(--rehab-panel);border-color:var(--tape)}
+  .rehab-week span.today{box-shadow:0 0 0 1.5px var(--tape)}
+
+  /* ---------- rules footer ---------- */
+  .rules{margin-top:26px;border-top:1px solid var(--ink);padding-top:4px}
+  .rules summary{
+    font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.08em;
+    padding:12px 0;cursor:pointer;list-style:none;
+    display:flex;align-items:center;gap:8px;
+    touch-action:manipulation;
+  }
+  .rules summary::-webkit-details-marker{display:none}
+  .rules summary::after{
+    content:"+";font-family:var(--mono);font-weight:500;font-size:16px;
+    margin-left:auto;color:var(--court);
+  }
+  .rules[open] summary::after{content:"–"}
+  .rules ul{padding-bottom:8px}
+  .rules li{
+    list-style:none;font-size:13.5px;padding-left:18px;position:relative;margin-bottom:8px;
+  }
+  .rules li::before{
+    content:"";position:absolute;left:0;top:7px;width:8px;height:8px;
+    background:var(--court);border-radius:1px;
+  }
+  .rules li.caution::before{background:var(--tape)}
+
+  /* ---------- footer ---------- */
+  .foot{
+    margin-top:20px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .foot small{font-size:11px;color:var(--rest)}
+  .reset-btn{
+    font-family:var(--mono);font-size:11px;font-weight:500;
+    color:var(--rest);background:none;
+    border:1px solid var(--line);border-radius:3px;
+    padding:7px 12px;cursor:pointer;touch-action:manipulation;
+  }
+  .reset-btn:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+
+  @media (max-width:420px){
+    .ex{font-size:14.5px}
+    .rx{font-size:12px}
+    .row{padding:11px 10px;gap:10px}
+    .day-head{padding:11px 10px 7px}
+    .daynav a{font-size:10px;letter-spacing:.02em}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="eyebrow">3 Lifts · 1 Game · Zone 2 · Elbow-Safe</div>
+    <h1>Sam's Training Week</h1>
+    <div class="goals">
+      <span>CUT 23% → 15%</span><span>HOLD STRENGTH</span><span>LONGEVITY</span><span>BALL DURABILITY</span>
+    </div>
+  </header>
+
+  <nav class="daynav" aria-label="Jump to day">
+    <a href="#d-mon" data-day="1">Mon</a>
+    <a href="#d-tue" data-day="2">Tue</a>
+    <a href="#d-wed" data-day="3">Wed</a>
+    <a href="#d-thu" data-day="4">Thu</a>
+    <a href="#d-fri" data-day="5">Fri</a>
+    <a href="#d-sat" data-day="6">Sat</a>
+    <a href="#d-sun" data-day="0">Sun</a>
+  </nav>
+
+  <!-- DAILY REHAB -->
+  <section class="rehab" id="rehab">
+    <div class="tag">Every day · 5 min</div>
+    <strong>Eccentric wrist flexor lowers</strong>
+    <p><span class="rx">3 × 15 /arm</span> — light dumbbell, slow lower. Best-evidence fix for golfer's elbow. Dull 2–3/10 during is OK; sharp pain is not.</p>
+    <div class="rehab-track" data-js>
+      <button class="rehab-btn" id="rehab-btn" aria-pressed="false">Done today</button>
+      <div class="rehab-week" id="rehab-week" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <!-- MONDAY -->
+  <section class="day" id="d-mon" data-day="1">
+    <header class="day-head">
+      <h2 class="day-name">Monday</h2>
+      <span class="today-badge">Today</span>
+      <span class="day-focus">Lower + Push<br><span class="day-count" data-count></span></span>
+    </header>
+    <div class="rows">
+      <button class="row" data-id="mon-1" data-sets="4">
+        <span class="ex">Leg press <em>or</em> goblet squat<span class="why">leg strength = longevity anchor</span></span>
+        <span class="meta"><span class="rx">4 × 6–8</span></span>
+      </button>
+      <button class="row" data-id="mon-2" data-sets="3">
+        <span class="ex">Bulgarian split squat<span class="why">single-leg control for cuts &amp; landings</span></span>
+        <span class="meta"><span class="rx">3 × 8 /leg</span></span>
+      </button>
+      <button class="row" data-id="mon-3" data-sets="4">
+        <span class="ex">DB bench press — neutral grip<span class="why">press strength, low wrist torque</span></span>
+        <span class="meta"><span class="rx">4 × 6–8</span></span>
+      </button>
+      <button class="row" data-id="mon-4" data-sets="3">
+        <span class="ex">Seated calf ⇄ tibialis raise<span class="why">ankle armour — hoops injury #1</span></span>
+        <span class="meta"><span class="rx">3 × 15 ea</span></span>
+      </button>
+      <button class="row" data-id="mon-5" data-sets="3">
+        <span class="ex">Copenhagen adductor plank<span class="why">~40% groin-injury cut in RCTs</span></span>
+        <span class="meta"><span class="rx">3 × 20s /side</span></span>
+      </button>
+      <button class="row finisher" data-id="mon-6" data-sets="1">
+        <span class="ex">Incline walk — zone 2</span>
+        <span class="meta"><span class="rx">15 min</span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- TUESDAY -->
+  <section class="day rest" id="d-tue" data-day="2">
+    <header class="day-head">
+      <h2 class="day-name">Tuesday</h2>
+      <span class="today-badge">Today</span>
+      <span class="day-focus">Rest</span>
+    </header>
+    <div class="rest-note">Fresh legs for tomorrow night. Elbow rehab still on.</div>
+  </section>
+
+  <!-- WEDNESDAY -->
+  <section class="day ball" id="d-wed" data-day="3">
+    <header class="day-head">
+      <h2 class="day-name">Wednesday</h2>
+      <span class="today-badge">Today</span>
+      <span class="day-focus">🏀 Game Night<br><span class="day-count" data-count></span></span>
+    </header>
+    <div class="rows">
+      <button class="row" data-id="wed-1" data-sets="1">
+        <span class="ex">Basketball<span class="why">covers plyometrics + high-intensity intervals</span></span>
+        <span class="meta"><span class="rx">evening</span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- THURSDAY -->
+  <section class="day" id="d-thu" data-day="4">
+    <header class="day-head">
+      <h2 class="day-name">Thursday</h2>
+      <span class="today-badge">Today</span>
+      <span class="day-focus">Upper + Hinge<br><span class="day-count" data-count></span></span>
+    </header>
+    <div class="rows">
+      <button class="row" data-id="thu-1" data-sets="4">
+        <span class="ex">Trap bar / RDL — <strong>use straps</strong><span class="why">posterior chain; straps spare the elbow</span></span>
+        <span class="meta"><span class="rx">4 × 5–6</span></span>
+      </button>
+      <button class="row" data-id="thu-2" data-sets="3">
+        <span class="ex">Chest-supported row — neutral grip<span class="why">strict pulling, no momentum on the tendon</span></span>
+        <span class="meta"><span class="rx">3 × 8–10</span></span>
+      </button>
+      <button class="row" data-id="thu-3" data-sets="3">
+        <span class="ex">Lat pulldown — neutral grip<span class="why">vertical pull minus pull-up hang</span></span>
+        <span class="meta"><span class="rx">3 × 10</span></span>
+      </button>
+      <button class="row" data-id="thu-4" data-sets="3">
+        <span class="ex">Overhead DB press — neutral grip<span class="why">shoulder strength for rebounds/contests</span></span>
+        <span class="meta"><span class="rx">3 × 8</span></span>
+      </button>
+      <button class="row" data-id="thu-5" data-sets="3">
+        <span class="ex">Nordic / slider leg curl<span class="why">~50% hamstring-injury cut in meta-analyses</span></span>
+        <span class="meta"><span class="rx">3 × 5</span></span>
+      </button>
+      <button class="row finisher" data-id="thu-6" data-sets="1">
+        <span class="ex">Incline walk — zone 2</span>
+        <span class="meta"><span class="rx">15 min</span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- FRIDAY -->
+  <section class="day rest" id="d-fri" data-day="5">
+    <header class="day-head">
+      <h2 class="day-name">Friday</h2>
+      <span class="today-badge">Today</span>
+      <span class="day-focus">Rest</span>
+    </header>
+    <div class="rest-note">Recover. Elbow rehab still on.</div>
+  </section>
+
+  <!-- SATURDAY -->
+  <section class="day" id="d-sat" data-day="6">
+    <header class="day-head">
+      <h2 class="day-name">Saturday</h2>
+      <span class="today-badge">Today</span>
+      <span class="day-focus">Full Body + Cardio<br><span class="day-count" data-count></span></span>
+    </header>
+    <div class="rows">
+      <button class="row" data-id="sat-1" data-sets="3">
+        <span class="ex">Hip thrust <em>or</em> 45° back extension<span class="why">glute drive → jump &amp; sprint, spares knees</span></span>
+        <span class="meta"><span class="rx">3 × 8</span></span>
+      </button>
+      <button class="row" data-id="sat-2" data-sets="3">
+        <span class="ex">Incline DB press<span class="why">2×/week pressing beats 1× for muscle</span></span>
+        <span class="meta"><span class="rx">3 × 8–10</span></span>
+      </button>
+      <button class="row" data-id="sat-3" data-sets="3">
+        <span class="ex">Cable row<span class="why">pulling volume, elbow-friendly</span></span>
+        <span class="meta"><span class="rx">3 × 10</span></span>
+      </button>
+      <button class="row" data-id="sat-4" data-sets="3">
+        <span class="ex">Single-leg calf raise<span class="why">Achilles capacity, side-to-side balance</span></span>
+        <span class="meta"><span class="rx">3 × 12 /leg</span></span>
+      </button>
+      <button class="row" data-id="sat-5" data-sets="2">
+        <span class="ex">Pallof press + side plank<span class="why">anti-rotation trunk for contact &amp; cuts</span></span>
+        <span class="meta"><span class="rx">2 rounds</span></span>
+      </button>
+      <button class="row finisher" data-id="sat-6" data-sets="1">
+        <span class="ex">Incline walk — zone 2</span>
+        <span class="meta"><span class="rx">45 min</span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- SUNDAY -->
+  <section class="day optional" id="d-sun" data-day="0">
+    <header class="day-head">
+      <h2 class="day-name">Sunday</h2>
+      <span class="today-badge">Today</span>
+      <span class="day-focus">Optional<br><span class="day-count" data-count></span></span>
+    </header>
+    <div class="rows">
+      <button class="row" data-id="sun-1" data-sets="1">
+        <span class="ex">Incline walk — zone 2<span class="why">tops up weekly aerobic dose toward 150 min</span></span>
+        <span class="meta"><span class="rx">30 min</span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <details class="rules" open>
+    <summary>Standing Orders</summary>
+    <ul>
+      <li>Progressive overload: add reps to top of range, then add load. Matching last week in a deficit still counts.</li>
+      <li class="caution">Pulling lifts: only progress load after 1–2 quiet-elbow weeks. The tendon sets the pace.</li>
+      <li class="caution">Skip: pull-ups, direct curls, heavy grip work — until elbow resolves.</li>
+      <li>Zone 2 = nasal-breathing pace, can hold a conversation.</li>
+      <li>Fat loss engine: 300–500 kcal/day deficit, protein 1.6–2.2 g/kg.</li>
+    </ul>
+  </details>
+
+  <div class="foot">
+    <small>Tap an exercise to log a set · progress resets every Monday · saved on this device</small>
+    <button class="reset-btn" id="reset-btn" type="button">Reset week</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var STORE_KEY = 'sams-training-week';
+
+  /* ISO week id, e.g. "2026-W29" — ISO weeks start Monday, so progress resets with the routine */
+  function weekId(){
+    var d = new Date();
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var day = (t.getUTCDay() + 6) % 7;
+    t.setUTCDate(t.getUTCDate() - day + 3);
+    var firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+    var week = 1 + Math.round(((t - firstThu) / 864e5 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
+    return t.getUTCFullYear() + '-W' + (week < 10 ? '0' : '') + week;
+  }
+
+  var store;
+  try { store = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { store = {}; }
+  if (store.week !== weekId()) store = { week: weekId(), sets: {}, rehab: [] };
+  function save(){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+  }
+
+  var todayDow = new Date().getDay();            /* 0 = Sun … 6 = Sat */
+  var todayIdx = (todayDow + 6) % 7;             /* 0 = Mon … 6 = Sun */
+
+  /* --- exercise rows: tap = +1 set; tap when complete = clear --- */
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.row'));
+
+  function renderRow(row){
+    var id = row.dataset.id, total = +row.dataset.sets;
+    var count = Math.min(store.sets[id] || 0, total);
+    var pips = row.querySelector('.pips');
+    if (!pips){
+      pips = document.createElement('span');
+      pips.className = 'pips';
+      pips.setAttribute('aria-hidden', 'true');
+      for (var i = 0; i < total; i++) pips.appendChild(document.createElement('span')).className = 'pip';
+      row.querySelector('.meta').appendChild(pips);
+    }
+    Array.prototype.forEach.call(pips.children, function(p, i){
+      p.classList.toggle('filled', i < count);
+    });
+    row.classList.toggle('done', count >= total);
+    row.setAttribute('aria-pressed', count >= total ? 'true' : 'false');
+    var name = row.querySelector('.ex').childNodes[0].textContent.trim() || 'exercise';
+    row.setAttribute('aria-label', name + ' — ' + count + ' of ' + total + ' sets logged');
+  }
+
+  function refreshDay(section){
+    var dayRows = section.querySelectorAll('.row');
+    if (!dayRows.length) return;
+    var done = section.querySelectorAll('.row.done').length;
+    var counter = section.querySelector('[data-count]');
+    if (counter){
+      counter.textContent = done + ' / ' + dayRows.length;
+      counter.classList.toggle('done', done === dayRows.length);
+    }
+    var chip = document.querySelector('.daynav a[href="#' + section.id + '"]');
+    if (chip) chip.classList.toggle('complete', done === dayRows.length);
+  }
+
+  rows.forEach(function(row){
+    renderRow(row);
+    row.addEventListener('click', function(){
+      var id = row.dataset.id, total = +row.dataset.sets;
+      var count = Math.min(store.sets[id] || 0, total);
+      store.sets[id] = count >= total ? 0 : count + 1;
+      save();
+      renderRow(row);
+      refreshDay(row.closest('.day'));
+    });
+  });
+
+  /* --- today highlight --- */
+  document.querySelectorAll('[data-day]').forEach(function(el){
+    if (+el.dataset.day === todayDow) el.classList.add('today');
+  });
+
+  /* --- rehab: one tick per day, week strip shows the streak --- */
+  var rehabBtn = document.getElementById('rehab-btn');
+  var rehabWeek = document.getElementById('rehab-week');
+  var dayLetters = ['M','T','W','T','F','S','S'];
+
+  function renderRehab(){
+    var doneToday = store.rehab.indexOf(todayIdx) !== -1;
+    rehabBtn.setAttribute('aria-pressed', doneToday ? 'true' : 'false');
+    rehabBtn.textContent = doneToday ? '✓ Done today' : 'Done today';
+    rehabWeek.innerHTML = '';
+    dayLetters.forEach(function(letter, i){
+      var s = document.createElement('span');
+      s.textContent = letter;
+      if (store.rehab.indexOf(i) !== -1) s.className = 'done';
+      if (i === todayIdx) s.className += ' today';
+      rehabWeek.appendChild(s);
+    });
+  }
+  rehabBtn.addEventListener('click', function(){
+    var at = store.rehab.indexOf(todayIdx);
+    if (at === -1) store.rehab.push(todayIdx); else store.rehab.splice(at, 1);
+    save();
+    renderRehab();
+  });
+  renderRehab();
+
+  document.querySelectorAll('.day').forEach(refreshDay);
+
+  /* --- reset --- */
+  document.getElementById('reset-btn').addEventListener('click', function(){
+    if (!confirm('Clear all logged sets for this week?')) return;
+    store = { week: weekId(), sets: {}, rehab: [] };
+    save();
+    rows.forEach(renderRow);
+    document.querySelectorAll('.day').forEach(refreshDay);
+    renderRehab();
+  });
+
+  /* --- open on today --- */
+  var todayCard = document.querySelector('.day.today');
+  if (todayCard && !location.hash){
+    todayCard.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
+})();
+</script>
+</body>
+</html>
