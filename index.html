@@ -1148,6 +1148,16 @@
     renderChip(row);
   });
 
+  /* day chips scroll in-page via JS — a real #anchor navigation reloads the
+     page inside the artifact viewer's sandbox, which responds "forbidden" */
+  document.querySelectorAll('.daynav a').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      var sec = document.querySelector(a.getAttribute('href'));
+      if (sec) sec.scrollIntoView({ block: 'start' });
+    });
+  });
+
   /* enables :active press feedback on the div rows in iOS Safari */
   document.addEventListener('touchstart', function(){}, { passive: true });
 
