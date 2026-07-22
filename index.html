@@ -199,8 +199,32 @@
   .day.rest.today{box-shadow:0 0 0 2px var(--rest)}
 
   .day-head{
-    display:flex;align-items:baseline;gap:8px;
-    padding:12px 14px 8px;
+    display:flex;align-items:center;gap:8px;
+    padding:10px 14px 8px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;-webkit-user-select:none;
+  }
+  .day-check{
+    width:36px;height:36px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;line-height:1;
+    color:transparent;background:none;
+    border:1.5px solid var(--line);border-radius:50%;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .day-check.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
+  .day-check:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .day-body{
+    display:grid;grid-template-rows:1fr;
+    transition:grid-template-rows .25s ease;
+  }
+  .day.closed .day-body{grid-template-rows:0fr}
+  .day-body>.day-inner{overflow:hidden;min-height:0}
+  .day.closed .day-head{padding-bottom:10px}
+  @media (prefers-reduced-motion:reduce){
+    .day-body{transition:none}
   }
   .day-name{
     font-family:var(--display);font-weight:600;font-size:18px;
@@ -395,6 +419,61 @@
   }
   .pg-note{font-size:11px;color:var(--rest);margin-top:4px}
 
+  /* ---------- week-complete celebration ---------- */
+  .celebrate{
+    position:fixed;inset:0;z-index:50;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(14,21,18,.93);
+    padding:24px;
+  }
+  .celebrate[hidden]{display:none}
+  .celebrate canvas{
+    position:absolute;inset:0;width:100%;height:100%;
+    pointer-events:none;
+  }
+  .cel-card{position:relative;text-align:center;color:#F6EFE3}
+  @keyframes celpop{from{transform:scale(.82);opacity:0}}
+  .cel-card{animation:celpop .45s cubic-bezier(.2,.9,.3,1.2)}
+  .cel-eyebrow{
+    font-family:var(--mono);font-size:11px;font-weight:500;
+    letter-spacing:.16em;text-transform:uppercase;
+    color:var(--tape);margin-bottom:10px;
+  }
+  .cel-card h2{
+    font-family:var(--display);font-weight:600;
+    font-size:clamp(44px,13vw,64px);line-height:.95;
+    text-transform:uppercase;letter-spacing:.01em;
+  }
+  .cel-card p{margin-top:14px;font-size:14px;color:#CFC9BC}
+  .cel-actions{
+    margin-top:26px;display:flex;gap:10px;justify-content:center;
+    opacity:0;animation:celfade .4s ease 1s forwards;
+  }
+  @keyframes celfade{to{opacity:1}}
+  #cel-reset{
+    font-family:var(--mono);font-size:13px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:#15201C;background:var(--tape);
+    border:none;border-radius:4px;
+    padding:14px 22px;min-height:48px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #cel-close{
+    font-family:var(--mono);font-size:13px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:#CFC9BC;background:none;
+    border:1px solid #3D443F;border-radius:4px;
+    padding:14px 22px;min-height:48px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #cel-reset:focus-visible,#cel-close:focus-visible{outline:2px solid var(--tape);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){
+    .cel-card{animation:none}
+    .cel-actions{animation:none;opacity:1}
+  }
+
   .day.rest .day-head{padding-bottom:12px}
   .rest-note{padding:0 14px 12px;font-size:13.5px;color:var(--rest)}
 
@@ -533,7 +612,9 @@
       <h2 class="day-name">Monday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Lower + Push<br><span class="day-count" data-count></span></span>
+      <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
+    <div class="day-body"><div class="day-inner">
     <div class="rows">
       <div class="row" role="button" tabindex="0" data-id="mon-1" data-sets="4" data-wt>
         <span class="ex">Leg press <em>or</em> goblet squat<span class="why">leg strength = longevity anchor</span></span>
@@ -560,6 +641,7 @@
         <span class="meta"><span class="rx">15 min</span></span>
       </div>
     </div>
+    </div></div>
   </section>
 
   <!-- TUESDAY -->
@@ -568,8 +650,11 @@
       <h2 class="day-name">Tuesday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Rest</span>
+      <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
+    <div class="day-body"><div class="day-inner">
     <div class="rest-note">Fresh legs for tomorrow night. Elbow rehab still on.</div>
+    </div></div>
   </section>
 
   <!-- WEDNESDAY -->
@@ -578,13 +663,16 @@
       <h2 class="day-name">Wednesday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">🏀 Game Night<br><span class="day-count" data-count></span></span>
+      <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
+    <div class="day-body"><div class="day-inner">
     <div class="rows">
       <div class="row" role="button" tabindex="0" data-id="wed-1" data-sets="1">
         <span class="ex">Basketball<span class="why">covers plyometrics + high-intensity intervals</span></span>
         <span class="meta"><span class="rx">evening</span></span>
       </div>
     </div>
+    </div></div>
   </section>
 
   <!-- THURSDAY -->
@@ -593,7 +681,9 @@
       <h2 class="day-name">Thursday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Upper + Hinge<br><span class="day-count" data-count></span></span>
+      <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
+    <div class="day-body"><div class="day-inner">
     <div class="rows">
       <div class="row" role="button" tabindex="0" data-id="thu-1" data-sets="4" data-wt>
         <span class="ex">Trap bar / RDL — <strong>use straps</strong><span class="why">posterior chain; straps spare the elbow</span></span>
@@ -620,6 +710,7 @@
         <span class="meta"><span class="rx">15 min</span></span>
       </div>
     </div>
+    </div></div>
   </section>
 
   <!-- FRIDAY -->
@@ -628,8 +719,11 @@
       <h2 class="day-name">Friday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Rest</span>
+      <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
+    <div class="day-body"><div class="day-inner">
     <div class="rest-note">Recover. Elbow rehab still on.</div>
+    </div></div>
   </section>
 
   <!-- SATURDAY -->
@@ -638,7 +732,9 @@
       <h2 class="day-name">Saturday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Full Body + Cardio<br><span class="day-count" data-count></span></span>
+      <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
+    <div class="day-body"><div class="day-inner">
     <div class="rows">
       <div class="row" role="button" tabindex="0" data-id="sat-1" data-sets="3" data-wt>
         <span class="ex">Hip thrust <em>or</em> 45° back extension<span class="why">glute drive → jump &amp; sprint, spares knees</span></span>
@@ -665,6 +761,7 @@
         <span class="meta"><span class="rx">45 min</span></span>
       </div>
     </div>
+    </div></div>
   </section>
 
   <!-- SUNDAY -->
@@ -673,13 +770,16 @@
       <h2 class="day-name">Sunday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Optional<br><span class="day-count" data-count></span></span>
+      <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
+    <div class="day-body"><div class="day-inner">
     <div class="rows">
       <div class="row" role="button" tabindex="0" data-id="sun-1" data-sets="1">
         <span class="ex">Incline walk — zone 2<span class="why">tops up weekly aerobic dose toward 150 min</span></span>
         <span class="meta"><span class="rx">30 min</span></span>
       </div>
     </div>
+    </div></div>
   </section>
 
   <!-- RULES -->
@@ -703,6 +803,20 @@
 
   <div id="view-progress" role="tabpanel" aria-labelledby="tab-progress" hidden></div>
 
+  <!-- WEEK-COMPLETE CELEBRATION -->
+  <div class="celebrate" id="celebrate" hidden>
+    <canvas aria-hidden="true"></canvas>
+    <div class="cel-card">
+      <div class="cel-eyebrow">All seven days checked</div>
+      <h2>Week<br>Complete</h2>
+      <p>3 lifts, 1 game, rehab, rest. That's how weeks compound.</p>
+      <div class="cel-actions">
+        <button type="button" id="cel-reset">Reset week</button>
+        <button type="button" id="cel-close">Not yet</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -719,11 +833,12 @@
     var week = 1 + Math.round(((t - firstThu) / 864e5 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
     return t.getUTCFullYear() + '-W' + (week < 10 ? '0' : '') + week;
   }
-  function freshStore(){ return { week: weekId(), sets: {}, rehab: [] }; }
+  function freshStore(){ return { week: weekId(), sets: {}, rehab: [], rest: [], celebrated: false }; }
 
   var store;
   try { store = JSON.parse(localStorage.getItem(STORE_KEY)) || freshStore(); } catch (e) { store = freshStore(); }
   if (store.week !== weekId()) store = freshStore();
+  if (!store.rest) store.rest = []; /* migrate stores saved before day check-off existed */
   function save(){
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
   }
@@ -806,17 +921,33 @@
     row.setAttribute('aria-label', exName(row) + ' — ' + count + ' of ' + total + ' sets logged');
   }
 
+  function dayIsDone(section){
+    var dayRows = section.querySelectorAll('.row');
+    if (!dayRows.length) return store.rest.indexOf(section.id) !== -1;
+    for (var i = 0; i < dayRows.length; i++){
+      if ((store.sets[dayRows[i].dataset.id] || 0) < +dayRows[i].dataset.sets) return false;
+    }
+    return true;
+  }
+
   function refreshDay(section){
     var dayRows = section.querySelectorAll('.row');
-    if (!dayRows.length) return;
-    var done = section.querySelectorAll('.row.done').length;
-    var counter = section.querySelector('[data-count]');
-    if (counter){
-      counter.textContent = done + ' / ' + dayRows.length;
-      counter.classList.toggle('done', done === dayRows.length);
+    var full = dayIsDone(section);
+    if (dayRows.length){
+      var done = section.querySelectorAll('.row.done').length;
+      var counter = section.querySelector('[data-count]');
+      if (counter){
+        counter.textContent = done + ' / ' + dayRows.length;
+        counter.classList.toggle('done', full);
+      }
     }
     var chip = document.querySelector('.daynav a[href="#' + section.id + '"]');
-    if (chip) chip.classList.toggle('complete', done === dayRows.length);
+    if (chip) chip.classList.toggle('complete', full);
+    var check = section.querySelector('.day-check');
+    if (check){
+      check.classList.toggle('on', full);
+      check.setAttribute('aria-pressed', full ? 'true' : 'false');
+    }
   }
 
   function renderRehab(){
@@ -836,6 +967,7 @@
   function renderAll(){
     rows.forEach(renderRow);
     days.forEach(refreshDay);
+    days.forEach(function(sec){ sec.classList.toggle('closed', dayIsDone(sec)); });
     renderRehab();
     renderChips();
   }
@@ -1082,6 +1214,78 @@
     viewProg.appendChild(note);
   }
 
+  /* ---- week-complete celebration ---- */
+  var cel = document.getElementById('celebrate');
+
+  function allDaysDone(){
+    for (var i = 0; i < days.length; i++) if (!dayIsDone(days[i])) return false;
+    return true;
+  }
+  function maybeCelebrate(){
+    if (store.celebrated || !allDaysDone()) return;
+    store.celebrated = true;
+    save();
+    cel.hidden = false;
+    document.body.style.overflow = 'hidden';
+    confettiBurst(cel.querySelector('canvas'));
+  }
+  function hideCelebration(){
+    cel.hidden = true;
+    document.body.style.overflow = '';
+  }
+  document.getElementById('cel-close').addEventListener('click', hideCelebration);
+  document.getElementById('cel-reset').addEventListener('click', function(){
+    store = freshStore();
+    save();
+    renderAll();
+    hideCelebration();
+    window.scrollTo(0, 0);
+  });
+
+  function confettiBurst(canvas){
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width = canvas.clientWidth;
+    var H = canvas.height = canvas.clientHeight;
+    var colors = ['#1E5E4E', '#E4B33D', '#0F8A60', '#8ECDB6', '#F6EFE3'];
+    var ps = [];
+    for (var i = 0; i < 140; i++){
+      ps.push({
+        x: Math.random() * W,
+        y: -20 - Math.random() * H * 0.6,
+        w: 5 + Math.random() * 6,
+        h: 8 + Math.random() * 8,
+        c: colors[i % colors.length],
+        vy: 2 + Math.random() * 3,
+        vx: -1 + Math.random() * 2,
+        r: Math.random() * Math.PI,
+        vr: -0.1 + Math.random() * 0.2,
+        sway: Math.random() * Math.PI * 2
+      });
+    }
+    var start = null;
+    function frame(t){
+      if (cel.hidden){ ctx.clearRect(0, 0, W, H); return; }
+      if (start === null) start = t;
+      if (t - start > 7000){ ctx.clearRect(0, 0, W, H); return; }
+      ctx.clearRect(0, 0, W, H);
+      ps.forEach(function(p){
+        p.y += p.vy;
+        p.x += p.vx + Math.sin(t / 400 + p.sway) * 0.6;
+        p.r += p.vr;
+        if (p.y > H + 20){ p.y = -20; p.x = Math.random() * W; }
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
   /* recompute today + weekly reset — runs on load and every time the page
      is brought back into view, so a tab left open overnight stays correct */
   function syncToday(){
@@ -1092,6 +1296,7 @@
       el.classList.toggle('today', +el.dataset.day === todayDow);
     });
     renderAll();
+    maybeCelebrate();
   }
 
   rows.forEach(function(row){
@@ -1101,7 +1306,11 @@
       store.sets[id] = count >= total ? 0 : count + 1;
       save();
       renderRow(row);
-      refreshDay(row.closest('.day'));
+      var sec = row.closest('.day');
+      refreshDay(sec);
+      var full = dayIsDone(sec);
+      sec.classList.toggle('closed', full);
+      if (full) maybeCelebrate();
     });
     /* rows are divs with role=button, so Enter/Space need wiring by hand */
     row.addEventListener('keydown', function(e){
@@ -1146,6 +1355,36 @@
       openWeightPanel(row);
     });
     renderChip(row);
+  });
+
+  /* day check-off: the circle completes/clears the whole day; the header
+     toggles the collapsed state of any day */
+  days.forEach(function(sec){
+    var check = sec.querySelector('.day-check');
+    var name = sec.querySelector('.day-name').textContent;
+    check.setAttribute('aria-label', 'Mark ' + name + ' complete');
+    check.addEventListener('click', function(e){
+      e.stopPropagation();
+      var dayRows = sec.querySelectorAll('.row');
+      var was = dayIsDone(sec);
+      if (dayRows.length){
+        Array.prototype.forEach.call(dayRows, function(r){
+          store.sets[r.dataset.id] = was ? 0 : +r.dataset.sets;
+        });
+      } else {
+        var at = store.rest.indexOf(sec.id);
+        if (at === -1) store.rest.push(sec.id); else store.rest.splice(at, 1);
+      }
+      save();
+      sec.querySelectorAll('.row').forEach(renderRow);
+      refreshDay(sec);
+      var full = dayIsDone(sec);
+      sec.classList.toggle('closed', full);
+      if (full) maybeCelebrate();
+    });
+    sec.querySelector('.day-head').addEventListener('click', function(){
+      sec.classList.toggle('closed');
+    });
   });
 
   /* day chips scroll in-page via JS — a real #anchor navigation reloads the
