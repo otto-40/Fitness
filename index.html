@@ -246,6 +246,81 @@
   .row.finisher{background:var(--finisher-bg);font-weight:600}
   .row.finisher .rx{color:var(--court)}
 
+  /* ---------- weight chip + entry panel (progressive overload) ---------- */
+  .wt{
+    display:flex;align-items:center;gap:3px;
+    font-family:var(--mono);font-size:12.5px;font-weight:500;
+    color:var(--court-deep);background:none;
+    border:1.5px solid var(--court);border-radius:3px;
+    padding:5px 8px;min-height:30px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    font-variant-numeric:tabular-nums;
+  }
+  .wt .wt-unit{font-size:10px;opacity:.75}
+  .wt .wt-trend{font-size:9px;color:var(--court)}
+  .wt .wt-trend.down{color:var(--tape)}
+  .wt.is-prev{border-style:dashed;border-color:var(--rest);color:var(--rest)}
+  .wt.is-empty{border-style:dashed;border-color:var(--line);color:var(--rest)}
+  .wt:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .row.done .wt{opacity:.6}
+
+  .wt-panel{
+    border-top:1px dashed var(--line);
+    background:var(--finisher-bg);
+    padding:12px 14px;
+  }
+  .wt-adjust{display:flex;align-items:stretch;gap:8px}
+  .wt-step{
+    flex:1;min-height:46px;
+    font-family:var(--mono);font-size:14px;font-weight:500;
+    color:var(--court-deep);background:var(--panel);
+    border:1px solid var(--line);border-radius:4px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wt-step:focus-visible,.wt-close:focus-visible,.wt-unitbtn:focus-visible{
+    outline:2px solid var(--court);outline-offset:2px;
+  }
+  .wt-field{
+    display:flex;align-items:center;justify-content:center;gap:4px;
+    flex:1.2;
+    background:var(--panel);border:1px solid var(--line);border-radius:4px;
+    padding:0 8px;
+  }
+  .wt-field input{
+    width:64px;border:none;background:none;color:var(--ink);
+    font-family:var(--mono);font-size:18px;font-weight:500;text-align:right;
+    font-variant-numeric:tabular-nums;outline:none;
+  }
+  .wt-field input::-webkit-inner-spin-button,
+  .wt-field input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .wt-field span{font-family:var(--mono);font-size:11px;color:var(--rest)}
+  .wt-hist{margin-top:10px;display:flex;flex-direction:column;gap:3px}
+  .wt-hist div{
+    display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:12px;color:var(--rest);
+    font-variant-numeric:tabular-nums;
+  }
+  .wt-hist b{color:var(--ink);font-weight:500}
+  .wt-hist em{font-style:normal;color:var(--court)}
+  .wt-hist em.neg{color:var(--tape)}
+  .wt-hist .wt-none{display:block;font-family:inherit;color:var(--rest);font-size:12.5px}
+  .wt-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+  .wt-unitbtn{
+    font-family:var(--mono);font-size:11px;color:var(--rest);
+    background:none;border:1px solid var(--line);border-radius:3px;
+    padding:6px 10px;min-height:32px;cursor:pointer;touch-action:manipulation;
+  }
+  .wt-close{
+    font-family:var(--mono);font-size:12px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--on-court);background:var(--court);
+    border:none;border-radius:3px;padding:10px 18px;min-height:40px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+
   .day.rest .day-head{padding-bottom:12px}
   .rest-note{padding:0 14px 12px;font-size:13.5px;color:var(--rest)}
 
@@ -378,30 +453,30 @@
       <span class="day-focus">Lower + Push<br><span class="day-count" data-count></span></span>
     </header>
     <div class="rows">
-      <button class="row" data-id="mon-1" data-sets="4">
+      <div class="row" role="button" tabindex="0" data-id="mon-1" data-sets="4" data-wt>
         <span class="ex">Leg press <em>or</em> goblet squat<span class="why">leg strength = longevity anchor</span></span>
         <span class="meta"><span class="rx">4 × 6–8</span></span>
-      </button>
-      <button class="row" data-id="mon-2" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="mon-2" data-sets="3" data-wt>
         <span class="ex">Bulgarian split squat<span class="why">single-leg control for cuts &amp; landings</span></span>
         <span class="meta"><span class="rx">3 × 8 /leg</span></span>
-      </button>
-      <button class="row" data-id="mon-3" data-sets="4">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="mon-3" data-sets="4" data-wt>
         <span class="ex">DB bench press — neutral grip<span class="why">press strength, low wrist torque</span></span>
         <span class="meta"><span class="rx">4 × 6–8</span></span>
-      </button>
-      <button class="row" data-id="mon-4" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="mon-4" data-sets="3" data-wt>
         <span class="ex">Seated calf ⇄ tibialis raise<span class="why">ankle armour — hoops injury #1</span></span>
         <span class="meta"><span class="rx">3 × 15 ea</span></span>
-      </button>
-      <button class="row" data-id="mon-5" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="mon-5" data-sets="3">
         <span class="ex">Copenhagen adductor plank<span class="why">~40% groin-injury cut in RCTs</span></span>
         <span class="meta"><span class="rx">3 × 20s /side</span></span>
-      </button>
-      <button class="row finisher" data-id="mon-6" data-sets="1">
+      </div>
+      <div class="row finisher" role="button" tabindex="0" data-id="mon-6" data-sets="1">
         <span class="ex">Incline walk — zone 2</span>
         <span class="meta"><span class="rx">15 min</span></span>
-      </button>
+      </div>
     </div>
   </section>
 
@@ -423,10 +498,10 @@
       <span class="day-focus">🏀 Game Night<br><span class="day-count" data-count></span></span>
     </header>
     <div class="rows">
-      <button class="row" data-id="wed-1" data-sets="1">
+      <div class="row" role="button" tabindex="0" data-id="wed-1" data-sets="1">
         <span class="ex">Basketball<span class="why">covers plyometrics + high-intensity intervals</span></span>
         <span class="meta"><span class="rx">evening</span></span>
-      </button>
+      </div>
     </div>
   </section>
 
@@ -438,30 +513,30 @@
       <span class="day-focus">Upper + Hinge<br><span class="day-count" data-count></span></span>
     </header>
     <div class="rows">
-      <button class="row" data-id="thu-1" data-sets="4">
+      <div class="row" role="button" tabindex="0" data-id="thu-1" data-sets="4" data-wt>
         <span class="ex">Trap bar / RDL — <strong>use straps</strong><span class="why">posterior chain; straps spare the elbow</span></span>
         <span class="meta"><span class="rx">4 × 5–6</span></span>
-      </button>
-      <button class="row" data-id="thu-2" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="thu-2" data-sets="3" data-wt>
         <span class="ex">Chest-supported row — neutral grip<span class="why">strict pulling, no momentum on the tendon</span></span>
         <span class="meta"><span class="rx">3 × 8–10</span></span>
-      </button>
-      <button class="row" data-id="thu-3" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="thu-3" data-sets="3" data-wt>
         <span class="ex">Lat pulldown — neutral grip<span class="why">vertical pull minus pull-up hang</span></span>
         <span class="meta"><span class="rx">3 × 10</span></span>
-      </button>
-      <button class="row" data-id="thu-4" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="thu-4" data-sets="3" data-wt>
         <span class="ex">Overhead DB press — neutral grip<span class="why">shoulder strength for rebounds/contests</span></span>
         <span class="meta"><span class="rx">3 × 8</span></span>
-      </button>
-      <button class="row" data-id="thu-5" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="thu-5" data-sets="3">
         <span class="ex">Nordic / slider leg curl<span class="why">~50% hamstring-injury cut in meta-analyses</span></span>
         <span class="meta"><span class="rx">3 × 5</span></span>
-      </button>
-      <button class="row finisher" data-id="thu-6" data-sets="1">
+      </div>
+      <div class="row finisher" role="button" tabindex="0" data-id="thu-6" data-sets="1">
         <span class="ex">Incline walk — zone 2</span>
         <span class="meta"><span class="rx">15 min</span></span>
-      </button>
+      </div>
     </div>
   </section>
 
@@ -483,30 +558,30 @@
       <span class="day-focus">Full Body + Cardio<br><span class="day-count" data-count></span></span>
     </header>
     <div class="rows">
-      <button class="row" data-id="sat-1" data-sets="3">
+      <div class="row" role="button" tabindex="0" data-id="sat-1" data-sets="3" data-wt>
         <span class="ex">Hip thrust <em>or</em> 45° back extension<span class="why">glute drive → jump &amp; sprint, spares knees</span></span>
         <span class="meta"><span class="rx">3 × 8</span></span>
-      </button>
-      <button class="row" data-id="sat-2" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="sat-2" data-sets="3" data-wt>
         <span class="ex">Incline DB press<span class="why">2×/week pressing beats 1× for muscle</span></span>
         <span class="meta"><span class="rx">3 × 8–10</span></span>
-      </button>
-      <button class="row" data-id="sat-3" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="sat-3" data-sets="3" data-wt>
         <span class="ex">Cable row<span class="why">pulling volume, elbow-friendly</span></span>
         <span class="meta"><span class="rx">3 × 10</span></span>
-      </button>
-      <button class="row" data-id="sat-4" data-sets="3">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="sat-4" data-sets="3" data-wt>
         <span class="ex">Single-leg calf raise<span class="why">Achilles capacity, side-to-side balance</span></span>
         <span class="meta"><span class="rx">3 × 12 /leg</span></span>
-      </button>
-      <button class="row" data-id="sat-5" data-sets="2">
+      </div>
+      <div class="row" role="button" tabindex="0" data-id="sat-5" data-sets="2">
         <span class="ex">Pallof press + side plank<span class="why">anti-rotation trunk for contact &amp; cuts</span></span>
         <span class="meta"><span class="rx">2 rounds</span></span>
-      </button>
-      <button class="row finisher" data-id="sat-6" data-sets="1">
+      </div>
+      <div class="row finisher" role="button" tabindex="0" data-id="sat-6" data-sets="1">
         <span class="ex">Incline walk — zone 2</span>
         <span class="meta"><span class="rx">45 min</span></span>
-      </button>
+      </div>
     </div>
   </section>
 
@@ -518,10 +593,10 @@
       <span class="day-focus">Optional<br><span class="day-count" data-count></span></span>
     </header>
     <div class="rows">
-      <button class="row" data-id="sun-1" data-sets="1">
+      <div class="row" role="button" tabindex="0" data-id="sun-1" data-sets="1">
         <span class="ex">Incline walk — zone 2<span class="why">tops up weekly aerobic dose toward 150 min</span></span>
         <span class="meta"><span class="rx">30 min</span></span>
-      </button>
+      </div>
     </div>
   </section>
 
@@ -538,7 +613,7 @@
   </details>
 
   <div class="foot">
-    <small>Tap an exercise to log a set · progress resets every Monday · saved on this device</small>
+    <small>Tap an exercise to log a set, tap its weight chip to record the load · sets reset every Monday, weights keep their history · saved on this device</small>
     <button class="reset-btn" id="reset-btn" type="button">Reset week</button>
   </div>
 
@@ -566,6 +641,48 @@
   function save(){
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
   }
+
+  /* ---- progressive overload: weights live under their own key so the
+     Monday reset (and the Reset week button) never touches them ---- */
+  var WT_KEY = 'sams-training-weights';
+  var wstore;
+  try { wstore = JSON.parse(localStorage.getItem(WT_KEY)) || {}; } catch (e) { wstore = {}; }
+  if (!wstore.wt) wstore.wt = {};
+  if (!wstore.unit) wstore.unit = 'kg';
+  function saveW(){
+    try { localStorage.setItem(WT_KEY, JSON.stringify(wstore)); } catch (e) {}
+  }
+
+  /* Monday-based week number since epoch — "weeks ago" is then plain subtraction */
+  function epochWeek(){
+    var d = new Date();
+    var dn = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+    return Math.floor((dn + 3) / 7);
+  }
+  function entriesFor(id){ return wstore.wt[id] || []; }
+  function currentEntry(id){
+    var es = entriesFor(id), last = es[es.length - 1];
+    return (last && last.ew === epochWeek()) ? last : null;
+  }
+  function previousEntry(id){
+    var es = entriesFor(id), ew = epochWeek();
+    for (var i = es.length - 1; i >= 0; i--) if (es[i].ew < ew) return es[i];
+    return null;
+  }
+  function setWeight(id, w){
+    var es = entriesFor(id), ew = epochWeek(), last = es[es.length - 1];
+    if (w === null){
+      if (last && last.ew === ew) es.pop();
+    } else if (last && last.ew === ew){
+      last.w = w;
+    } else {
+      es.push({ ew: ew, w: w });
+      if (es.length > 30) es.shift();
+    }
+    wstore.wt[id] = es;
+    saveW();
+  }
+  function fmtW(w){ return String(Math.round(w * 100) / 100); }
 
   var todayDow, todayIdx;                        /* dow: 0 = Sun … 6 = Sat; idx: 0 = Mon … 6 = Sun */
   var rows = Array.prototype.slice.call(document.querySelectorAll('.row'));
@@ -625,6 +742,112 @@
     rows.forEach(renderRow);
     days.forEach(refreshDay);
     renderRehab();
+    renderChips();
+  }
+
+  /* ---- weight chips + entry panel ---- */
+  var wtRows = rows.filter(function(r){ return r.hasAttribute('data-wt'); });
+  var openPanel = null;
+
+  function renderChip(row){
+    var chip = row.querySelector('.wt');
+    if (!chip) return;
+    var cur = currentEntry(row.dataset.id), prev = previousEntry(row.dataset.id);
+    var val = chip.querySelector('.wt-val'), trend = chip.querySelector('.wt-trend');
+    chip.classList.remove('is-set', 'is-prev', 'is-empty');
+    trend.textContent = '';
+    trend.classList.remove('down');
+    if (cur){
+      val.textContent = fmtW(cur.w);
+      chip.classList.add('is-set');
+      if (prev && cur.w > prev.w) trend.textContent = '▲';
+      if (prev && cur.w < prev.w){ trend.textContent = '▼'; trend.classList.add('down'); }
+    } else if (prev){
+      val.textContent = fmtW(prev.w);
+      chip.classList.add('is-prev');
+    } else {
+      val.textContent = '+';
+      chip.classList.add('is-empty');
+    }
+    chip.querySelector('.wt-unit').textContent = wstore.unit;
+  }
+  function renderChips(){ wtRows.forEach(renderChip); }
+
+  function histLines(id){
+    var es = entriesFor(id).slice(-5).reverse(), ew = epochWeek(), out = [];
+    es.forEach(function(e, i){
+      var ago = ew - e.ew;
+      var label = ago === 0 ? 'this week' : ago === 1 ? 'last week' : ago + ' wks ago';
+      var older = es[i + 1];
+      var d = '';
+      if (older && e.w !== older.w){
+        var delta = e.w - older.w;
+        d = ' <em' + (delta < 0 ? ' class="neg"' : '') + '>(' +
+            (delta > 0 ? '+' : '') + fmtW(delta) + ')</em>';
+      }
+      out.push('<div><span>' + label + '</span><b>' + fmtW(e.w) + d + '</b></div>');
+    });
+    return out.length ? out.join('')
+                      : '<div class="wt-none">First time — log it now, beat it next week.</div>';
+  }
+
+  function closePanel(){
+    if (!openPanel) return;
+    openPanel.panel.remove();
+    openPanel.chip.setAttribute('aria-expanded', 'false');
+    openPanel = null;
+  }
+
+  function openWeightPanel(row){
+    var id = row.dataset.id;
+    if (openPanel && openPanel.id === id){ closePanel(); return; }
+    closePanel();
+    var chip = row.querySelector('.wt');
+    var cur = currentEntry(id), prev = previousEntry(id);
+    var start = cur ? fmtW(cur.w) : (prev ? fmtW(prev.w) : '');
+    var panel = document.createElement('div');
+    panel.className = 'wt-panel';
+    panel.innerHTML =
+      '<div class="wt-adjust">' +
+        '<button type="button" class="wt-step" data-step="-2.5" aria-label="2.5 less">−2.5</button>' +
+        '<label class="wt-field"><input type="number" inputmode="decimal" step="0.5" min="0" value="' + start + '"><span>' + wstore.unit + '</span></label>' +
+        '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 more">+2.5</button>' +
+      '</div>' +
+      '<div class="wt-hist">' + histLines(id) + '</div>' +
+      '<div class="wt-foot">' +
+        '<button type="button" class="wt-unitbtn">' + (wstore.unit === 'kg' ? 'use lb' : 'use kg') + '</button>' +
+        '<button type="button" class="wt-close">Done</button>' +
+      '</div>';
+    row.insertAdjacentElement('afterend', panel);
+    openPanel = { id: id, panel: panel, chip: chip };
+    chip.setAttribute('aria-expanded', 'true');
+
+    var input = panel.querySelector('input');
+    function commit(){
+      var v = parseFloat(input.value);
+      if (isNaN(v) || v <= 0) setWeight(id, null);
+      else setWeight(id, Math.round(v * 4) / 4);
+      renderChip(row);
+      panel.querySelector('.wt-hist').innerHTML = histLines(id);
+    }
+    input.addEventListener('input', commit);
+    panel.querySelectorAll('.wt-step').forEach(function(b){
+      b.addEventListener('click', function(){
+        var v = parseFloat(input.value);
+        if (isNaN(v)) v = 0;
+        v = Math.max(0, v + parseFloat(b.dataset.step));
+        input.value = fmtW(v);
+        commit();
+      });
+    });
+    panel.querySelector('.wt-unitbtn').addEventListener('click', function(){
+      wstore.unit = wstore.unit === 'kg' ? 'lb' : 'kg';
+      saveW();
+      this.textContent = wstore.unit === 'kg' ? 'use lb' : 'use kg';
+      panel.querySelector('.wt-field span').textContent = wstore.unit;
+      renderChips();
+    });
+    panel.querySelector('.wt-close').addEventListener('click', closePanel);
   }
 
   /* recompute today + weekly reset — runs on load and every time the page
@@ -648,6 +871,13 @@
       renderRow(row);
       refreshDay(row.closest('.day'));
     });
+    /* rows are divs with role=button, so Enter/Space need wiring by hand */
+    row.addEventListener('keydown', function(e){
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === row){
+        e.preventDefault();
+        row.click();
+      }
+    });
   });
 
   rehabBtn.addEventListener('click', function(){
@@ -669,6 +899,26 @@
   });
 
   syncToday();
+
+  /* chips are added after the first render so they land after the pips */
+  wtRows.forEach(function(row){
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'wt';
+    chip.setAttribute('aria-expanded', 'false');
+    var name = row.querySelector('.ex').childNodes[0].textContent.trim() || 'exercise';
+    chip.setAttribute('aria-label', 'Weight for ' + name);
+    chip.innerHTML = '<span class="wt-val"></span><span class="wt-unit"></span><span class="wt-trend" aria-hidden="true"></span>';
+    row.querySelector('.meta').appendChild(chip);
+    chip.addEventListener('click', function(e){
+      e.stopPropagation();
+      openWeightPanel(row);
+    });
+    renderChip(row);
+  });
+
+  /* enables :active press feedback on the div rows in iOS Safari */
+  document.addEventListener('touchstart', function(){}, { passive: true });
 
   var todayCard = document.querySelector('.day.today');
   if (todayCard && !location.hash){
