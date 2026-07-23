@@ -160,7 +160,7 @@
   }
   .tab.active{background:var(--ink);border-color:var(--ink);color:var(--floor)}
   .tab:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  .topbar.progress .daynav{display:none}
+  .topbar.away .daynav{display:none}
   .daynav{
     display:flex;gap:5px;
     padding-bottom:10px;
@@ -220,6 +220,9 @@
   }
   .day-check.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
   .day-check:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  /* rest days complete themselves by date — no control to show */
+  .day.rest .day-check{border-color:transparent;pointer-events:none}
+  .day.rest .day-check.on{background:none;color:var(--rest)}
   .day-body{
     display:grid;grid-template-rows:1fr;
     transition:grid-template-rows .25s ease;
@@ -470,6 +473,74 @@
   }
   .pg-note{font-size:11px;color:var(--rest);margin-top:4px}
 
+  /* ---------- history tab ---------- */
+  .hist-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    margin-bottom:10px;
+  }
+  .hist-head h2{
+    font-family:var(--display);font-size:15px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em;
+  }
+  .hist-streak{
+    font-family:var(--mono);font-size:11px;font-weight:500;
+    color:var(--court-deep);border:1px solid var(--court);
+    padding:3px 8px;border-radius:2px;white-space:nowrap;
+  }
+  .cal{
+    background:var(--panel);border:1px solid var(--line);border-radius:4px;
+    padding:12px 14px;margin-bottom:14px;
+  }
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .cal-title{
+    font-family:var(--display);font-size:15px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.05em;
+  }
+  .cal-nav button{
+    width:40px;height:38px;
+    font-family:var(--mono);font-size:15px;color:var(--ink);
+    background:none;border:1px solid var(--line);border-radius:4px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .cal-nav button:disabled{opacity:.35;cursor:default}
+  .cal-nav button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-grid .dow{
+    font-family:var(--mono);font-size:9.5px;color:var(--rest);
+    text-align:center;padding:2px 0;text-transform:uppercase;
+  }
+  .cal-cell{
+    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;
+    border-radius:4px;position:relative;color:var(--ink);
+  }
+  .cal-cell.c-future{color:var(--rest);opacity:.45}
+  .cal-cell.c-done{background:var(--court);color:var(--on-court);font-weight:500}
+  .cal-cell.c-ball{background:var(--ink);color:var(--floor);font-weight:500}
+  .cal-cell.c-assumed{box-shadow:inset 0 0 0 1.5px var(--court);color:var(--court-deep)}
+  .cal-cell.c-rest::after{
+    content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+    width:4px;height:4px;border-radius:50%;background:var(--rest);
+  }
+  .cal-cell.c-today{box-shadow:0 0 0 2px var(--tape)}
+  .cal-cell.c-today.c-assumed{box-shadow:0 0 0 2px var(--tape),inset 0 0 0 1.5px var(--court)}
+  .cal-legend{
+    display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;
+    font-family:var(--mono);font-size:10.5px;color:var(--rest);
+  }
+  .cal-legend i{
+    display:inline-block;width:10px;height:10px;border-radius:2px;
+    margin-right:5px;vertical-align:-1px;font-style:normal;
+  }
+  .wk-lines{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+  .wk-lines div{
+    display:flex;justify-content:space-between;gap:10px;
+    font-family:var(--mono);font-size:12px;color:var(--rest);
+    font-variant-numeric:tabular-nums;
+  }
+  .wk-lines b{color:var(--ink);font-weight:500;text-align:right}
+
   /* ---------- week-complete celebration ---------- */
   .celebrate{
     position:fixed;inset:0;z-index:50;
@@ -532,6 +603,27 @@
 
   .day.rest .day-head{padding-bottom:12px}
   .rest-note{padding:0 14px 12px;font-size:13.5px;color:var(--rest)}
+
+  /* ---------- game-effort toggle ---------- */
+  .fx{
+    display:flex;align-items:center;gap:6px;
+    padding:10px 14px;
+    border-top:1px solid var(--row-line);
+  }
+  .fx-lab{
+    font-family:var(--mono);font-size:10.5px;color:var(--rest);
+    text-transform:uppercase;letter-spacing:.08em;margin-right:2px;
+  }
+  .fx-btn{
+    flex:1;max-width:78px;min-height:38px;
+    font-family:var(--mono);font-size:11.5px;font-weight:500;
+    color:var(--rest);background:none;
+    border:1px solid var(--line);border-radius:4px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .fx-btn.on{background:var(--ink);border-color:var(--ink);color:var(--floor)}
+  .fx-btn:focus-visible{outline:2px solid var(--court);outline-offset:2px}
 
   /* ---------- daily rehab strip ---------- */
   .rehab{
@@ -703,6 +795,7 @@
   <div class="tabs" role="tablist" aria-label="View">
     <button type="button" class="tab active" id="tab-week" role="tab" aria-selected="true" aria-controls="view-week">This Week</button>
     <button type="button" class="tab" id="tab-progress" role="tab" aria-selected="false" aria-controls="view-progress">Progress</button>
+    <button type="button" class="tab" id="tab-history" role="tab" aria-selected="false" aria-controls="view-history">History</button>
   </div>
   <nav class="daynav" aria-label="Jump to day">
     <a href="#d-mon" data-day="1">Mon</a>
@@ -795,6 +888,13 @@
       </div>
     </div>
     </div></div>
+    <!-- outside the collapsible body: still reachable once the game is ticked off -->
+    <div class="fx" id="game-fx">
+      <span class="fx-lab">Game effort</span>
+      <button type="button" class="fx-btn" data-e="0">Low</button>
+      <button type="button" class="fx-btn" data-e="1">Med</button>
+      <button type="button" class="fx-btn" data-e="2">High</button>
+    </div>
   </section>
 
   <!-- THURSDAY -->
@@ -928,6 +1028,8 @@
 
   <div id="view-progress" role="tabpanel" aria-labelledby="tab-progress" hidden></div>
 
+  <div id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden></div>
+
   <!-- BACKUP / RESTORE -->
   <div class="backup" id="backup" hidden>
     <div class="bk-card">
@@ -973,12 +1075,11 @@
     var week = 1 + Math.round(((t - firstThu) / 864e5 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
     return t.getUTCFullYear() + '-W' + (week < 10 ? '0' : '') + week;
   }
-  function freshStore(){ return { week: weekId(), sets: {}, rehab: [], rest: [], celebrated: false }; }
+  function freshStore(){ return { week: weekId(), sets: {}, rehab: [], celebrated: false }; }
 
   var store;
   try { store = JSON.parse(localStorage.getItem(STORE_KEY)) || freshStore(); } catch (e) { store = freshStore(); }
   if (store.week !== weekId()) store = freshStore();
-  if (!store.rest) store.rest = []; /* migrate stores saved before day check-off existed */
   function save(){
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
   }
@@ -995,6 +1096,21 @@
     if (!wstore.variants) wstore.variants = {};
     if (!wstore.bw) wstore.bw = [];
     if (!wstore.weeksDone) wstore.weeksDone = [];
+    if (!wstore.daysDone) wstore.daysDone = {}; /* dn -> 1 logged, 2 assumed */
+    if (!wstore.game) wstore.game = [];         /* [{ew, e: 0|1|2}] */
+    /* one-time: weeks completed before day-level tracking existed get their
+       training days marked "assumed" so the calendar isn't empty */
+    if (!wstore.backfilled){
+      wstore.weeksDone.forEach(function(w){
+        if (w >= epochWeek()) return;
+        [0, 2, 3, 5, 6].forEach(function(off){
+          var dn = 7 * w - 3 + off;
+          if (!wstore.daysDone[dn]) wstore.daysDone[dn] = 2;
+        });
+      });
+      wstore.backfilled = 1;
+      saveW();
+    }
   }
   migrateW();
   function saveW(){
@@ -1110,11 +1226,29 @@
 
   function dayIsDone(section){
     var dayRows = section.querySelectorAll('.row');
-    if (!dayRows.length) return store.rest.indexOf(section.id) !== -1;
+    /* rest days complete themselves once their date arrives */
+    if (!dayRows.length) return ((+section.dataset.day + 6) % 7) <= todayIdx;
     for (var i = 0; i < dayRows.length; i++){
       if ((store.sets[dayRows[i].dataset.id] || 0) < +dayRows[i].dataset.sets) return false;
     }
     return true;
+  }
+
+  /* keep the permanent day-level log in step with this week's live state;
+     stamps carry the routine day's own date, not the tap date */
+  function stampWeek(){
+    var changed = false, monday = todayDn() - todayIdx;
+    days.forEach(function(sec){
+      if (!sec.querySelectorAll('.row').length) return;
+      var dn = monday + ((+sec.dataset.day + 6) % 7);
+      if (dayIsDone(sec)){
+        if (wstore.daysDone[dn] !== 1){ wstore.daysDone[dn] = 1; changed = true; }
+      } else if (wstore.daysDone[dn]){
+        delete wstore.daysDone[dn];
+        changed = true;
+      }
+    });
+    if (changed) saveW();
   }
 
   function refreshDay(section){
@@ -1157,6 +1291,8 @@
     days.forEach(function(sec){ sec.classList.toggle('closed', dayIsDone(sec)); });
     renderRehab();
     renderChips();
+    renderEffort();
+    stampWeek();
   }
 
   /* ---- weight chips + entry panel ---- */
@@ -1595,6 +1731,135 @@
     viewProg.appendChild(note);
   }
 
+  /* ---- history tab: month calendar + week roll-ups ---- */
+  function ewOf(dn){ return Math.floor((dn + 3) / 7); }
+  function mondayDnOf(w){ return 7 * w - 3; }
+  function weekActive(w){
+    if (wstore.weeksDone.indexOf(w) !== -1) return true;
+    var m = mondayDnOf(w);
+    return [0, 2, 3, 5, 6].some(function(off){ return wstore.daysDone[m + off]; });
+  }
+  function liftsUpFor(w){
+    var up = 0;
+    Object.keys(wstore.wt).forEach(function(k){
+      var cur = null, prev = null;
+      entriesFor(k).forEach(function(e){
+        if (e.w == null) return;
+        if (e.ew === w) cur = e;
+        else if (e.ew < w && (!prev || e.ew > prev.ew)) prev = e;
+      });
+      if (cur && prev && cur.w > prev.w) up++;
+    });
+    return up;
+  }
+  function firstDataDn(){
+    var min = todayDn();
+    Object.keys(wstore.daysDone).forEach(function(k){ if (+k < min) min = +k; });
+    wstore.weeksDone.forEach(function(w){ var d = mondayDnOf(w); if (d < min) min = d; });
+    return min;
+  }
+
+  var calY = null, calM = null;
+
+  function calHtml(){
+    var tdn = todayDn();
+    var firstDn = Date.UTC(calY, calM, 1) / 864e5;
+    var dow0 = (new Date(Date.UTC(calY, calM, 1)).getUTCDay() + 6) % 7;
+    var nDays = new Date(Date.UTC(calY, calM + 1, 0)).getUTCDate();
+    var fd = new Date(firstDataDn() * 864e5);
+    var atMin = calY < fd.getUTCFullYear() || (calY === fd.getUTCFullYear() && calM <= fd.getUTCMonth());
+    var now = new Date(tdn * 864e5);
+    var atMax = calY > now.getUTCFullYear() || (calY === now.getUTCFullYear() && calM >= now.getUTCMonth());
+    var h = '<div class="cal-head"><span class="cal-title">' + MONTHS[calM] + ' ' + calY + '</span>' +
+      '<span class="cal-nav">' +
+      '<button type="button" id="cal-prev" aria-label="Previous month"' + (atMin ? ' disabled' : '') + '>‹</button> ' +
+      '<button type="button" id="cal-next" aria-label="Next month"' + (atMax ? ' disabled' : '') + '>›</button>' +
+      '</span></div><div class="cal-grid">';
+    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(function(l){ h += '<span class="dow">' + l + '</span>'; });
+    for (var b = 0; b < dow0; b++) h += '<span></span>';
+    for (var d = 1; d <= nDays; d++){
+      var dn = firstDn + d - 1;
+      var dow = (dow0 + d - 1) % 7;
+      var cls = 'cal-cell';
+      if (dn === tdn) cls += ' c-today';
+      if (dn > tdn){
+        cls += ' c-future';
+      } else if (dow === 1 || dow === 4){
+        if (weekActive(ewOf(dn))) cls += ' c-rest';
+      } else {
+        var v = wstore.daysDone[dn];
+        if (v === 1) cls += dow === 2 ? ' c-ball' : ' c-done';
+        else if (v === 2) cls += ' c-assumed';
+      }
+      h += '<span class="' + cls + '">' + d + '</span>';
+    }
+    h += '</div><div class="cal-legend">' +
+      '<span><i style="background:var(--court)"></i>trained</span>' +
+      '<span><i style="background:var(--ink)"></i>game</span>' +
+      '<span><i style="box-shadow:inset 0 0 0 1.5px var(--court)"></i>before tracking</span>' +
+      '<span><i style="background:var(--rest);border-radius:50%"></i>rest</span>' +
+      '</div>';
+    return h;
+  }
+
+  function buildHistory(){
+    var vh = document.getElementById('view-history');
+    vh.innerHTML = '';
+    if (calY === null){
+      var n = new Date(todayDn() * 864e5);
+      calY = n.getUTCFullYear();
+      calM = n.getUTCMonth();
+    }
+    var ew = epochWeek();
+    var streakFrom = wstore.weeksDone.indexOf(ew) !== -1 ? ew : ew - 1;
+    var streak = 0;
+    while (wstore.weeksDone.indexOf(streakFrom - streak) !== -1) streak++;
+
+    var head = document.createElement('div');
+    head.className = 'hist-head';
+    head.innerHTML = '<h2>Training log</h2>' +
+      (streak ? '<span class="hist-streak">streak · ' + streak + ' wk</span>' : '');
+    vh.appendChild(head);
+
+    var cal = document.createElement('div');
+    cal.className = 'cal';
+    function renderCal(){
+      cal.innerHTML = calHtml();
+      cal.querySelector('#cal-prev').addEventListener('click', function(){
+        calM--; if (calM < 0){ calM = 11; calY--; }
+        renderCal();
+      });
+      cal.querySelector('#cal-next').addEventListener('click', function(){
+        calM++; if (calM > 11){ calM = 0; calY++; }
+        renderCal();
+      });
+    }
+    renderCal();
+    vh.appendChild(cal);
+
+    var lines = '';
+    for (var k = 0; k < 12; k++){
+      var w = ew - k;
+      if (!weekActive(w)) continue;
+      var m = mondayDnOf(w);
+      var done = 0;
+      [0, 2, 3, 5, 6].forEach(function(off){ if (wstore.daysDone[m + off]) done++; });
+      var restC = w < ew ? 2 : (todayIdx >= 4 ? 2 : todayIdx >= 1 ? 1 : 0);
+      var bits = [(done + restC) + '/7 days'];
+      var up = liftsUpFor(w);
+      if (up) bits.push(up + (up === 1 ? ' lift up' : ' lifts up'));
+      var ge = gameEffort(w);
+      if (ge != null) bits.push('game ' + ['low', 'med', 'high'][ge]);
+      lines += '<div><span>' + (w === ew ? 'this week' : 'wk of ' + dayLabel(m)) + '</span><b>' + bits.join(' · ') + '</b></div>';
+    }
+    var list = document.createElement('div');
+    list.className = 'chart-card';
+    list.innerHTML = '<div class="cc-head"><span class="cc-name">Recent weeks</span></div>' +
+      (lines ? '<div class="wk-lines">' + lines + '</div>'
+             : '<div class="cc-note">Completed days will collect here week by week.</div>');
+    vh.appendChild(list);
+  }
+
   /* ---- week-complete celebration ---- */
   var cel = document.getElementById('celebrate');
 
@@ -1610,16 +1875,7 @@
     if (wstore.weeksDone.indexOf(ew) === -1){ wstore.weeksDone.push(ew); saveW(); }
     var streak = 0;
     while (wstore.weeksDone.indexOf(ew - streak) !== -1) streak++;
-    var up = 0;
-    Object.keys(wstore.wt).forEach(function(k){
-      var cur = null, prev = null;
-      entriesFor(k).forEach(function(e){
-        if (e.w == null) return;
-        if (e.ew === ew) cur = e;
-        else if (e.ew < ew && (!prev || e.ew > prev.ew)) prev = e;
-      });
-      if (cur && prev && cur.w > prev.w) up++;
-    });
+    var up = liftsUpFor(ew);
     var bits = [];
     if (streak > 1) bits.push(streak + ' weeks in a row');
     if (up > 0) bits.push(up + (up === 1 ? ' lift' : ' lifts') + ' moved up');
@@ -1720,6 +1976,7 @@
       refreshDay(sec);
       var full = dayIsDone(sec);
       sec.classList.toggle('closed', full);
+      stampWeek();
       if (full) maybeCelebrate();
     });
     /* rows are divs with role=button, so Enter/Space need wiring by hand */
@@ -1736,6 +1993,34 @@
     if (at === -1) store.rehab.push(todayIdx); else store.rehab.splice(at, 1);
     save();
     renderRehab();
+  });
+
+  /* ---- game-effort toggle: one rating per week, kept in history ---- */
+  var fxBtns = document.querySelectorAll('#game-fx .fx-btn');
+  function gameEffort(w){
+    for (var i = 0; i < wstore.game.length; i++)
+      if (wstore.game[i].ew === w) return wstore.game[i].e;
+    return null;
+  }
+  function setGameEffort(e){
+    var w = epochWeek();
+    wstore.game = wstore.game.filter(function(g){ return g.ew !== w; });
+    if (e != null){
+      wstore.game.push({ ew: w, e: e });
+      if (wstore.game.length > 60) wstore.game.shift();
+    }
+    saveW();
+  }
+  function renderEffort(){
+    var cur = gameEffort(epochWeek());
+    fxBtns.forEach(function(b){ b.classList.toggle('on', +b.dataset.e === cur); });
+  }
+  fxBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = +b.dataset.e;
+      setGameEffort(gameEffort(epochWeek()) === v ? null : v);
+      renderEffort();
+    });
   });
 
   /* two-tap confirm — confirm() dialogs can be silently blocked in the
@@ -1808,7 +2093,6 @@
         if (!store.week) store.week = '';
         if (!store.sets) store.sets = {};
         if (!store.rehab) store.rehab = [];
-        if (!store.rest) store.rest = [];
       }
       if (data.history && typeof data.history === 'object'){
         wstore = data.history;
@@ -1848,27 +2132,28 @@
      toggles the collapsed state of any day */
   days.forEach(function(sec){
     var check = sec.querySelector('.day-check');
-    var name = sec.querySelector('.day-name').textContent;
-    check.setAttribute('aria-label', 'Mark ' + name + ' complete');
-    check.addEventListener('click', function(e){
-      e.stopPropagation();
-      var dayRows = sec.querySelectorAll('.row');
-      var was = dayIsDone(sec);
-      if (dayRows.length){
+    var dayRows = sec.querySelectorAll('.row');
+    if (dayRows.length){
+      check.setAttribute('aria-label', 'Mark ' + sec.querySelector('.day-name').textContent + ' complete');
+      check.addEventListener('click', function(e){
+        e.stopPropagation();
+        var was = dayIsDone(sec);
         Array.prototype.forEach.call(dayRows, function(r){
           store.sets[r.dataset.id] = was ? 0 : +r.dataset.sets;
         });
-      } else {
-        var at = store.rest.indexOf(sec.id);
-        if (at === -1) store.rest.push(sec.id); else store.rest.splice(at, 1);
-      }
-      save();
-      sec.querySelectorAll('.row').forEach(renderRow);
-      refreshDay(sec);
-      var full = dayIsDone(sec);
-      sec.classList.toggle('closed', full);
-      if (full) maybeCelebrate();
-    });
+        save();
+        dayRows.forEach(renderRow);
+        refreshDay(sec);
+        var full = dayIsDone(sec);
+        sec.classList.toggle('closed', full);
+        stampWeek();
+        if (full) maybeCelebrate();
+      });
+    } else {
+      /* rest days complete themselves — the circle is a passive indicator */
+      check.setAttribute('aria-hidden', 'true');
+      check.tabIndex = -1;
+    }
     sec.querySelector('.day-head').addEventListener('click', function(){
       sec.classList.toggle('closed');
     });
@@ -1889,29 +2174,37 @@
 
   /* ---- tab switching ---- */
   var topbar = document.querySelector('.topbar');
-  var viewWeek = document.getElementById('view-week');
-  var viewProg = document.getElementById('view-progress');
-  var tabWeek = document.getElementById('tab-week');
-  var tabProg = document.getElementById('tab-progress');
-  function selectTab(prog){
-    viewWeek.hidden = prog;
-    viewProg.hidden = !prog;
-    topbar.classList.toggle('progress', prog);
-    tabWeek.classList.toggle('active', !prog);
-    tabProg.classList.toggle('active', prog);
-    tabWeek.setAttribute('aria-selected', String(!prog));
-    tabProg.setAttribute('aria-selected', String(prog));
+  var views = {
+    week: document.getElementById('view-week'),
+    progress: document.getElementById('view-progress'),
+    history: document.getElementById('view-history')
+  };
+  var tabBtns = {
+    week: document.getElementById('tab-week'),
+    progress: document.getElementById('tab-progress'),
+    history: document.getElementById('tab-history')
+  };
+  var viewProg = views.progress;
+  function selectTab(name){
+    Object.keys(views).forEach(function(k){
+      views[k].hidden = k !== name;
+      tabBtns[k].classList.toggle('active', k === name);
+      tabBtns[k].setAttribute('aria-selected', String(k === name));
+    });
+    topbar.classList.toggle('away', name !== 'week');
     closePanel();
-    if (prog){
-      buildProgress();
-      window.scrollTo(0, 0);
-    } else {
+    if (name === 'progress') buildProgress();
+    if (name === 'history') buildHistory();
+    if (name === 'week'){
       var t = document.querySelector('.day.today');
       if (t) t.scrollIntoView({ block: 'start', behavior: 'instant' });
+    } else {
+      window.scrollTo(0, 0);
     }
   }
-  tabWeek.addEventListener('click', function(){ selectTab(false); });
-  tabProg.addEventListener('click', function(){ selectTab(true); });
+  Object.keys(tabBtns).forEach(function(k){
+    tabBtns[k].addEventListener('click', function(){ selectTab(k); });
+  });
 
   var todayCard = document.querySelector('.day.today');
   if (todayCard && !location.hash){
