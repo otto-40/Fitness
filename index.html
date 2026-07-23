@@ -7,6 +7,10 @@
 <meta name="theme-color" content="#F6EFE3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#15201C" media="(prefers-color-scheme: dark)">
 <title>Sam's Training Week</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Training">
 <style>
   /* Oswald 600 + IBM Plex Mono 500, latin subsets, embedded so the page
      works offline and inside the artifact CSP (no external hosts). */
@@ -314,6 +318,52 @@
     background:var(--finisher-bg);
     padding:12px 14px;
   }
+  .wt-var{
+    display:flex;gap:6px;margin-bottom:10px;
+  }
+  .wt-var button{
+    flex:1;min-height:36px;
+    font-family:var(--mono);font-size:11.5px;font-weight:500;
+    color:var(--rest);background:none;
+    border:1px solid var(--line);border-radius:4px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wt-var button.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
+  .wt-var button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .wt-reps{
+    display:flex;align-items:center;gap:6px;margin-top:10px;
+  }
+  .wt-reps-lab{
+    font-family:var(--mono);font-size:10.5px;color:var(--rest);
+    text-transform:uppercase;letter-spacing:.08em;margin-right:2px;
+  }
+  .wt-rep{
+    flex:1;max-width:64px;min-height:40px;
+    font-family:var(--mono);font-size:14px;font-weight:500;
+    font-variant-numeric:tabular-nums;
+    color:var(--court-deep);background:var(--panel);
+    border:1px solid var(--line);border-radius:4px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wt-rep.unset{color:var(--rest)}
+  .wt-rep.top{border-color:var(--court);background:var(--tap-flash)}
+  .wt-rep:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .wt-hint{
+    margin-top:10px;font-size:12.5px;color:var(--court-deep);
+    padding-left:16px;position:relative;
+  }
+  .wt-hint::before{
+    content:"";position:absolute;left:0;top:5px;
+    width:8px;height:8px;background:var(--tape);border-radius:1px;
+  }
+  .wt-pr{
+    display:inline-block;margin-left:6px;
+    font-family:var(--mono);font-size:10px;font-weight:500;
+    letter-spacing:.08em;color:#15201C;background:var(--tape);
+    padding:2px 6px;border-radius:2px;
+  }
   .wt-adjust{display:flex;align-items:stretch;gap:8px}
   .wt-step{
     flex:1;min-height:46px;
@@ -347,6 +397,7 @@
     font-variant-numeric:tabular-nums;
   }
   .wt-hist b{color:var(--ink);font-weight:500}
+  .wt-hist .wt-h-reps{color:var(--rest);font-weight:400}
   .wt-hist em{font-style:normal;color:var(--court)}
   .wt-hist em.neg{color:var(--tape)}
   .wt-hist .wt-none{display:block;font-family:inherit;color:var(--rest);font-size:12.5px}
@@ -445,6 +496,11 @@
     text-transform:uppercase;letter-spacing:.01em;
   }
   .cel-card p{margin-top:14px;font-size:14px;color:#CFC9BC}
+  .cel-stats{
+    font-family:var(--mono);font-size:12.5px;color:var(--tape) !important;
+    letter-spacing:.04em;
+  }
+  .cel-stats:empty{display:none}
   .cel-actions{
     margin-top:26px;display:flex;gap:10px;justify-content:center;
     opacity:0;animation:celfade .4s ease 1s forwards;
@@ -544,11 +600,77 @@
   }
   .rules li.caution::before{background:var(--tape)}
 
+  /* ---------- body-weight log ---------- */
+  .bw-form{
+    display:flex;gap:8px;align-items:stretch;margin-top:10px;flex-wrap:wrap;
+  }
+  .bw-form label{
+    flex:1;min-width:90px;
+    display:flex;align-items:center;gap:5px;
+    background:var(--floor);border:1px solid var(--line);border-radius:4px;
+    padding:0 10px;min-height:44px;
+    font-family:var(--mono);font-size:11px;color:var(--rest);
+  }
+  .bw-form input{
+    width:100%;min-width:0;border:none;background:none;color:var(--ink);
+    font-family:var(--mono);font-size:16px;font-weight:500;text-align:right;
+    font-variant-numeric:tabular-nums;outline:none;
+  }
+  .bw-form input::-webkit-inner-spin-button,
+  .bw-form input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  #bw-save{
+    font-family:var(--mono);font-size:12px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--on-court);background:var(--court);
+    border:none;border-radius:4px;padding:0 16px;min-height:44px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #bw-save:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+
+  /* ---------- backup / restore ---------- */
+  .backup{
+    position:fixed;inset:0;z-index:60;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(14,21,18,.7);
+    padding:20px;
+  }
+  .backup[hidden]{display:none}
+  .bk-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:18px 16px;max-width:520px;width:100%;
+  }
+  .bk-card h3{
+    font-family:var(--display);font-size:16px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
+  }
+  .bk-note{font-size:12.5px;color:var(--rest);margin-bottom:10px}
+  #bk-text{
+    width:100%;resize:vertical;
+    font-family:var(--mono);font-size:11px;line-height:1.5;
+    color:var(--ink);background:var(--floor);
+    border:1px solid var(--line);border-radius:4px;
+    padding:8px;outline:none;
+  }
+  #bk-text:focus-visible{outline:2px solid var(--court);outline-offset:1px}
+  .bk-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+  .bk-actions button{
+    font-family:var(--mono);font-size:12px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    border-radius:4px;padding:10px 16px;min-height:42px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    background:none;border:1px solid var(--line);color:var(--rest);
+  }
+  .bk-actions #bk-copy{background:var(--court);border-color:var(--court);color:var(--on-court)}
+  .bk-actions button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+
   /* ---------- footer ---------- */
   .foot{
     margin-top:20px;display:flex;justify-content:space-between;align-items:center;gap:10px;
   }
   .foot small{font-size:11px;color:var(--rest)}
+  .foot-btns{display:flex;gap:6px;flex-shrink:0}
   .reset-btn{
     font-family:var(--mono);font-size:11px;font-weight:500;
     color:var(--rest);background:none;
@@ -616,19 +738,19 @@
     </header>
     <div class="day-body"><div class="day-inner">
     <div class="rows">
-      <div class="row" role="button" tabindex="0" data-id="mon-1" data-sets="4" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="mon-1" data-sets="4" data-wt data-reps="6-8" data-variants="Leg press|Goblet squat">
         <span class="ex">Leg press <em>or</em> goblet squat<span class="why">leg strength = longevity anchor</span></span>
         <span class="meta"><span class="rx">4 × 6–8</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="mon-2" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="mon-2" data-sets="3" data-wt data-reps="8">
         <span class="ex">Bulgarian split squat<span class="why">single-leg control for cuts &amp; landings</span></span>
         <span class="meta"><span class="rx">3 × 8 /leg</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="mon-3" data-sets="4" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="mon-3" data-sets="4" data-wt data-reps="6-8">
         <span class="ex">DB bench press — neutral grip<span class="why">press strength, low wrist torque</span></span>
         <span class="meta"><span class="rx">4 × 6–8</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="mon-4" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="mon-4" data-sets="3" data-wt data-reps="15">
         <span class="ex">Seated calf ⇄ tibialis raise<span class="why">ankle armour — hoops injury #1</span></span>
         <span class="meta"><span class="rx">3 × 15 ea</span></span>
       </div>
@@ -685,19 +807,19 @@
     </header>
     <div class="day-body"><div class="day-inner">
     <div class="rows">
-      <div class="row" role="button" tabindex="0" data-id="thu-1" data-sets="4" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="thu-1" data-sets="4" data-wt data-reps="5-6" data-variants="Trap bar DL|RDL">
         <span class="ex">Trap bar / RDL — <strong>use straps</strong><span class="why">posterior chain; straps spare the elbow</span></span>
         <span class="meta"><span class="rx">4 × 5–6</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="thu-2" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="thu-2" data-sets="3" data-wt data-reps="8-10">
         <span class="ex">Chest-supported row — neutral grip<span class="why">strict pulling, no momentum on the tendon</span></span>
         <span class="meta"><span class="rx">3 × 8–10</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="thu-3" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="thu-3" data-sets="3" data-wt data-reps="10">
         <span class="ex">Lat pulldown — neutral grip<span class="why">vertical pull minus pull-up hang</span></span>
         <span class="meta"><span class="rx">3 × 10</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="thu-4" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="thu-4" data-sets="3" data-wt data-reps="8">
         <span class="ex">Overhead DB press — neutral grip<span class="why">shoulder strength for rebounds/contests</span></span>
         <span class="meta"><span class="rx">3 × 8</span></span>
       </div>
@@ -736,19 +858,19 @@
     </header>
     <div class="day-body"><div class="day-inner">
     <div class="rows">
-      <div class="row" role="button" tabindex="0" data-id="sat-1" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="sat-1" data-sets="3" data-wt data-reps="8" data-variants="Hip thrust|45° back extension">
         <span class="ex">Hip thrust <em>or</em> 45° back extension<span class="why">glute drive → jump &amp; sprint, spares knees</span></span>
         <span class="meta"><span class="rx">3 × 8</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="sat-2" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="sat-2" data-sets="3" data-wt data-reps="8-10">
         <span class="ex">Incline DB press<span class="why">2×/week pressing beats 1× for muscle</span></span>
         <span class="meta"><span class="rx">3 × 8–10</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="sat-3" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="sat-3" data-sets="3" data-wt data-reps="10">
         <span class="ex">Cable row<span class="why">pulling volume, elbow-friendly</span></span>
         <span class="meta"><span class="rx">3 × 10</span></span>
       </div>
-      <div class="row" role="button" tabindex="0" data-id="sat-4" data-sets="3" data-wt>
+      <div class="row" role="button" tabindex="0" data-id="sat-4" data-sets="3" data-wt data-reps="12">
         <span class="ex">Single-leg calf raise<span class="why">Achilles capacity, side-to-side balance</span></span>
         <span class="meta"><span class="rx">3 × 12 /leg</span></span>
       </div>
@@ -796,12 +918,29 @@
 
   <div class="foot">
     <small>Tap an exercise to log a set, tap its weight chip to record the load · sets reset every Monday, weights keep their history · saved on this device</small>
-    <button class="reset-btn" id="reset-btn" type="button">Reset week</button>
+    <span class="foot-btns">
+      <button class="reset-btn" id="backup-btn" type="button">Backup</button>
+      <button class="reset-btn" id="reset-btn" type="button">Reset week</button>
+    </span>
   </div>
 
   </div><!-- /view-week -->
 
   <div id="view-progress" role="tabpanel" aria-labelledby="tab-progress" hidden></div>
+
+  <!-- BACKUP / RESTORE -->
+  <div class="backup" id="backup" hidden>
+    <div class="bk-card">
+      <h3>Backup &amp; restore</h3>
+      <p class="bk-note">Copy this text somewhere safe (notes, email). To move to a new phone or recover, paste a saved backup below and tap Restore.</p>
+      <textarea id="bk-text" rows="7" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+      <div class="bk-actions">
+        <button type="button" id="bk-copy">Copy</button>
+        <button type="button" id="bk-restore">Restore</button>
+        <button type="button" id="bk-close">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- WEEK-COMPLETE CELEBRATION -->
   <div class="celebrate" id="celebrate" hidden>
@@ -810,6 +949,7 @@
       <div class="cel-eyebrow">All seven days checked</div>
       <h2>Week<br>Complete</h2>
       <p>3 lifts, 1 game, rehab, rest. That's how weeks compound.</p>
+      <p class="cel-stats" id="cel-stats"></p>
       <div class="cel-actions">
         <button type="button" id="cel-reset">Reset week</button>
         <button type="button" id="cel-close">Not yet</button>
@@ -843,13 +983,20 @@
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
   }
 
-  /* ---- progressive overload: weights live under their own key so the
-     Monday reset (and the Reset week button) never touches them ---- */
+  /* ---- history store: weights, reps, variants, body weight, completed
+     weeks — all under one key the Monday reset never touches ---- */
   var WT_KEY = 'sams-training-weights';
   var wstore;
   try { wstore = JSON.parse(localStorage.getItem(WT_KEY)) || {}; } catch (e) { wstore = {}; }
-  if (!wstore.wt) wstore.wt = {};
-  if (!wstore.unit) wstore.unit = 'kg';
+  function migrateW(){
+    if (!wstore || typeof wstore !== 'object') wstore = {};
+    if (!wstore.wt) wstore.wt = {};
+    if (!wstore.unit) wstore.unit = 'kg';
+    if (!wstore.variants) wstore.variants = {};
+    if (!wstore.bw) wstore.bw = [];
+    if (!wstore.weeksDone) wstore.weeksDone = [];
+  }
+  migrateW();
   function saveW(){
     try { localStorage.setItem(WT_KEY, JSON.stringify(wstore)); } catch (e) {}
   }
@@ -866,21 +1013,42 @@
     return (last && last.ew === epochWeek()) ? last : null;
   }
   function previousEntry(id){
+    /* latest prior week WITH a weight — reps-only entries don't count */
     var es = entriesFor(id), ew = epochWeek();
-    for (var i = es.length - 1; i >= 0; i--) if (es[i].ew < ew) return es[i];
+    for (var i = es.length - 1; i >= 0; i--)
+      if (es[i].ew < ew && es[i].w != null) return es[i];
     return null;
   }
-  function setWeight(id, w){
-    var es = entriesFor(id), ew = epochWeek(), last = es[es.length - 1];
+  function hasReps(e){
+    return e && e.r && e.r.some(function(x){ return x != null; });
+  }
+  function setWeight(key, w){
+    var es = entriesFor(key), ew = epochWeek(), last = es[es.length - 1];
     if (w === null){
-      if (last && last.ew === ew) es.pop();
+      if (last && last.ew === ew){
+        if (hasReps(last)) last.w = null;
+        else es.pop();
+      }
     } else if (last && last.ew === ew){
       last.w = w;
     } else {
       es.push({ ew: ew, w: w });
       if (es.length > 30) es.shift();
     }
-    wstore.wt[id] = es;
+    wstore.wt[key] = es;
+    saveW();
+  }
+  function setRep(key, setIdx, val){
+    var es = entriesFor(key), ew = epochWeek(), last = es[es.length - 1];
+    if (!last || last.ew !== ew){
+      last = { ew: ew, w: null, r: [] };
+      es.push(last);
+      if (es.length > 30) es.shift();
+    }
+    if (!last.r) last.r = [];
+    last.r[setIdx] = val;
+    if (last.w == null && !hasReps(last)) es.pop();
+    wstore.wt[key] = es;
     saveW();
   }
   function fmtW(w){ return String(Math.round(w * 100) / 100); }
@@ -893,6 +1061,25 @@
     var t = ex.textContent.replace(/\s+/g, ' ').trim();
     var cut = t.indexOf(' — ');
     return cut > 0 ? t.slice(0, cut) : t;
+  }
+
+  /* ---- variants: "A or B" rows keep one weight history per variant ---- */
+  function variantNames(row){
+    return row.dataset.variants ? row.dataset.variants.split('|') : null;
+  }
+  function variantIdx(id){ return wstore.variants[id] === 1 ? 1 : 0; }
+  function keyFor(row){
+    var id = row.dataset.id;
+    return variantIdx(id) === 1 ? id + '~1' : id;
+  }
+  function activeName(row){
+    var names = variantNames(row);
+    return names ? names[variantIdx(row.dataset.id)] : exName(row);
+  }
+  function repRange(row){
+    if (!row.dataset.reps) return null;
+    var p = row.dataset.reps.split('-');
+    return { lo: +p[0], hi: +(p[1] || p[0]) };
   }
 
   var todayDow, todayIdx;                        /* dow: 0 = Sun … 6 = Sat; idx: 0 = Mon … 6 = Sun */
@@ -979,7 +1166,9 @@
   function renderChip(row){
     var chip = row.querySelector('.wt');
     if (!chip) return;
-    var cur = currentEntry(row.dataset.id), prev = previousEntry(row.dataset.id);
+    var key = keyFor(row);
+    var cur = currentEntry(key), prev = previousEntry(key);
+    if (cur && cur.w == null) cur = null; /* reps-only entry: show last real weight */
     var val = chip.querySelector('.wt-val'), trend = chip.querySelector('.wt-trend');
     chip.classList.remove('is-set', 'is-prev', 'is-empty');
     trend.textContent = '';
@@ -997,22 +1186,27 @@
       chip.classList.add('is-empty');
     }
     chip.querySelector('.wt-unit').textContent = wstore.unit;
+    chip.setAttribute('aria-label', 'Weight for ' + activeName(row));
   }
   function renderChips(){ wtRows.forEach(renderChip); }
 
-  function histLines(id){
-    var es = entriesFor(id).slice(-5).reverse(), ew = epochWeek(), out = [];
+  function histLines(key){
+    var es = entriesFor(key).slice(-5).reverse(), ew = epochWeek(), out = [];
     es.forEach(function(e, i){
       var ago = ew - e.ew;
       var label = ago === 0 ? 'this week' : ago === 1 ? 'last week' : ago + ' wks ago';
-      var older = es[i + 1];
+      var older = null;
+      for (var j = i + 1; j < es.length; j++) if (es[j].w != null){ older = es[j]; break; }
       var d = '';
-      if (older && e.w !== older.w){
+      if (e.w != null && older && e.w !== older.w){
         var delta = e.w - older.w;
         d = ' <em' + (delta < 0 ? ' class="neg"' : '') + '>(' +
             (delta > 0 ? '+' : '') + fmtW(delta) + ')</em>';
       }
-      out.push('<div><span>' + label + '</span><b>' + fmtW(e.w) + d + '</b></div>');
+      var reps = hasReps(e)
+        ? ' <span class="wt-h-reps">· ' + e.r.map(function(x){ return x == null ? '–' : x; }).join(',') + '</span>'
+        : '';
+      out.push('<div><span>' + label + '</span><b>' + (e.w != null ? fmtW(e.w) : '—') + d + reps + '</b></div>');
     });
     return out.length ? out.join('')
                       : '<div class="wt-none">First time — log it now, beat it next week.</div>';
@@ -1025,37 +1219,113 @@
     openPanel = null;
   }
 
+  var prSeen = {};
+
+  function prFlash(panel){
+    var f = panel.querySelector('.wt-field');
+    if (f && !f.querySelector('.wt-pr')){
+      var tag = document.createElement('span');
+      tag.className = 'wt-pr';
+      tag.textContent = 'PR';
+      f.appendChild(tag);
+    }
+    var c = document.createElement('canvas');
+    c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:70;';
+    document.body.appendChild(c);
+    confettiBurst(c, 50, 1500, function(){ if (c.parentNode) c.parentNode.removeChild(c); });
+  }
+
   function openWeightPanel(row){
     var id = row.dataset.id;
-    if (openPanel && openPanel.id === id){ closePanel(); return; }
+    if (openPanel && openPanel.rowId === id){ closePanel(); return; }
     closePanel();
     var chip = row.querySelector('.wt');
-    var cur = currentEntry(id), prev = previousEntry(id);
-    var start = cur ? fmtW(cur.w) : (prev ? fmtW(prev.w) : '');
     var panel = document.createElement('div');
     panel.className = 'wt-panel';
-    panel.innerHTML =
+    row.insertAdjacentElement('afterend', panel);
+    openPanel = { rowId: id, panel: panel, chip: chip };
+    chip.setAttribute('aria-expanded', 'true');
+    buildPanel(row, panel);
+  }
+
+  function buildPanel(row, panel){
+    var id = row.dataset.id, key = keyFor(row);
+    var names = variantNames(row), range = repRange(row), sets = +row.dataset.sets;
+    var cur = currentEntry(key), prev = previousEntry(key);
+    var start = (cur && cur.w != null) ? fmtW(cur.w) : (prev ? fmtW(prev.w) : '');
+    var html = '';
+    if (names){
+      html += '<div class="wt-var">' + names.map(function(n, i){
+        return '<button type="button"' + (i === variantIdx(id) ? ' class="on"' : '') +
+               ' data-v="' + i + '">' + n + '</button>';
+      }).join('') + '</div>';
+    }
+    html +=
       '<div class="wt-adjust">' +
         '<button type="button" class="wt-step" data-step="-2.5" aria-label="2.5 less">−2.5</button>' +
         '<label class="wt-field"><input type="number" inputmode="decimal" step="0.5" min="0" value="' + start + '"><span>' + wstore.unit + '</span></label>' +
         '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 more">+2.5</button>' +
-      '</div>' +
-      '<div class="wt-hist">' + histLines(id) + '</div>' +
+      '</div>';
+    if (range){
+      html += '<div class="wt-reps"><span class="wt-reps-lab">reps</span>';
+      for (var i = 0; i < sets; i++){
+        var rv = (cur && cur.r) ? cur.r[i] : null;
+        html += '<button type="button" class="wt-rep' +
+                (rv == null ? ' unset' : (rv >= range.hi ? ' top' : '')) +
+                '" data-i="' + i + '" aria-label="Reps, set ' + (i + 1) + '">' +
+                (rv == null ? '–' : rv) + '</button>';
+      }
+      html += '</div>';
+    }
+    html += '<div class="wt-hint" data-hint hidden></div>' +
+      '<div class="wt-hist">' + histLines(key) + '</div>' +
       '<div class="wt-foot">' +
         '<button type="button" class="wt-unitbtn">' + (wstore.unit === 'kg' ? 'use lb' : 'use kg') + '</button>' +
         '<button type="button" class="wt-close">Done</button>' +
       '</div>';
-    row.insertAdjacentElement('afterend', panel);
-    openPanel = { id: id, panel: panel, chip: chip };
-    chip.setAttribute('aria-expanded', 'true');
+    panel.innerHTML = html;
 
-    var input = panel.querySelector('input');
+    var input = panel.querySelector('.wt-field input');
+
+    function repsAtTop(e){
+      if (!range || !e || !e.r) return false;
+      for (var i = 0; i < sets; i++) if (e.r[i] == null || e.r[i] < range.hi) return false;
+      return true;
+    }
+    function updateHint(){
+      var el = panel.querySelector('[data-hint]');
+      var c2 = currentEntry(key), p2 = previousEntry(key);
+      var msg = '';
+      if (repsAtTop(c2) && c2.w != null){
+        msg = 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + 2.5) + ' ' + wstore.unit + ' next week.';
+      } else if (repsAtTop(p2) && !(c2 && c2.w != null && c2.w > p2.w)){
+        msg = 'Top of range last week — try ' + fmtW(p2.w + 2.5) + ' ' + wstore.unit + '.';
+      }
+      el.textContent = msg;
+      el.hidden = !msg;
+    }
+    function refresh(){
+      renderChip(row);
+      panel.querySelector('.wt-hist').innerHTML = histLines(key);
+      updateHint();
+    }
     function commit(){
       var v = parseFloat(input.value);
-      if (isNaN(v) || v <= 0) setWeight(id, null);
-      else setWeight(id, Math.round(v * 4) / 4);
-      renderChip(row);
-      panel.querySelector('.wt-hist').innerHTML = histLines(id);
+      if (isNaN(v) || v <= 0){
+        setWeight(key, null);
+      } else {
+        var newW = Math.round(v * 4) / 4;
+        var oldMax = -Infinity, ew = epochWeek();
+        entriesFor(key).forEach(function(e){
+          if (e.ew < ew && e.w != null && e.w > oldMax) oldMax = e.w;
+        });
+        setWeight(key, newW);
+        if (isFinite(oldMax) && newW > oldMax && !prSeen[key + ':' + ew]){
+          prSeen[key + ':' + ew] = true;
+          prFlash(panel);
+        }
+      }
+      refresh();
     }
     input.addEventListener('input', commit);
     panel.querySelectorAll('.wt-step').forEach(function(b){
@@ -1067,14 +1337,40 @@
         commit();
       });
     });
+    panel.querySelectorAll('.wt-rep').forEach(function(b){
+      b.addEventListener('click', function(){
+        var i = +b.dataset.i;
+        var e = currentEntry(key);
+        var v = (e && e.r) ? e.r[i] : null;
+        /* cycle: – → lo … hi → – */
+        var next = v == null ? range.lo : (v >= range.hi ? null : v + 1);
+        setRep(key, i, next);
+        b.textContent = next == null ? '–' : next;
+        b.classList.toggle('unset', next == null);
+        b.classList.toggle('top', next != null && next >= range.hi);
+        refresh();
+      });
+    });
+    if (names){
+      panel.querySelectorAll('.wt-var button').forEach(function(b){
+        b.addEventListener('click', function(){
+          wstore.variants[id] = +b.dataset.v;
+          saveW();
+          renderChip(row);
+          buildPanel(row, panel); /* rebuild on the other variant's history */
+        });
+      });
+    }
     panel.querySelector('.wt-unitbtn').addEventListener('click', function(){
       wstore.unit = wstore.unit === 'kg' ? 'lb' : 'kg';
       saveW();
       this.textContent = wstore.unit === 'kg' ? 'use lb' : 'use kg';
       panel.querySelector('.wt-field span').textContent = wstore.unit;
       renderChips();
+      updateHint();
     });
     panel.querySelector('.wt-close').addEventListener('click', closePanel);
+    updateHint();
   }
 
   /* ---- progress tab: one week-on-week chart per weighted lift ---- */
@@ -1091,16 +1387,26 @@
     if (tipHide && !(e.target.closest && e.target.closest('.cc-plot'))) tipHide();
   }, true);
 
-  function buildChart(es, name){
+  function dayLabel(dn){
+    var d = new Date(dn * 864e5);
+    return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()];
+  }
+  function todayDn(){
+    var d = new Date();
+    return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+  }
+
+  /* generic line chart: pts = [{t, v}] ascending, any t axis */
+  function buildChart(pts0, name, axisLabel, tipFor, unit){
     var w = Math.max(260, viewProg.clientWidth - 30);
     var H = 130, pl = 42, pr = 14, pt = 16, pb = 22;
-    var vals = es.map(function(e){ return e.w; });
+    var vals = pts0.map(function(p){ return p.v; });
     var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
     var pad = Math.max(2.5, (hi - lo) * 0.2);
     lo = Math.max(0, Math.floor((lo - pad) / 2.5) * 2.5);
     hi = Math.ceil((hi + pad) / 2.5) * 2.5;
-    var e0 = es[0].ew, e1 = es[es.length - 1].ew, span = Math.max(1, e1 - e0);
-    function X(ew){ return pl + (ew - e0) / span * (w - pl - pr); }
+    var t0 = pts0[0].t, t1 = pts0[pts0.length - 1].t, span = Math.max(1, t1 - t0);
+    function X(t){ return pl + (t - t0) / span * (w - pl - pr); }
     function Y(v){ return pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb); }
 
     var g = '';
@@ -1111,9 +1417,9 @@
       g += '<line class="grid" x1="' + pl + '" y1="' + y + '" x2="' + (w - pr) + '" y2="' + y + '"/>' +
            '<text class="tick" x="' + (pl - 6) + '" y="' + (+y + 3) + '" text-anchor="end">' + fmtW(t) + '</text>';
     });
-    g += '<text class="xlab" x="' + pl + '" y="' + (H - 6) + '">' + weekLabel(e0) + '</text>' +
-         '<text class="xlab" x="' + (w - pr) + '" y="' + (H - 6) + '" text-anchor="end">' + weekLabel(e1) + '</text>';
-    var pts = es.map(function(e){ return { x: X(e.ew), y: Y(e.w), ew: e.ew, w: e.w }; });
+    g += '<text class="xlab" x="' + pl + '" y="' + (H - 6) + '">' + axisLabel(t0) + '</text>' +
+         '<text class="xlab" x="' + (w - pr) + '" y="' + (H - 6) + '" text-anchor="end">' + axisLabel(t1) + '</text>';
+    var pts = pts0.map(function(p){ return { x: X(p.t), y: Y(p.v), t: p.t, v: p.v }; });
     g += '<polyline class="ln" points="' +
          pts.map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ') + '"/>';
     g += '<line class="xh" x1="0" x2="0" y1="' + pt + '" y2="' + (H - pb) + '"/>';
@@ -1124,13 +1430,13 @@
     });
     var lastP = pts[pts.length - 1];
     g += '<text class="endlab" x="' + (lastP.x - 8).toFixed(1) + '" y="' +
-         Math.max(12, lastP.y - 9).toFixed(1) + '" text-anchor="end">' + fmtW(lastP.w) + '</text>';
+         Math.max(12, lastP.y - 9).toFixed(1) + '" text-anchor="end">' + fmtW(lastP.v) + '</text>';
 
     var wrap = document.createElement('div');
     wrap.className = 'cc-plot';
     wrap.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + H + '" role="img" aria-label="' +
-      name + ': ' + es.length + ' weeks logged, from ' + fmtW(es[0].w) + ' to ' +
-      fmtW(lastP.w) + ' ' + wstore.unit + '">' + g + '</svg><div class="cc-tip"></div>';
+      name + ': ' + pts0.length + ' entries, from ' + fmtW(pts0[0].v) + ' to ' +
+      fmtW(lastP.v) + ' ' + unit + '">' + g + '</svg><div class="cc-tip"></div>';
     var svg = wrap.querySelector('svg'), tip = wrap.querySelector('.cc-tip');
     var xh = svg.querySelector('.xh');
     function hide(){
@@ -1145,8 +1451,7 @@
       pts.forEach(function(p){ if (Math.abs(p.x - sx) < Math.abs(best.x - sx)) best = p; });
       xh.setAttribute('x1', best.x); xh.setAttribute('x2', best.x);
       xh.style.visibility = 'visible';
-      tip.textContent = (best.ew === epochWeek() ? 'this wk' : 'wk of ' + weekLabel(best.ew)) +
-                        ' · ' + fmtW(best.w) + ' ' + wstore.unit;
+      tip.textContent = tipFor(best.t) + ' · ' + fmtW(best.v) + ' ' + unit;
       tip.style.left = Math.max(56, Math.min(r.width - 56, best.x * (r.width / w))) + 'px';
       tip.style.top = (best.y * (r.height / H) + svg.offsetTop) + 'px';
       tip.style.display = 'block';
@@ -1159,35 +1464,110 @@
     return wrap;
   }
 
-  function chartCard(row){
-    var id = row.dataset.id;
-    var name = exName(row);
-    var es = entriesFor(id);
-    var card = document.createElement('div');
-    card.className = 'chart-card';
+  function weekTip(t){ return t === epochWeek() ? 'this wk' : 'wk of ' + weekLabel(t); }
+  function dayTip(t){ return t === todayDn() ? 'today' : dayLabel(t); }
+
+  /* head line for a chart card; downGood inverts delta colors (body weight in a cut) */
+  function cardHead(name, es, unit, downGood){
     var head = '<div class="cc-head"><span class="cc-name">' + name + '</span>';
     if (es.length){
       var last = es[es.length - 1];
-      head += '<span class="cc-now">' + fmtW(last.w) + ' ' + wstore.unit + '</span>';
+      head += '<span class="cc-now">' + fmtW(last.v) + ' ' + unit + '</span>';
       if (es.length > 1){
-        var d = last.w - es[es.length - 2].w;
-        if (d) head += '<span class="cc-delta' + (d < 0 ? ' down' : '') + '">' +
+        var d = last.v - es[es.length - 2].v;
+        var bad = downGood ? d > 0 : d < 0;
+        if (d) head += '<span class="cc-delta' + (bad ? ' down' : '') + '">' +
                        (d > 0 ? '▲+' : '▼') + fmtW(Math.abs(d)) + '</span>';
       }
     }
-    card.innerHTML = head + '</div>';
-    if (!es.length){
+    return head + '</div>';
+  }
+
+  function liftCard(name, es){
+    var pts = es.filter(function(e){ return e.w != null; })
+                .map(function(e){ return { t: e.ew, v: e.w }; });
+    var card = document.createElement('div');
+    card.className = 'chart-card';
+    card.innerHTML = cardHead(name, pts, wstore.unit, false);
+    if (!pts.length){
       card.innerHTML += '<div class="cc-note">Nothing logged yet — tap the ' + wstore.unit + ' chip on this lift to start.</div>';
-    } else if (es.length === 1){
-      card.innerHTML += '<div class="cc-note">First week logged: ' + fmtW(es[0].w) + ' ' + wstore.unit + '. The trend line starts with week two.</div>';
+    } else if (pts.length === 1){
+      card.innerHTML += '<div class="cc-note">First week logged: ' + fmtW(pts[0].v) + ' ' + wstore.unit + '. The trend line starts with week two.</div>';
     } else {
-      card.appendChild(buildChart(es, name));
+      card.appendChild(buildChart(pts, name, weekLabel, weekTip, wstore.unit));
     }
     return card;
   }
 
+  /* one card per variant that has data; the active variant's empty card otherwise */
+  function chartCards(row){
+    var id = row.dataset.id, names = variantNames(row);
+    if (!names) return [liftCard(exName(row), entriesFor(id))];
+    var keys = [id, id + '~1'];
+    var withData = keys.filter(function(k){
+      return entriesFor(k).some(function(e){ return e.w != null; });
+    });
+    if (!withData.length) return [liftCard(activeName(row), [])];
+    return withData.map(function(k){
+      return liftCard(names[k === id ? 0 : 1], entriesFor(k));
+    });
+  }
+
+  function bodySection(){
+    var s = document.createElement('section');
+    s.className = 'pg-day';
+    s.innerHTML = '<h2><span>Body</span><span class="pg-focus">Cut 23% → 15%</span></h2>';
+
+    var card = document.createElement('div');
+    card.className = 'chart-card';
+    var es = wstore.bw.map(function(e){ return { t: e.dn, v: e.w }; });
+    card.innerHTML = cardHead('Body weight', es, wstore.unit, true);
+    var last = wstore.bw[wstore.bw.length - 1];
+    card.innerHTML +=
+      '<div class="bw-form">' +
+        '<label>' + wstore.unit + '<input id="bw-w" type="number" inputmode="decimal" step="0.1" min="0"' +
+          (last ? ' placeholder="' + fmtW(last.w) + '"' : '') + '></label>' +
+        '<label>fat %<input id="bw-bf" type="number" inputmode="decimal" step="0.1" min="0" max="60"' +
+          (last && last.bf != null ? ' placeholder="' + fmtW(last.bf) + '"' : '') + '></label>' +
+        '<button type="button" id="bw-save">Log today</button>' +
+      '</div>';
+    if (!es.length){
+      card.innerHTML += '<div class="cc-note">Log a weigh-in to start the trend — mornings, same conditions.</div>';
+    } else if (todayDn() - last.dn > 7){
+      card.innerHTML += '<div class="cc-note">Last logged ' + (todayDn() - last.dn) + ' days ago — hop on the scale.</div>';
+    }
+    if (es.length > 1) card.appendChild(buildChart(es, 'Body weight', dayLabel, dayTip, wstore.unit));
+    card.querySelector('#bw-save').addEventListener('click', function(){
+      var w = parseFloat(card.querySelector('#bw-w').value);
+      if (isNaN(w) || w <= 0) return;
+      var bf = parseFloat(card.querySelector('#bw-bf').value);
+      var e = { dn: todayDn(), w: Math.round(w * 10) / 10 };
+      if (!isNaN(bf) && bf > 0) e.bf = Math.round(bf * 10) / 10;
+      var prev = wstore.bw[wstore.bw.length - 1];
+      if (prev && prev.dn === e.dn) wstore.bw[wstore.bw.length - 1] = e;
+      else wstore.bw.push(e);
+      if (wstore.bw.length > 400) wstore.bw.shift();
+      saveW();
+      buildProgress();
+    });
+    s.appendChild(card);
+
+    var bf = wstore.bw.filter(function(e){ return e.bf != null; })
+                      .map(function(e){ return { t: e.dn, v: e.bf }; });
+    if (bf.length){
+      var bfCard = document.createElement('div');
+      bfCard.className = 'chart-card';
+      bfCard.innerHTML = cardHead('Body fat', bf, '%', true);
+      if (bf.length > 1) bfCard.appendChild(buildChart(bf, 'Body fat', dayLabel, dayTip, '%'));
+      else bfCard.innerHTML += '<div class="cc-note">First reading logged. The trend appears with the next one.</div>';
+      s.appendChild(bfCard);
+    }
+    return s;
+  }
+
   function buildProgress(){
     viewProg.innerHTML = '';
+    viewProg.appendChild(bodySection());
     var any = false;
     days.forEach(function(sec){
       var wtIn = Array.prototype.slice.call(sec.querySelectorAll('.row[data-wt]'));
@@ -1197,8 +1577,9 @@
       group.innerHTML = '<h2><span>' + sec.querySelector('.day-name').textContent + '</span>' +
         '<span class="pg-focus">' + sec.querySelector('.day-focus').childNodes[0].textContent.trim() + '</span></h2>';
       wtIn.forEach(function(row){
-        if (entriesFor(row.dataset.id).length) any = true;
-        group.appendChild(chartCard(row));
+        var id = row.dataset.id;
+        if (entriesFor(id).length || entriesFor(id + '~1').length) any = true;
+        chartCards(row).forEach(function(c){ group.appendChild(c); });
       });
       viewProg.appendChild(group);
     });
@@ -1206,11 +1587,11 @@
       var em = document.createElement('div');
       em.className = 'pg-empty';
       em.textContent = 'No weights logged yet. On the This Week tab, tap the small weight chip beside a lift to record what you used — every week you log builds these charts.';
-      viewProg.insertBefore(em, viewProg.firstChild);
+      viewProg.insertBefore(em, viewProg.children[1] || null);
     }
     var note = document.createElement('p');
     note.className = 'pg-note';
-    note.textContent = 'Tap a point to see that week’s weight. Charts show every week you logged.';
+    note.textContent = 'Tap a point to see that entry. Charts show everything you logged.';
     viewProg.appendChild(note);
   }
 
@@ -1225,9 +1606,27 @@
     if (store.celebrated || !allDaysDone()) return;
     store.celebrated = true;
     save();
+    var ew = epochWeek();
+    if (wstore.weeksDone.indexOf(ew) === -1){ wstore.weeksDone.push(ew); saveW(); }
+    var streak = 0;
+    while (wstore.weeksDone.indexOf(ew - streak) !== -1) streak++;
+    var up = 0;
+    Object.keys(wstore.wt).forEach(function(k){
+      var cur = null, prev = null;
+      entriesFor(k).forEach(function(e){
+        if (e.w == null) return;
+        if (e.ew === ew) cur = e;
+        else if (e.ew < ew && (!prev || e.ew > prev.ew)) prev = e;
+      });
+      if (cur && prev && cur.w > prev.w) up++;
+    });
+    var bits = [];
+    if (streak > 1) bits.push(streak + ' weeks in a row');
+    if (up > 0) bits.push(up + (up === 1 ? ' lift' : ' lifts') + ' moved up');
+    document.getElementById('cel-stats').textContent = bits.join(' · ');
     cel.hidden = false;
     document.body.style.overflow = 'hidden';
-    confettiBurst(cel.querySelector('canvas'));
+    confettiBurst(cel.querySelector('canvas'), 140, 7000);
   }
   function hideCelebration(){
     cel.hidden = true;
@@ -1242,14 +1641,17 @@
     window.scrollTo(0, 0);
   });
 
-  function confettiBurst(canvas){
-    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  function confettiBurst(canvas, count, dur, onDone){
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){
+      if (onDone) onDone();
+      return;
+    }
     var ctx = canvas.getContext('2d');
     var W = canvas.width = canvas.clientWidth;
     var H = canvas.height = canvas.clientHeight;
     var colors = ['#1E5E4E', '#E4B33D', '#0F8A60', '#8ECDB6', '#F6EFE3'];
     var ps = [];
-    for (var i = 0; i < 140; i++){
+    for (var i = 0; i < count; i++){
       ps.push({
         x: Math.random() * W,
         y: -20 - Math.random() * H * 0.6,
@@ -1265,9 +1667,17 @@
     }
     var start = null;
     function frame(t){
-      if (cel.hidden){ ctx.clearRect(0, 0, W, H); return; }
+      if (!canvas.isConnected || canvas.closest('[hidden]')){
+        ctx.clearRect(0, 0, W, H);
+        if (onDone) onDone();
+        return;
+      }
       if (start === null) start = t;
-      if (t - start > 7000){ ctx.clearRect(0, 0, W, H); return; }
+      if (t - start > dur){
+        ctx.clearRect(0, 0, W, H);
+        if (onDone) onDone();
+        return;
+      }
       ctx.clearRect(0, 0, W, H);
       ps.forEach(function(p){
         p.y += p.vy;
@@ -1328,11 +1738,88 @@
     renderRehab();
   });
 
+  /* two-tap confirm — confirm() dialogs can be silently blocked in the
+     artifact viewer's sandbox, so destructive buttons arm on first tap */
+  function armButton(btn, armedText, fn){
+    if (btn.dataset.armed){
+      delete btn.dataset.armed;
+      btn.textContent = btn.dataset.label;
+      fn();
+      return;
+    }
+    btn.dataset.label = btn.dataset.label || btn.textContent;
+    btn.dataset.armed = '1';
+    btn.textContent = armedText;
+    setTimeout(function(){
+      if (btn.dataset.armed){
+        delete btn.dataset.armed;
+        btn.textContent = btn.dataset.label;
+      }
+    }, 4000);
+  }
+
   document.getElementById('reset-btn').addEventListener('click', function(){
-    if (!confirm('Clear all logged sets for this week?')) return;
-    store = freshStore();
-    save();
-    renderAll();
+    armButton(this, 'Sure? Tap again', function(){
+      store = freshStore();
+      save();
+      renderAll();
+    });
+  });
+
+  /* ---- backup / restore ---- */
+  var backupEl = document.getElementById('backup');
+  var bkText = document.getElementById('bk-text');
+  var bkNote = document.querySelector('.bk-note');
+  var BK_NOTE = bkNote.textContent;
+  function exportBlob(){
+    return JSON.stringify({ app: 'sams-training-week', v: 1, week: store, history: wstore });
+  }
+  document.getElementById('backup-btn').addEventListener('click', function(){
+    bkText.value = exportBlob();
+    bkNote.textContent = BK_NOTE;
+    bkNote.classList.remove('err');
+    backupEl.hidden = false;
+  });
+  document.getElementById('bk-close').addEventListener('click', function(){ backupEl.hidden = true; });
+  document.getElementById('bk-copy').addEventListener('click', function(){
+    var btn = this;
+    var done = function(){
+      btn.textContent = 'Copied ✓';
+      setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(bkText.value).then(done, function(){ bkText.select(); });
+    } else {
+      bkText.select();
+    }
+  });
+  document.getElementById('bk-restore').addEventListener('click', function(){
+    var btn = this;
+    var data;
+    try { data = JSON.parse(bkText.value); } catch (e) { data = null; }
+    if (!data || data.app !== 'sams-training-week' || (!data.week && !data.history)){
+      bkNote.textContent = 'That doesn’t look like a backup — paste the exact saved text.';
+      bkNote.classList.add('err');
+      return;
+    }
+    armButton(btn, 'Replace all data?', function(){
+      if (data.week && typeof data.week === 'object'){
+        store = data.week;
+        if (!store.week) store.week = '';
+        if (!store.sets) store.sets = {};
+        if (!store.rehab) store.rehab = [];
+        if (!store.rest) store.rest = [];
+      }
+      if (data.history && typeof data.history === 'object'){
+        wstore = data.history;
+        migrateW();
+      }
+      save();
+      saveW();
+      syncToday(); /* also applies the weekly reset if the backup is from an older week */
+      if (!viewProg.hidden) buildProgress();
+      backupEl.hidden = true;
+    });
   });
 
   document.addEventListener('visibilitychange', function(){
@@ -1429,6 +1916,13 @@
   var todayCard = document.querySelector('.day.today');
   if (todayCard && !location.hash){
     todayCard.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
+
+  /* offline support when installed from GitHub Pages; skipped on file://
+     and inside the artifact viewer, where service workers can't register */
+  if ('serviceWorker' in navigator && location.protocol === 'https:' &&
+      location.hostname.indexOf('claudeusercontent') === -1){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
   }
 })();
 </script>
