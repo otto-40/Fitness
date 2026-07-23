@@ -206,6 +206,7 @@
     display:flex;align-items:center;gap:8px;
     padding:10px 14px 8px;
     cursor:pointer;
+    position:relative;
     -webkit-tap-highlight-color:transparent;
     user-select:none;-webkit-user-select:none;
   }
@@ -219,7 +220,16 @@
     -webkit-tap-highlight-color:transparent;
   }
   .day-check.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
+  /* armed = one tap away from clearing an already-completed day */
+  .day-check.warn{background:var(--tape);border-color:var(--tape);color:var(--rehab-panel)}
   .day-check:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .day-check-tip{
+    position:absolute;top:100%;right:14px;margin-top:4px;z-index:5;
+    background:var(--ink);color:var(--floor);
+    font-family:var(--mono);font-size:10.5px;font-weight:500;
+    padding:4px 8px;border-radius:3px;white-space:nowrap;
+    pointer-events:none;
+  }
   /* rest days complete themselves by date — no control to show */
   .day.rest .day-check{border-color:transparent;pointer-events:none}
   .day.rest .day-check.on{background:none;color:var(--rest)}
@@ -1285,7 +1295,15 @@
     });
   }
 
+  function disarmAllDayChecks(){
+    document.querySelectorAll('.day-check[data-armed]').forEach(function(c){
+      /* disarmDayCheck is defined later in this scope but hoisted */
+      disarmDayCheck(c);
+    });
+  }
+
   function renderAll(){
+    disarmAllDayChecks();
     rows.forEach(renderRow);
     days.forEach(refreshDay);
     days.forEach(function(sec){ sec.classList.toggle('closed', dayIsDone(sec)); });
@@ -1973,6 +1991,10 @@
       save();
       renderRow(row);
       var sec = row.closest('.day');
+      /* editing one exercise directly resolves any pending "undo the
+         whole day?" warning on that day's circle */
+      var chk = sec.querySelector('.day-check');
+      if (chk) disarmDayCheck(chk);
       refreshDay(sec);
       var full = dayIsDone(sec);
       sec.classList.toggle('closed', full);
@@ -2129,15 +2151,49 @@
   });
 
   /* day check-off: the circle completes/clears the whole day; the header
-     toggles the collapsed state of any day */
+     toggles the collapsed state of any day. Clearing an already-completed
+     day is one fat-finger tap away from wiping every logged set, so it
+     needs a first tap to arm a visible warning and a second to confirm —
+     the same two-tap idea as the reset/restore buttons below, just with
+     a color and icon change instead of button text since this is a
+     36px circle, not a labeled button. */
+  function disarmDayCheck(check){
+    if (!check.dataset.armed) return;
+    delete check.dataset.armed;
+    clearTimeout(+check.dataset.timer);
+    check.classList.remove('warn');
+    check.textContent = '✓';
+    check.setAttribute('aria-label', check.dataset.baseLabel);
+    var tip = check.parentElement.querySelector('.day-check-tip');
+    if (tip) tip.remove();
+  }
+  function armDayCheck(check){
+    document.querySelectorAll('.day-check[data-armed]').forEach(disarmDayCheck);
+    check.dataset.armed = '1';
+    check.classList.add('warn');
+    check.textContent = '?';
+    check.setAttribute('aria-label', check.dataset.baseLabel + ' — tap again to undo, it is currently complete');
+    var tip = document.createElement('span');
+    tip.className = 'day-check-tip';
+    tip.textContent = 'Tap again to undo';
+    check.insertAdjacentElement('afterend', tip);
+    check.dataset.timer = setTimeout(function(){ disarmDayCheck(check); }, 4000);
+  }
+
   days.forEach(function(sec){
     var check = sec.querySelector('.day-check');
     var dayRows = sec.querySelectorAll('.row');
     if (dayRows.length){
-      check.setAttribute('aria-label', 'Mark ' + sec.querySelector('.day-name').textContent + ' complete');
+      check.dataset.baseLabel = 'Mark ' + sec.querySelector('.day-name').textContent + ' complete';
+      check.setAttribute('aria-label', check.dataset.baseLabel);
       check.addEventListener('click', function(e){
         e.stopPropagation();
         var was = dayIsDone(sec);
+        if (was && !check.dataset.armed){
+          armDayCheck(check);
+          return;
+        }
+        disarmDayCheck(check);
         Array.prototype.forEach.call(dayRows, function(r){
           store.sets[r.dataset.id] = was ? 0 : +r.dataset.sets;
         });
@@ -2193,6 +2249,7 @@
     });
     topbar.classList.toggle('away', name !== 'week');
     closePanel();
+    disarmAllDayChecks();
     if (name === 'progress') buildProgress();
     if (name === 'history') buildHistory();
     if (name === 'week'){
