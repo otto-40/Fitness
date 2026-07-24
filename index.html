@@ -527,6 +527,23 @@
   }
   .cal-cell.c-today{box-shadow:0 0 0 2px var(--tape)}
   .cal-cell.c-today.c-assumed{box-shadow:0 0 0 2px var(--tape),inset 0 0 0 1.5px var(--court)}
+  button.cal-cell{
+    border:none;font:inherit;font-family:var(--mono);font-size:12px;
+    background:none;cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    font-variant-numeric:tabular-nums;
+  }
+  button.cal-cell.c-edit:not(.c-done):not(.c-ball):not(.c-assumed){
+    box-shadow:inset 0 0 0 1px var(--line);
+  }
+  button.cal-cell.c-warn{
+    background:var(--tape);color:var(--rehab-panel);
+    box-shadow:0 0 0 2px var(--tape);
+  }
+  button.cal-cell:focus-visible{outline:2px solid var(--court);outline-offset:1px}
+  .cal-hint{
+    margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--rest);
+  }
   .cal-legend{
     display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;
     font-family:var(--mono);font-size:10.5px;color:var(--rest);
@@ -723,6 +740,51 @@
   }
   .foot small{font-size:11px;color:var(--rest)}
   .foot-btns{display:flex;gap:6px;flex-shrink:0}
+  .prefs{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .pref{
+    font-family:var(--mono);font-size:11px;
+    color:var(--rest);background:none;
+    border:1px solid var(--line);border-radius:3px;
+    padding:7px 12px;min-height:36px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pref::before{content:"○ "}
+  .pref[aria-pressed="true"]{color:var(--court-deep);border-color:var(--court)}
+  .pref[aria-pressed="true"]::before{content:"● "}
+  .pref:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+
+  /* ---------- rest timer ---------- */
+  .rest-bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    display:flex;align-items:center;gap:10px;
+    padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    background:var(--ink);color:var(--floor);
+    box-shadow:0 -2px 12px rgba(0,0,0,.18);
+  }
+  .rest-bar[hidden]{display:none}
+  /* keep the footer controls clear of the fixed bar while it's up */
+  body.resting{padding-bottom:130px}
+  .rb-lab{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--tape);
+  }
+  .rb-time{
+    font-family:var(--mono);font-size:22px;font-weight:500;
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;
+    margin-right:auto;
+  }
+  .rest-bar.done{background:var(--court)}
+  .rest-bar.done .rb-lab{color:var(--floor)}
+  .rest-bar button{
+    font-family:var(--mono);font-size:12px;font-weight:500;
+    color:var(--floor);background:none;
+    border:1px solid rgba(246,239,227,.35);border-radius:4px;
+    padding:9px 12px;min-height:40px;min-width:44px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .rest-bar button:focus-visible{outline:2px solid var(--tape);outline-offset:2px}
   .reset-btn{
     font-family:var(--mono);font-size:11px;font-weight:500;
     color:var(--rest);background:none;
@@ -936,7 +998,7 @@
   </section>
 
   <!-- SUNDAY -->
-  <section class="day optional" id="d-sun" data-day="0">
+  <section class="day optional" id="d-sun" data-day="0" data-optional>
     <header class="day-head">
       <h2 class="day-name">Sunday</h2>
       <span class="today-badge">Today</span>
@@ -973,11 +1035,24 @@
     </span>
   </div>
 
+  <div class="prefs">
+    <button type="button" class="pref" id="pref-rest" aria-pressed="true">Rest timer</button>
+    <button type="button" class="pref" id="pref-wake" aria-pressed="false" hidden>Keep screen on</button>
+  </div>
+
   </div><!-- /view-week -->
 
   <div id="view-progress" role="tabpanel" aria-labelledby="tab-progress" hidden></div>
 
   <div id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden></div>
+
+  <!-- REST TIMER -->
+  <div class="rest-bar" id="rest-bar" hidden>
+    <span class="rb-lab">Rest</span>
+    <span class="rb-time" id="rb-time" role="timer" aria-live="off">2:30</span>
+    <button type="button" id="rb-plus">+30s</button>
+    <button type="button" id="rb-stop" aria-label="Dismiss rest timer">✕</button>
+  </div>
 
   <!-- BACKUP / RESTORE -->
   <div class="backup" id="backup" hidden>
@@ -997,7 +1072,7 @@
   <div class="celebrate" id="celebrate" hidden>
     <canvas aria-hidden="true"></canvas>
     <div class="cel-card">
-      <div class="cel-eyebrow">All seven days checked</div>
+      <div class="cel-eyebrow">Every session logged</div>
       <h2>Week<br>Complete</h2>
       <p>3 lifts, 1 game, rest. That's how weeks compound.</p>
       <p class="cel-stats" id="cel-stats"></p>
@@ -1047,6 +1122,15 @@
     if (!wstore.weeksDone) wstore.weeksDone = [];
     if (!wstore.daysDone) wstore.daysDone = {}; /* dn -> 1 logged, 2 assumed */
     if (!wstore.game) wstore.game = [];         /* [{ew, e: 0|1|2}] */
+    if (!wstore.prSeen) wstore.prSeen = {};     /* "key:week" -> 1, so PR confetti fires once */
+    if (!wstore.prefs) wstore.prefs = {};
+    if (wstore.prefs.rest == null) wstore.prefs.rest = true;
+    if (wstore.prefs.restSecs == null) wstore.prefs.restSecs = 150;
+    if (wstore.prefs.wake == null) wstore.prefs.wake = false;
+    /* drop PR marks older than ~2 months so the map can't grow forever */
+    Object.keys(wstore.prSeen).forEach(function(k){
+      if (+k.split(':')[1] < epochWeek() - 8) delete wstore.prSeen[k];
+    });
     /* one-time: weeks completed before day-level tracking existed get their
        training days marked "assumed" so the calendar isn't empty */
     if (!wstore.backfilled){
@@ -1293,8 +1377,6 @@
     openPanel = null;
   }
 
-  var prSeen = {};
-
   function prFlash(panel){
     var f = panel.querySelector('.wt-field');
     if (f && !f.querySelector('.wt-pr')){
@@ -1394,8 +1476,10 @@
           if (e.ew < ew && e.w != null && e.w > oldMax) oldMax = e.w;
         });
         setWeight(key, newW);
-        if (isFinite(oldMax) && newW > oldMax && !prSeen[key + ':' + ew]){
-          prSeen[key + ':' + ew] = true;
+        var prKey = key + ':' + ew;
+        if (isFinite(oldMax) && newW > oldMax && !wstore.prSeen[prKey]){
+          wstore.prSeen[prKey] = 1;
+          saveW();
           prFlash(panel);
         }
       }
@@ -1672,8 +1756,26 @@
   /* ---- history tab: month calendar + week roll-ups ---- */
   function ewOf(dn){ return Math.floor((dn + 3) / 7); }
   function mondayDnOf(w){ return 7 * w - 3; }
+  /* day offsets from Monday: the four sessions a week is judged on
+     (Mon lift, Wed game, Thu lift, Sat lift). Sunday's walk is a bonus. */
+  var REQ = [0, 2, 3, 5];
+  var SUN = 6;
+  function weekComplete(w){
+    var m = mondayDnOf(w);
+    return REQ.every(function(off){ return !!wstore.daysDone[m + off]; });
+  }
+  /* streak reads straight off the day log, so retroactive calendar edits
+     and the live week both feed it from one source of truth */
+  function streakLen(){
+    var ew = epochWeek();
+    var from = weekComplete(ew) ? ew : ew - 1;
+    var n = 0;
+    while (weekComplete(from - n)) n++;
+    return n;
+  }
   function weekActive(w){
     if (wstore.weeksDone.indexOf(w) !== -1) return true;
+    if (gameEffort(w) != null) return true;   /* a rated game is activity too */
     var m = mondayDnOf(w);
     return [0, 2, 3, 5, 6].some(function(off){ return wstore.daysDone[m + off]; });
   }
@@ -1715,10 +1817,12 @@
       '</span></div><div class="cal-grid">';
     ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(function(l){ h += '<span class="dow">' + l + '</span>'; });
     for (var b = 0; b < dow0; b++) h += '<span></span>';
+    var thisMonday = todayDn() - todayIdx;
     for (var d = 1; d <= nDays; d++){
       var dn = firstDn + d - 1;
       var dow = (dow0 + d - 1) % 7;
       var cls = 'cal-cell';
+      var editable = false;
       if (dn === tdn) cls += ' c-today';
       if (dn > tdn){
         cls += ' c-future';
@@ -1728,15 +1832,26 @@
         var v = wstore.daysDone[dn];
         if (v === 1) cls += dow === 2 ? ' c-ball' : ' c-done';
         else if (v === 2) cls += ' c-assumed';
+        /* days in finished weeks are editable: the weekly reset has already
+           cleared their sets, so the card can no longer speak for them.
+           This week's days stay read-only — tick them on the day card, which
+           still holds the real set data stampWeek() derives them from. */
+        if (dn < thisMonday) editable = true;
       }
-      h += '<span class="' + cls + '">' + d + '</span>';
+      h += editable
+        ? '<button type="button" class="' + cls + ' c-edit" data-dn="' + dn + '" aria-pressed="' +
+          (wstore.daysDone[dn] ? 'true' : 'false') + '" aria-label="' +
+          dayLabel(dn) + (wstore.daysDone[dn] ? ' — trained, tap to clear' : ' — not logged, tap to mark trained') +
+          '">' + d + '</button>'
+        : '<span class="' + cls + '">' + d + '</span>';
     }
     h += '</div><div class="cal-legend">' +
       '<span><i style="background:var(--court)"></i>trained</span>' +
       '<span><i style="background:var(--ink)"></i>game</span>' +
       '<span><i style="box-shadow:inset 0 0 0 1.5px var(--court)"></i>before tracking</span>' +
       '<span><i style="background:var(--rest);border-radius:50%"></i>rest</span>' +
-      '</div>';
+      '</div>' +
+      '<p class="cal-hint">Tap a past training day to add or remove it.</p>';
     return h;
   }
 
@@ -1749,9 +1864,7 @@
       calM = n.getUTCMonth();
     }
     var ew = epochWeek();
-    var streakFrom = wstore.weeksDone.indexOf(ew) !== -1 ? ew : ew - 1;
-    var streak = 0;
-    while (wstore.weeksDone.indexOf(streakFrom - streak) !== -1) streak++;
+    var streak = streakLen();
 
     var head = document.createElement('div');
     head.className = 'hist-head';
@@ -1771,6 +1884,33 @@
         calM++; if (calM > 11){ calM = 0; calY++; }
         renderCal();
       });
+      cal.querySelectorAll('.c-edit').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var dn = +btn.dataset.dn;
+          if (wstore.daysDone[dn]){
+            /* removing a logged day is destructive — same arm-then-confirm
+               contract as the day cards */
+            if (!btn.dataset.armed){
+              cal.querySelectorAll('.c-edit[data-armed]').forEach(function(o){
+                delete o.dataset.armed;
+                o.classList.remove('c-warn');
+              });
+              btn.dataset.armed = '1';
+              btn.classList.add('c-warn');
+              setTimeout(function(){
+                delete btn.dataset.armed;
+                btn.classList.remove('c-warn');
+              }, 4000);
+              return;
+            }
+            delete wstore.daysDone[dn];
+          } else {
+            wstore.daysDone[dn] = 1;
+          }
+          saveW();
+          buildHistory();   /* streak, roll-ups and the grid all re-derive */
+        });
+      });
     }
     renderCal();
     vh.appendChild(cal);
@@ -1780,10 +1920,10 @@
       var w = ew - k;
       if (!weekActive(w)) continue;
       var m = mondayDnOf(w);
-      var done = 0;
-      [0, 2, 3, 5, 6].forEach(function(off){ if (wstore.daysDone[m + off]) done++; });
-      var restC = w < ew ? 2 : (todayIdx >= 4 ? 2 : todayIdx >= 1 ? 1 : 0);
-      var bits = [(done + restC) + '/7 days'];
+      var sess = 0;
+      REQ.forEach(function(off){ if (wstore.daysDone[m + off]) sess++; });
+      var bits = [sess + '/' + REQ.length + ' sessions'];
+      if (wstore.daysDone[m + SUN]) bits.push('+Sun walk');
       var up = liftsUpFor(w);
       if (up) bits.push(up + (up === 1 ? ' lift up' : ' lifts up'));
       var ge = gameEffort(w);
@@ -1801,8 +1941,13 @@
   /* ---- week-complete celebration ---- */
   var cel = document.getElementById('celebrate');
 
+  /* Sunday's walk is labelled Optional in the routine, so it must not gate
+     the week: a week counts as done on the required days alone. */
   function allDaysDone(){
-    for (var i = 0; i < days.length; i++) if (!dayIsDone(days[i])) return false;
+    for (var i = 0; i < days.length; i++){
+      if (days[i].hasAttribute('data-optional')) continue;
+      if (!dayIsDone(days[i])) return false;
+    }
     return true;
   }
   function maybeCelebrate(){
@@ -1811,8 +1956,7 @@
     save();
     var ew = epochWeek();
     if (wstore.weeksDone.indexOf(ew) === -1){ wstore.weeksDone.push(ew); saveW(); }
-    var streak = 0;
-    while (wstore.weeksDone.indexOf(ew - streak) !== -1) streak++;
+    var streak = streakLen();
     var up = liftsUpFor(ew);
     var bits = [];
     if (streak > 1) bits.push(streak + ' weeks in a row');
@@ -1907,8 +2051,14 @@
     row.addEventListener('click', function(){
       var id = row.dataset.id, total = +row.dataset.sets;
       var count = Math.min(store.sets[id] || 0, total);
-      store.sets[id] = count >= total ? 0 : count + 1;
+      var logging = count < total;   /* false when the tap wraps back to zero */
+      store.sets[id] = logging ? count + 1 : 0;
       save();
+      /* rest applies between working sets — not after a zone-2 walk or the
+         single "evening" entry on game night */
+      if (logging && !row.classList.contains('finisher') && !row.closest('.day').classList.contains('ball')){
+        startRest(wstore.prefs.restSecs);
+      }
       renderRow(row);
       var sec = row.closest('.day');
       /* editing one exercise directly resolves any pending "undo the
@@ -1929,6 +2079,103 @@
       }
     });
   });
+
+  /* ---- rest timer ----
+     Counts down from a wall-clock deadline rather than ticking a counter, so
+     backgrounding the app and coming back shows the true remaining time.
+     Visual only: iOS gives a web page no reliable way to make a sound or
+     vibrate once the page isn't in the foreground. */
+  var restBar = document.getElementById('rest-bar');
+  var rbTime = document.getElementById('rb-time');
+  var rbLab = restBar.querySelector('.rb-lab');
+  var restEnd = 0, restInt = 0, restClear = 0;
+
+  function fmtClock(ms){
+    var s = Math.max(0, Math.ceil(ms / 1000));
+    return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+  }
+  function stopRest(){
+    clearInterval(restInt);
+    clearTimeout(restClear);
+    restInt = restClear = restEnd = 0;
+    restBar.hidden = true;
+    restBar.classList.remove('done');
+    document.body.classList.remove('resting');
+  }
+  function tickRest(){
+    var left = restEnd - Date.now();
+    rbTime.textContent = fmtClock(left);
+    if (left > 0) return;
+    clearInterval(restInt);
+    restInt = 0;
+    restBar.classList.add('done');
+    rbLab.textContent = 'Go';
+    restClear = setTimeout(stopRest, 20000);
+  }
+  function runRest(){
+    clearInterval(restInt);
+    clearTimeout(restClear);
+    restBar.classList.remove('done');
+    rbLab.textContent = 'Rest';
+    restBar.hidden = false;
+    document.body.classList.add('resting');
+    tickRest();
+    if (restEnd) restInt = setInterval(tickRest, 250);
+  }
+  function startRest(secs){
+    if (!wstore.prefs.rest) return;
+    restEnd = Date.now() + secs * 1000;
+    runRest();
+  }
+  document.getElementById('rb-plus').addEventListener('click', function(){
+    if (!restEnd) return;
+    restEnd = Math.max(Date.now(), restEnd) + 30000;
+    runRest();
+  });
+  document.getElementById('rb-stop').addEventListener('click', stopRest);
+
+  /* ---- preferences: rest timer + screen wake lock ---- */
+  var prefRest = document.getElementById('pref-rest');
+  var prefWake = document.getElementById('pref-wake');
+  var wakeSentinel = null;
+
+  function renderPrefs(){
+    prefRest.setAttribute('aria-pressed', wstore.prefs.rest ? 'true' : 'false');
+    prefWake.setAttribute('aria-pressed', wstore.prefs.wake ? 'true' : 'false');
+  }
+  prefRest.addEventListener('click', function(){
+    wstore.prefs.rest = !wstore.prefs.rest;
+    saveW();
+    renderPrefs();
+    if (!wstore.prefs.rest) stopRest();
+  });
+
+  function releaseWake(){
+    if (wakeSentinel){
+      try { wakeSentinel.release(); } catch (e) {}
+      wakeSentinel = null;
+    }
+  }
+  function requestWake(){
+    if (!wstore.prefs.wake || wakeSentinel || document.hidden) return;
+    try {
+      navigator.wakeLock.request('screen').then(function(s){
+        wakeSentinel = s;
+        s.addEventListener('release', function(){ wakeSentinel = null; });
+      }, function(){});
+    } catch (e) {}
+  }
+  if ('wakeLock' in navigator){
+    prefWake.hidden = false;
+    prefWake.addEventListener('click', function(){
+      wstore.prefs.wake = !wstore.prefs.wake;
+      saveW();
+      renderPrefs();
+      if (wstore.prefs.wake) requestWake(); else releaseWake();
+    });
+    requestWake();
+  }
+  renderPrefs();
 
   /* ---- game-effort toggle: one rating per week, kept in history ---- */
   var fxBtns = document.querySelectorAll('#game-fx .fx-btn');
@@ -2041,7 +2288,10 @@
   });
 
   document.addEventListener('visibilitychange', function(){
-    if (!document.hidden) syncToday();
+    if (document.hidden) return;
+    syncToday();
+    requestWake();   /* the OS drops the lock whenever the page is backgrounded */
+    if (restEnd && !restBar.hidden) tickRest();
   });
 
   syncToday();

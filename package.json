@@ -1,0 +1,12 @@
+{
+  "name": "sams-training-week",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Weekly training routine as an installable offline web app.",
+  "scripts": {
+    "test": "node tests/app.test.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}
