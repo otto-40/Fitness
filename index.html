@@ -336,25 +336,30 @@
   }
   .wt-var button.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
   .wt-var button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  .wt-reps{
-    display:flex;align-items:center;gap:6px;margin-top:10px;
-  }
-  .wt-reps-lab{
-    font-family:var(--mono);font-size:10.5px;color:var(--rest);
-    text-transform:uppercase;letter-spacing:.08em;margin-right:2px;
-  }
-  .wt-rep{
-    flex:1;max-width:64px;min-height:40px;
-    font-family:var(--mono);font-size:14px;font-weight:500;
+  .wt-sets{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .wt-set{display:flex;align-items:center;gap:7px}
+  .wt-sn{
+    width:14px;flex-shrink:0;
+    font-family:var(--mono);font-size:11px;color:var(--rest);
     font-variant-numeric:tabular-nums;
-    color:var(--court-deep);background:var(--panel);
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
   }
-  .wt-rep.unset{color:var(--rest)}
-  .wt-rep.top{border-color:var(--court);background:var(--tap-flash)}
-  .wt-rep:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .wt-set input{
+    min-width:0;min-height:42px;
+    font-family:var(--mono);font-size:15px;font-weight:500;
+    font-variant-numeric:tabular-nums;text-align:center;
+    color:var(--ink);background:var(--panel);
+    border:1px solid var(--line);border-radius:4px;
+    padding:0 4px;outline:none;
+  }
+  .wt-set input::-webkit-inner-spin-button,
+  .wt-set input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .wt-set input:focus-visible{outline:2px solid var(--court);outline-offset:-1px}
+  .wt-sw{flex:1.35}
+  .wt-sr{flex:1}
+  .wt-x,.wt-su{
+    font-family:var(--mono);font-size:11px;color:var(--rest);flex-shrink:0;
+  }
+  .wt-note{font-family:var(--mono);font-size:10px;color:var(--rest)}
   .wt-hint{
     margin-top:10px;font-size:12.5px;color:var(--court-deep);
     padding-left:16px;position:relative;
@@ -378,7 +383,7 @@
     cursor:pointer;touch-action:manipulation;
     -webkit-tap-highlight-color:transparent;
   }
-  .wt-step:focus-visible,.wt-close:focus-visible,.wt-unitbtn:focus-visible{
+  .wt-step:focus-visible,.wt-close:focus-visible{
     outline:2px solid var(--court);outline-offset:2px;
   }
   .wt-field{
@@ -407,11 +412,6 @@
   .wt-hist em.neg{color:var(--tape)}
   .wt-hist .wt-none{display:block;font-family:inherit;color:var(--rest);font-size:12.5px}
   .wt-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
-  .wt-unitbtn{
-    font-family:var(--mono);font-size:11px;color:var(--rest);
-    background:none;border:1px solid var(--line);border-radius:3px;
-    padding:6px 10px;min-height:32px;cursor:pointer;touch-action:manipulation;
-  }
   .wt-close{
     font-family:var(--mono);font-size:12px;font-weight:500;
     letter-spacing:.06em;text-transform:uppercase;
@@ -1116,7 +1116,7 @@
   function migrateW(){
     if (!wstore || typeof wstore !== 'object') wstore = {};
     if (!wstore.wt) wstore.wt = {};
-    if (!wstore.unit) wstore.unit = 'kg';
+    wstore.unit = 'kg';   /* the lb label was cosmetic and is gone */
     if (!wstore.variants) wstore.variants = {};
     if (!wstore.bw) wstore.bw = [];
     if (!wstore.weeksDone) wstore.weeksDone = [];
@@ -1131,6 +1131,22 @@
     Object.keys(wstore.prSeen).forEach(function(k){
       if (+k.split(':')[1] < epochWeek() - 8) delete wstore.prSeen[k];
     });
+    /* one-time: entries used to hold a single weight plus a rep array.
+       Fan them out to per-set rows so every set can carry its own load. */
+    if (!wstore.perSet){
+      Object.keys(wstore.wt).forEach(function(k){
+        wstore.wt[k].forEach(function(e){
+          if (e.s) return;
+          var reps = e.r || [];
+          var n = Math.max(reps.length, 1);
+          e.s = [];
+          for (var i = 0; i < n; i++) e.s.push({ w: e.w != null ? e.w : null, r: reps[i] != null ? reps[i] : null });
+          delete e.r;
+        });
+      });
+      wstore.perSet = 1;
+      saveW();
+    }
     /* one-time: weeks completed before day-level tracking existed get their
        training days marked "assumed" so the calendar isn't empty */
     if (!wstore.backfilled){
@@ -1168,35 +1184,37 @@
       if (es[i].ew < ew && es[i].w != null) return es[i];
     return null;
   }
+  /* An entry holds one row per set — sets can carry different loads, e.g. a
+     back-off set. e.w stays the top set's weight, which is what the chip,
+     charts, PR test and hints all compare week to week. */
+  function setsOf(e){ return (e && e.s) || []; }
   function hasReps(e){
-    return e && e.r && e.r.some(function(x){ return x != null; });
+    return setsOf(e).some(function(s){ return s && s.r != null; });
   }
-  function setWeight(key, w){
-    var es = entriesFor(key), ew = epochWeek(), last = es[es.length - 1];
-    if (w === null){
-      if (last && last.ew === ew){
-        if (hasReps(last)) last.w = null;
-        else es.pop();
-      }
-    } else if (last && last.ew === ew){
-      last.w = w;
-    } else {
-      es.push({ ew: ew, w: w });
-      if (es.length > 30) es.shift();
-    }
-    wstore.wt[key] = es;
-    saveW();
+  function topOf(sets){
+    var top = null;
+    sets.forEach(function(s){ if (s && s.w != null && (top == null || s.w > top)) top = s.w; });
+    return top;
   }
-  function setRep(key, setIdx, val){
+  function setWeights(e){
+    return setsOf(e).filter(function(s){ return s && s.w != null; }).map(function(s){ return s.w; });
+  }
+  /* Writes this week's sets, dropping the entry when nothing is left in it. */
+  function writeSets(key, sets){
     var es = entriesFor(key), ew = epochWeek(), last = es[es.length - 1];
+    var live = sets.some(function(s){ return s && (s.w != null || s.r != null); });
     if (!last || last.ew !== ew){
-      last = { ew: ew, w: null, r: [] };
+      if (!live) return;
+      last = { ew: ew, w: null, s: [] };
       es.push(last);
       if (es.length > 30) es.shift();
     }
-    if (!last.r) last.r = [];
-    last.r[setIdx] = val;
-    if (last.w == null && !hasReps(last)) es.pop();
+    if (!live){
+      es.pop();
+    } else {
+      last.s = sets.map(function(s){ return { w: s.w, r: s.r }; });
+      last.w = topOf(last.s);
+    }
     wstore.wt[key] = es;
     saveW();
   }
@@ -1361,10 +1379,18 @@
         d = ' <em' + (delta < 0 ? ' class="neg"' : '') + '>(' +
             (delta > 0 ? '+' : '') + fmtW(delta) + ')</em>';
       }
+      /* one number when every set matched, a range when they didn't */
+      var ws = setWeights(e), load = '—';
+      if (ws.length){
+        var lo2 = Math.min.apply(null, ws), hi2 = Math.max.apply(null, ws);
+        load = lo2 === hi2 ? fmtW(hi2) : fmtW(hi2) + '–' + fmtW(lo2);
+      }
       var reps = hasReps(e)
-        ? ' <span class="wt-h-reps">· ' + e.r.map(function(x){ return x == null ? '–' : x; }).join(',') + '</span>'
+        ? ' <span class="wt-h-reps">· ' + setsOf(e).map(function(s){
+            return s && s.r != null ? s.r : '–';
+          }).join(',') + '</span>'
         : '';
-      out.push('<div><span>' + label + '</span><b>' + (e.w != null ? fmtW(e.w) : '—') + d + reps + '</b></div>');
+      out.push('<div><span>' + label + '</span><b>' + load + d + reps + '</b></div>');
     });
     return out.length ? out.join('')
                       : '<div class="wt-none">First time — log it now, beat it next week.</div>';
@@ -1406,9 +1432,26 @@
 
   function buildPanel(row, panel){
     var id = row.dataset.id, key = keyFor(row);
-    var names = variantNames(row), range = repRange(row), sets = +row.dataset.sets;
+    var names = variantNames(row), range = repRange(row), nSets = +row.dataset.sets;
     var cur = currentEntry(key), prev = previousEntry(key);
-    var start = (cur && cur.w != null) ? fmtW(cur.w) : (prev ? fmtW(prev.w) : '');
+    var prevSets = setsOf(prev);
+    /* reps start at the prescribed number — the top of a range is the target
+       you're chasing — so a normal session needs no rep editing at all */
+    var repDefault = range ? range.hi : null;
+
+    function seedW(i){
+      var c = setsOf(cur)[i];
+      if (c && c.w != null) return fmtW(c.w);
+      var p = prevSets[i];
+      if (p && p.w != null) return fmtW(p.w);
+      return prev && prev.w != null ? fmtW(prev.w) : '';
+    }
+    function seedR(i){
+      var c = setsOf(cur)[i];
+      if (c && c.r != null) return String(c.r);
+      return repDefault != null ? String(repDefault) : '';
+    }
+
     var html = '';
     if (names){
       html += '<div class="wt-var">' + names.map(function(n, i){
@@ -1418,34 +1461,52 @@
     }
     html +=
       '<div class="wt-adjust">' +
-        '<button type="button" class="wt-step" data-step="-2.5" aria-label="2.5 less">−2.5</button>' +
-        '<label class="wt-field"><input type="number" inputmode="decimal" step="0.5" min="0" value="' + start + '"><span>' + wstore.unit + '</span></label>' +
-        '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 more">+2.5</button>' +
+        '<button type="button" class="wt-step" data-step="-2.5" aria-label="2.5 kg off every set">−2.5</button>' +
+        '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for every set"><span>kg</span></label>' +
+        '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 kg on every set">+2.5</button>' +
       '</div>';
-    if (range){
-      html += '<div class="wt-reps"><span class="wt-reps-lab">reps</span>';
-      for (var i = 0; i < sets; i++){
-        var rv = (cur && cur.r) ? cur.r[i] : null;
-        html += '<button type="button" class="wt-rep' +
-                (rv == null ? ' unset' : (rv >= range.hi ? ' top' : '')) +
-                '" data-i="' + i + '" aria-label="Reps, set ' + (i + 1) + '">' +
-                (rv == null ? '–' : rv) + '</button>';
-      }
-      html += '</div>';
+    html += '<div class="wt-sets">';
+    for (var i = 0; i < nSets; i++){
+      html += '<div class="wt-set">' +
+        '<span class="wt-sn">' + (i + 1) + '</span>' +
+        '<input class="wt-sw" data-i="' + i + '" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(i) + '" aria-label="Set ' + (i + 1) + ' weight in kg">' +
+        '<span class="wt-x">×</span>' +
+        '<input class="wt-sr" data-i="' + i + '" type="number" inputmode="numeric" step="1" min="0" value="' + seedR(i) + '" aria-label="Set ' + (i + 1) + ' reps">' +
+        '<span class="wt-su">reps</span>' +
+      '</div>';
     }
+    html += '</div>';
     html += '<div class="wt-hint" data-hint hidden></div>' +
       '<div class="wt-hist">' + histLines(key) + '</div>' +
       '<div class="wt-foot">' +
-        '<button type="button" class="wt-unitbtn">' + (wstore.unit === 'kg' ? 'use lb' : 'use kg') + '</button>' +
-        '<button type="button" class="wt-close">Done</button>' +
+        '<span class="wt-note">Saves what you see</span>' +
+        '<button type="button" class="wt-close">Save</button>' +
       '</div>';
     panel.innerHTML = html;
 
-    var input = panel.querySelector('.wt-field input');
+    var topInput = panel.querySelector('.wt-top');
+    var wIn = Array.prototype.slice.call(panel.querySelectorAll('.wt-sw'));
+    var rIn = Array.prototype.slice.call(panel.querySelectorAll('.wt-sr'));
 
+    function num(el){
+      var v = parseFloat(el.value);
+      return isNaN(v) || v < 0 ? null : v;
+    }
+    /* what the panel currently shows, as storable sets */
+    function shown(){
+      return wIn.map(function(el, i){
+        var w = num(el), r = num(rIn[i]);
+        return {
+          w: w == null || w <= 0 ? null : Math.round(w * 4) / 4,
+          r: r == null ? null : Math.round(r)
+        };
+      });
+    }
     function repsAtTop(e){
-      if (!range || !e || !e.r) return false;
-      for (var i = 0; i < sets; i++) if (e.r[i] == null || e.r[i] < range.hi) return false;
+      if (!range || !e) return false;
+      var ss = setsOf(e);
+      if (ss.length < nSets) return false;
+      for (var i = 0; i < nSets; i++) if (!ss[i] || ss[i].r == null || ss[i].r < range.hi) return false;
       return true;
     }
     function updateHint(){
@@ -1453,9 +1514,9 @@
       var c2 = currentEntry(key), p2 = previousEntry(key);
       var msg = '';
       if (repsAtTop(c2) && c2.w != null){
-        msg = 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + 2.5) + ' ' + wstore.unit + ' next week.';
+        msg = 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + 2.5) + ' kg next week.';
       } else if (repsAtTop(p2) && !(c2 && c2.w != null && c2.w > p2.w)){
-        msg = 'Top of range last week — try ' + fmtW(p2.w + 2.5) + ' ' + wstore.unit + '.';
+        msg = 'Top of range last week — try ' + fmtW(p2.w + 2.5) + ' kg.';
       }
       el.textContent = msg;
       el.hidden = !msg;
@@ -1464,49 +1525,47 @@
       renderChip(row);
       panel.querySelector('.wt-hist').innerHTML = histLines(key);
       updateHint();
+      var t = topOf(shown());
+      topInput.value = t == null ? '' : fmtW(t);
     }
     function commit(){
-      var v = parseFloat(input.value);
-      if (isNaN(v) || v <= 0){
-        setWeight(key, null);
-      } else {
-        var newW = Math.round(v * 4) / 4;
-        var oldMax = -Infinity, ew = epochWeek();
-        entriesFor(key).forEach(function(e){
-          if (e.ew < ew && e.w != null && e.w > oldMax) oldMax = e.w;
-        });
-        setWeight(key, newW);
-        var prKey = key + ':' + ew;
-        if (isFinite(oldMax) && newW > oldMax && !wstore.prSeen[prKey]){
-          wstore.prSeen[prKey] = 1;
-          saveW();
-          prFlash(panel);
-        }
+      var sets = shown();
+      var best = -Infinity, ew = epochWeek();
+      entriesFor(key).forEach(function(e){
+        if (e.ew < ew && e.w != null && e.w > best) best = e.w;
+      });
+      writeSets(key, sets);
+      var top = topOf(sets), prKey = key + ':' + ew;
+      if (top != null && isFinite(best) && top > best && !wstore.prSeen[prKey]){
+        wstore.prSeen[prKey] = 1;
+        saveW();
+        prFlash(panel);
       }
       refresh();
     }
-    input.addEventListener('input', commit);
+    /* set rows commit as you type; blank the weight to drop that set */
+    wIn.concat(rIn).forEach(function(el){ el.addEventListener('input', commit); });
+
+    /* the top field drives every set at once: typing levels them, the
+       steppers shift them all by 2.5 and keep any differences intact */
+    topInput.addEventListener('input', function(){
+      wIn.forEach(function(el){ el.value = topInput.value; });
+      commit();
+    });
     panel.querySelectorAll('.wt-step').forEach(function(b){
       b.addEventListener('click', function(){
-        var v = parseFloat(input.value);
-        if (isNaN(v)) v = 0;
-        v = Math.max(0, v + parseFloat(b.dataset.step));
-        input.value = fmtW(v);
+        var step = parseFloat(b.dataset.step);
+        var any = false;
+        wIn.forEach(function(el){
+          var v = num(el);
+          if (v == null) return;
+          el.value = fmtW(Math.max(0, v + step));
+          any = true;
+        });
+        if (!any){                       /* nothing logged yet — start from zero */
+          wIn.forEach(function(el){ el.value = fmtW(Math.max(0, step)); });
+        }
         commit();
-      });
-    });
-    panel.querySelectorAll('.wt-rep').forEach(function(b){
-      b.addEventListener('click', function(){
-        var i = +b.dataset.i;
-        var e = currentEntry(key);
-        var v = (e && e.r) ? e.r[i] : null;
-        /* cycle: – → lo … hi → – */
-        var next = v == null ? range.lo : (v >= range.hi ? null : v + 1);
-        setRep(key, i, next);
-        b.textContent = next == null ? '–' : next;
-        b.classList.toggle('unset', next == null);
-        b.classList.toggle('top', next != null && next >= range.hi);
-        refresh();
       });
     });
     if (names){
@@ -1519,15 +1578,11 @@
         });
       });
     }
-    panel.querySelector('.wt-unitbtn').addEventListener('click', function(){
-      wstore.unit = wstore.unit === 'kg' ? 'lb' : 'kg';
-      saveW();
-      this.textContent = wstore.unit === 'kg' ? 'use lb' : 'use kg';
-      panel.querySelector('.wt-field span').textContent = wstore.unit;
-      renderChips();
-      updateHint();
+    /* Save records the panel as shown, so "same as last week" is one tap */
+    panel.querySelector('.wt-close').addEventListener('click', function(){
+      commit();
+      closePanel();
     });
-    panel.querySelector('.wt-close').addEventListener('click', closePanel);
     updateHint();
   }
 

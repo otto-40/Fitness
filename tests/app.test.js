@@ -131,31 +131,77 @@ async function main() {
   await test('weights, reps, variants and progression hints', { date: '2026-07-23T09:00:00' }, async (page) => {
     await page.click('[data-id="mon-1"] .wt');
     check('variant choices', await page.locator('.wt-var button').allTextContents(), ['Leg press', 'Goblet squat']);
+    check('one row per prescribed set', await page.locator('.wt-panel .wt-set').count(), 4);
+    check('reps default to the programmed number',
+      await page.locator('.wt-panel .wt-sr').evaluateAll((els) => els.map((e) => e.value)),
+      ['8', '8', '8', '8']);
 
-    await page.fill('.wt-panel input[type="number"]', '100');
-    await page.waitForTimeout(120);
-    await page.click('.wt-var button[data-v="1"]'); // Goblet squat keeps its own history
+    // one entry levels every set
+    await page.fill('.wt-panel .wt-top', '100');
     await page.waitForTimeout(150);
-    check('other variant starts empty', await page.inputValue('.wt-panel input[type="number"]'), '');
-    await page.fill('.wt-panel input[type="number"]', '30');
-    await page.waitForTimeout(120);
-    await page.click('.wt-var button[data-v="0"]');
-    await page.waitForTimeout(150);
-    check('first variant remembered', await page.inputValue('.wt-panel input[type="number"]'), '100');
-
-    // log all four sets at the top of the 6-8 range
-    for (let i = 0; i < 4; i++) {
-      const b = page.locator(`.wt-panel .wt-rep[data-i="${i}"]`);
-      await b.click(); await b.click(); await b.click();
-    }
-    await page.waitForTimeout(150);
-    check('rep picker at top', await page.textContent('.wt-panel .wt-rep[data-i="0"]'), '8');
+    check('all sets take the weight',
+      await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
+      ['100', '100', '100', '100']);
     check('progression hint', (await page.textContent('.wt-panel [data-hint]')).trim(),
       'All sets at 8 — load 102.5 kg next week.');
-    check('reps in history', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,8'), true);
+    check('reps recorded', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,8'), true);
+
+    // variants keep separate histories
+    await page.click('.wt-var button[data-v="1"]');
+    await page.waitForTimeout(150);
+    check('other variant starts empty', await page.inputValue('.wt-panel .wt-top'), '');
+    await page.fill('.wt-panel .wt-top', '30');
+    await page.waitForTimeout(150);
+    await page.click('.wt-var button[data-v="0"]');
+    await page.waitForTimeout(150);
+    check('first variant remembered', await page.inputValue('.wt-panel .wt-top'), '100');
 
     await page.click('.wt-panel .wt-close');
-    check('chip shows load', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '100');
+    check('chip shows the top set', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '100');
+  });
+
+  await test('sets can carry different weights and reps', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+
+    // a lighter back-off set with fewer reps
+    await page.fill('.wt-panel .wt-sw[data-i="3"]', '90');
+    await page.fill('.wt-panel .wt-sr[data-i="3"]', '6');
+    await page.waitForTimeout(150);
+    check('history shows the spread', (await page.textContent('.wt-panel .wt-hist')).includes('100–90'), true);
+    check('history shows per-set reps', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,6'), true);
+    check('hint retracts below the range', await page.locator('.wt-panel [data-hint]').isHidden(), true);
+    check('chip still shows the top set', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '100');
+
+    // the steppers move every set and keep the gap
+    await page.click('.wt-panel .wt-step[data-step="2.5"]');
+    await page.waitForTimeout(150);
+    check('all sets shift together',
+      await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
+      ['102.5', '102.5', '102.5', '92.5']);
+  });
+
+  await test('Save records the panel as shown', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {},
+        wt: { 'mon-2': [{ ew: ew - 1, w: 40, s: [{ w: 40, r: 8 }, { w: 40, r: 8 }, { w: 40, r: 8 }] }] },
+      }));
+    `) }, async (page) => {
+    check('last week shown as the target', await page.locator('[data-id="mon-2"] .wt.is-prev').count(), 1);
+    await page.click('[data-id="mon-2"] .wt');
+    check('prefilled from last week', await page.inputValue('.wt-panel .wt-top'), '40');
+    await page.click('.wt-panel .wt-close');   // repeat last week in one tap
+    await page.waitForTimeout(150);
+    check('logged for this week', await page.locator('[data-id="mon-2"] .wt.is-set').count(), 1);
+    check('same load', (await page.textContent('[data-id="mon-2"] .wt .wt-val')).trim(), '40');
+  });
+
+  await test('the lb toggle is gone', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    check('no unit toggle', await page.locator('.wt-unitbtn').count(), 0);
+    check('kg is fixed', await page.textContent('.wt-panel .wt-field span'), 'kg');
   });
 
   await test('PR flash fires once, and not again after reload', { date: '2026-07-23T09:00:00',
@@ -175,7 +221,7 @@ async function main() {
     await page.reload();
     await page.waitForTimeout(350);
     await page.click('[data-id="mon-1"] .wt');
-    await page.fill('.wt-panel input[type="number"]', '102.5');
+    await page.fill('.wt-panel .wt-top', '102.5');
     await page.waitForTimeout(250);
     check('PR does not re-fire', await page.locator('.wt-panel .wt-pr').count(), 0);
   });
@@ -196,7 +242,7 @@ async function main() {
 
   await test('backup exports and restores everything', { date: '2026-07-23T09:00:00' }, async (page) => {
     await page.click('[data-id="mon-1"] .wt');
-    await page.fill('.wt-panel input[type="number"]', '85');
+    await page.fill('.wt-panel .wt-top', '85');
     await page.waitForTimeout(120);
     await page.click('.wt-panel .wt-close');
 
@@ -378,7 +424,7 @@ async function main() {
   // ------------------------------------------------------------------- resets
   await test('reset clears the week but keeps history', { date: '2026-07-23T09:00:00' }, async (page) => {
     await page.click('[data-id="mon-1"] .wt');
-    await page.fill('.wt-panel input[type="number"]', '90');
+    await page.fill('.wt-panel .wt-top', '90');
     await page.waitForTimeout(120);
     await page.click('.wt-panel .wt-close');
     await completeDay(page, 'd-mon');
@@ -396,7 +442,7 @@ async function main() {
     await page.click('#d-mon .day-name');
     await page.waitForTimeout(300);
     await page.click('[data-id="mon-1"] .wt');
-    await page.fill('.wt-panel input[type="number"]', '75');
+    await page.fill('.wt-panel .wt-top', '75');
     await page.waitForTimeout(120);
     await page.click('.wt-panel .wt-close');
 
