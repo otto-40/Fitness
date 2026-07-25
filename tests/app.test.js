@@ -4,8 +4,11 @@
 
    The app is date-sensitive (today's card, rest days completing by date,
    the Monday reset), so most cases pin the clock to a known day. */
+const fs = require('fs');
+const path = require('path');
 const { chromium } = require('playwright-core');
 const { findChromium, APP_URL } = require('./browser');
+const ROOT = path.resolve(__dirname, '..');
 
 let pass = 0;
 const failures = [];
@@ -77,7 +80,27 @@ async function clearDay(page, id) {
   await page.waitForTimeout(150);
 }
 
+/* The installed app's identity lives in three files that have to agree;
+   nothing in the running page would reveal them drifting apart. */
+function checkInstallIdentity() {
+  current = 'install identity';
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.webmanifest'), 'utf8'));
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const appleTitle = (html.match(/name="apple-mobile-web-app-title" content="([^"]+)"/) || [])[1];
+
+  check('manifest name', manifest.name, 'Longevity');
+  check('home-screen label', manifest.short_name, 'Longevity');
+  check('iOS home-screen label matches', appleTitle, manifest.short_name);
+  check('icons declared', manifest.icons.map((i) => i.sizes), ['192x192', '512x512']);
+  check('icons are not maskable', manifest.icons.every((i) => i.purpose === 'any'), true);
+  manifest.icons.concat([{ src: 'icons/icon-180.png' }]).forEach((i) => {
+    check(i.src + ' exists', fs.existsSync(path.join(ROOT, i.src)), true);
+  });
+  check('apple-touch-icon points at the 180', html.includes('href="icons/icon-180.png"'), true);
+}
+
 async function main() {
+  checkInstallIdentity();
   browser = await chromium.launch({ executablePath: findChromium() });
 
   // ---------------------------------------------------------------- week view

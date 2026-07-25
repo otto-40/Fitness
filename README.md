@@ -35,7 +35,11 @@ a month old.
 ## Installing on a phone
 
 Open the live app in Safari (iOS) or Chrome (Android) → Share → *Add to Home
-Screen*. It then runs full-screen and works offline.
+Screen*. It installs as **Longevity**, runs full-screen and works offline.
+
+iOS captures the icon and name when you install, so after either changes you
+need to delete the tile and add it again. Logged data is unaffected — it
+belongs to the site, not the tile.
 
 ## Development
 

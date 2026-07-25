@@ -1,6 +1,6 @@
 {
-  "name": "Sam's Training Week",
-  "short_name": "Training",
+  "name": "Longevity",
+  "short_name": "Longevity",
   "description": "Weekly training routine with set logging, weight tracking, and progress charts.",
   "start_url": "./",
   "scope": "./",
