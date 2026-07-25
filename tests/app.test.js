@@ -374,6 +374,193 @@ async function main() {
     check('shows in roll-up', (await page.textContent('.wk-lines')).includes('game med'), true);
   });
 
+  // ------------------------------------------------------------ chart metrics
+  await test('adding reps at the same load shows as progress', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const wk = (w, r) => ({ ew: w, w: 100, s: [{w:100,r},{w:100,r},{w:100,r},{w:100,r}] });
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-1': [wk(ew - 2, 6), wk(ew - 1, 7), wk(ew, 8)] },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    const card = page.locator('.chart-card', { hasText: 'Leg press' });
+
+    // default metric is estimated 1RM, which moves with reps
+    check('est 1RM is the default', await page.locator('.mt.on').textContent(), 'Est. 1RM');
+    check('1RM rises on reps alone', (await card.locator('.cc-now').textContent()).trim(), '126.7 kg');
+    check('delta is shown', (await card.locator('.cc-delta').textContent()).trim().startsWith('▲'), true);
+
+    // volume tells the same story in tonnage
+    await page.click('.mt[data-m="vol"]');
+    await page.waitForTimeout(300);
+    check('volume totals every set',
+      (await page.locator('.chart-card', { hasText: 'Leg press' }).locator('.cc-now').textContent()).trim(),
+      '3200 kg');
+
+    // top set alone is flat — the blind spot this replaced
+    await page.click('.mt[data-m="top"]');
+    await page.waitForTimeout(300);
+    const topCard = page.locator('.chart-card', { hasText: 'Leg press' });
+    check('top set is flat', (await topCard.locator('.cc-now').textContent()).trim(), '100 kg');
+    check('and shows no gain', await topCard.locator('.cc-delta').count(), 0);
+
+    await page.reload();
+    await page.waitForTimeout(350);
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    check('choice persists', await page.locator('.mt.on').textContent(), 'Top set');
+  });
+
+  // --------------------------------------------------- sets, notes, rest span
+  await test('a session can add or drop sets', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    check('starts at the prescribed count', await page.locator('.wt-panel .wt-set').count(), 4);
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+
+    await page.click('.wt-panel .wt-nset[data-d="1"]');
+    await page.waitForTimeout(200);
+    check('a fifth set appears', await page.locator('.wt-panel .wt-set').count(), 5);
+    await page.fill('.wt-panel .wt-sw[data-i="4"]', '80');
+    await page.fill('.wt-panel .wt-sr[data-i="4"]', '12');
+    await page.waitForTimeout(200);
+    check('the extra set is stored', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,8,12'), true);
+
+    await page.click('.wt-panel .wt-nset[data-d="-1"]');
+    await page.waitForTimeout(200);
+    check('and can be dropped again', await page.locator('.wt-panel .wt-set').count(), 4);
+    check('storage follows', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,8,12'), false);
+  });
+
+  await test('clearing every weight clears the session', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+    check('logged', await page.locator('[data-id="mon-1"] .wt.is-set').count(), 1);
+
+    for (const i of [0, 1, 2, 3]) await page.fill(`.wt-panel .wt-sw[data-i="${i}"]`, '');
+    await page.waitForTimeout(250);
+    check('chip reverts', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '+');
+    check('no ghost entry left', await page.evaluate(
+      () => (JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'] || []).length), 0);
+  });
+
+  await test('rest length is set per exercise', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    check('defaults to 2:30', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 2:30');
+    await page.click('.wt-panel [data-rest]');
+    await page.waitForTimeout(120);
+    check('cycles on tap', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 3:00');
+    await page.click('.wt-panel .wt-close');
+
+    await page.click('[data-id="mon-1"] .ex');   // log a set on that exercise
+    await page.waitForTimeout(200);
+    check('timer uses the exercise span', await page.textContent('#rb-time'), '3:00');
+
+    await page.click('[data-id="mon-3"] .ex');   // a different lift keeps the default
+    await page.waitForTimeout(200);
+    check('others are unaffected', await page.textContent('#rb-time'), '2:30');
+  });
+
+  await test('notes stick to the exercise', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-notes', 'seat pin 4');
+    await page.waitForTimeout(200);
+    check('shows on the row', (await page.textContent('[data-id="mon-1"] .row-note')).trim(), '✎ seat pin 4');
+    await page.click('.wt-panel .wt-close');
+    await page.reload();
+    await page.waitForTimeout(350);
+    check('survives reload', (await page.textContent('[data-id="mon-1"] .row-note')).trim(), '✎ seat pin 4');
+  });
+
+  // ------------------------------------------------------------ program editor
+  await test('the program can be edited', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('#pref-edit');
+    await page.waitForTimeout(200);
+    check('editor opens', await page.locator('#editor').isVisible(), true);
+
+    const first = page.locator('.ed-ex').first();
+    await first.locator('.ed-name').fill('Hack squat');
+    await first.locator('.ed-sets').fill('5');
+    await page.click('#ed-save');
+    await page.waitForTimeout(600);
+
+    check('rename applied', (await page.textContent('[data-id="mon-1"] .ex')).includes('Hack squat'), true);
+    check('set count applied', await page.getAttribute('[data-id="mon-1"]', 'data-sets'), '5');
+    check('pips follow', await page.locator('[data-id="mon-1"] .pip').count(), 5);
+
+    // history follows the id, not the name
+    await page.click('[data-id="mon-1"] .wt');
+    check('panel matches new count', await page.locator('.wt-panel .wt-set').count(), 5);
+    await page.click('.wt-panel .wt-close');
+
+    // add and remove
+    await page.click('#pref-edit');
+    await page.waitForTimeout(200);
+    const before = await page.locator('#d-mon .row').count();
+    await page.click('.ed-day:first-child .ed-add');
+    await page.waitForTimeout(150);
+    await page.locator('.ed-day:first-child .ed-ex').last().locator('.ed-name').fill('Calf press');
+    await page.click('#ed-save');
+    await page.waitForTimeout(600);
+    check('exercise added', await page.locator('#d-mon .row').count(), before + 1);
+
+    // reset restores the shipped program
+    await page.click('#pref-edit');
+    await page.waitForTimeout(200);
+    await page.click('#ed-reset');   // arm
+    await page.click('#ed-reset');   // confirm
+    await page.waitForTimeout(600);
+    check('reset restores default', (await page.textContent('[data-id="mon-1"] .ex')).includes('Leg press'), true);
+    check('and the default count', await page.locator('#d-mon .row').count(), 6);
+  });
+
+  // ------------------------------------------------------- history week detail
+  await test('a week expands to show what was lifted', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const daysDone = {};
+      [0, 2, 3, 5].forEach(o => daysDone[monday - 7 + o] = 1);
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone, backfilled: 1, perSet: 1,
+        wt: { 'mon-1': [{ ew: ew - 1, w: 100, s: [{w:100,r:8},{w:100,r:8},{w:95,r:6}] }] },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-history');
+    await page.waitForTimeout(300);
+    const line = page.locator('.wk-line.has-detail').first();
+    check('week is expandable', await line.count(), 1);
+    check('collapsed by default', await page.locator('.wk-detail').count(), 0);
+
+    await line.click();
+    await page.waitForTimeout(200);
+    check('detail opens', await page.locator('.wk-detail').count(), 1);
+    const detail = (await page.textContent('.wk-detail')).replace(/\s+/g, ' ');
+    check('names the lift', detail.includes('Leg press'), true);
+    check('shows loads and reps', detail.includes('100–95 kg × 8,8,6'), true);
+
+    await line.click();
+    await page.waitForTimeout(200);
+    check('closes again', await page.locator('.wk-detail').count(), 0);
+  });
+
+  // ------------------------------------------------------------- backup nudge
+  await test('a stale backup is called out', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-1': [{ ew: ew, w: 100, s: [{w:100,r:8}] }] },
+      }));
+    `) }, async (page) => {
+    check('never-backed-up warning', (await page.textContent('#bk-age')).includes('Never backed up'), true);
+    await page.click('#backup-btn');
+    await page.click('#bk-copy');
+    await page.waitForTimeout(200);
+    await page.click('#bk-close');
+    check('clears once backed up', await page.locator('#bk-age').isHidden(), true);
+  });
+
   // --------------------------------------------------------------- rest timer
   await test('rest timer runs, extends and can be turned off', { date: '2026-07-23T09:00:00' }, async (page) => {
     check('hidden at rest', await page.locator('#rest-bar').isHidden(), true);
