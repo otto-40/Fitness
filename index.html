@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F6EFE3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#15201C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F5F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1B33" media="(prefers-color-scheme: dark)">
 <title>Sam's Training Week</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -26,75 +26,83 @@
   }
 
   :root{
-    --floor:#F6EFE3;        /* hardwood-washed off-white */
+    --floor:#F2F5F9;        /* cool off-white, keyed to the badge navy */
     --panel:#FFFFFF;
-    --ink:#1B1F1E;
-    --court:#1E5E4E;        /* painted key green */
-    --court-deep:#154237;
-    --line:#D9CDB8;         /* court line tan */
-    --tape:#E4B33D;         /* athletic tape — caution/rehab */
-    --rest:#8C8577;
-    --row-line:#EFE9DC;
-    --finisher-bg:#F1F6F4;
-    --tap-flash:#E7F0ED;
-    --on-court:#FFFFFF;     /* text on court-green fills */
-    --chart:#0F8A60;        /* chart mark — court hue, chroma raised to pass palette validation */
-    --rehab-panel:#1B1F1E;  /* dark ink for text on tape-colored fills (day-check warn state) */
+    --ink:#0B1B30;          /* logo navy, as text */
+    --court:#12294A;        /* primary fill — deep navy from the badge */
+    --court-deep:#14355C;   /* brand-coloured text that still reads on white */
+    --line:#D6DEE8;
+    --tape:#E25A00;         /* the badge's orange — highlights and cautions */
+    --rest:#6B7A8D;
+    --row-line:#E8EDF3;
+    --finisher-bg:#EDF2F8;
+    --tap-flash:#E3EAF3;
+    --on-court:#FFFFFF;     /* text on primary fills */
+    --on-tape:#0B1B30;      /* text on orange fills */
+    --chart:#2F6DB5;        /* validated against a white surface */
+    --bar-bg:#0B1B30;       /* the rest bar stays dark in both themes */
+    --bar-fg:#F2F5F9;
     --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     --display:'Oswald','Arial Narrow',ui-sans-serif,system-ui,sans-serif;
     color-scheme:light dark;
   }
   @media (prefers-color-scheme:dark){
     :root{
-      --floor:#15201C;
-      --panel:#1D2A25;
-      --ink:#EDE8DC;
-      --court:#5FB396;
-      --court-deep:#8ECDB6;
-      --line:#33423C;
-      --tape:#E4B33D;
-      --rest:#93998F;
-      --row-line:#28352F;
-      --finisher-bg:#22322B;
-      --tap-flash:#2A3D35;
-      --on-court:#0E1512;
-      --chart:#23A67B;
-      --rehab-panel:#0E1512;
+      --floor:#0A1B33;        /* the badge background itself */
+      --panel:#12263F;
+      --ink:#EEF3F9;
+      --court:#4E93D9;        /* lifted blue, since navy is the ground here */
+      --court-deep:#9CC6EE;
+      --line:#23405E;
+      --tape:#FF7A1A;
+      --rest:#8FA3BC;
+      --row-line:#1C3554;
+      --finisher-bg:#16304E;
+      --tap-flash:#1B3859;
+      --on-court:#08152A;
+      --on-tape:#08152A;
+      --chart:#4E93D9;        /* validated against the dark panel */
+      --bar-bg:#16304E;
+      --bar-fg:#F2F5F9;
     }
   }
   /* the artifact viewer's theme toggle stamps data-theme on the root and
      must beat the media query in both directions */
   :root[data-theme="dark"]{
-    --floor:#15201C;
-    --panel:#1D2A25;
-    --ink:#EDE8DC;
-    --court:#5FB396;
-    --court-deep:#8ECDB6;
-    --line:#33423C;
-    --tape:#E4B33D;
-    --rest:#93998F;
-    --row-line:#28352F;
-    --finisher-bg:#22322B;
-    --tap-flash:#2A3D35;
-    --on-court:#0E1512;
-    --chart:#23A67B;
-    --rehab-panel:#0E1512;
+    --floor:#0A1B33;        /* the badge background itself */
+    --panel:#12263F;
+    --ink:#EEF3F9;
+    --court:#4E93D9;        /* lifted blue, since navy is the ground here */
+    --court-deep:#9CC6EE;
+    --line:#23405E;
+    --tape:#FF7A1A;
+    --rest:#8FA3BC;
+    --row-line:#1C3554;
+    --finisher-bg:#16304E;
+    --tap-flash:#1B3859;
+    --on-court:#08152A;
+    --on-tape:#08152A;
+    --chart:#4E93D9;        /* validated against the dark panel */
+    --bar-bg:#16304E;
+    --bar-fg:#F2F5F9;
   }
   :root[data-theme="light"]{
-    --floor:#F6EFE3;
+    --floor:#F2F5F9;        /* cool off-white, keyed to the badge navy */
     --panel:#FFFFFF;
-    --ink:#1B1F1E;
-    --court:#1E5E4E;
-    --court-deep:#154237;
-    --line:#D9CDB8;
-    --tape:#E4B33D;
-    --rest:#8C8577;
-    --row-line:#EFE9DC;
-    --finisher-bg:#F1F6F4;
-    --tap-flash:#E7F0ED;
-    --on-court:#FFFFFF;
-    --chart:#0F8A60;
-    --rehab-panel:#1B1F1E;
+    --ink:#0B1B30;          /* logo navy, as text */
+    --court:#12294A;        /* primary fill — deep navy from the badge */
+    --court-deep:#14355C;   /* brand-coloured text that still reads on white */
+    --line:#D6DEE8;
+    --tape:#E25A00;         /* the badge's orange — highlights and cautions */
+    --rest:#6B7A8D;
+    --row-line:#E8EDF3;
+    --finisher-bg:#EDF2F8;
+    --tap-flash:#E3EAF3;
+    --on-court:#FFFFFF;     /* text on primary fills */
+    --on-tape:#0B1B30;      /* text on orange fills */
+    --chart:#2F6DB5;        /* validated against a white surface */
+    --bar-bg:#0B1B30;       /* the rest bar stays dark in both themes */
+    --bar-fg:#F2F5F9;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
@@ -189,7 +197,7 @@
     scroll-margin-top:130px;
   }
   .day.rest{border-left-color:var(--line);background:transparent}
-  .day.ball{border-left-color:var(--ink)}
+  .day.ball{border-left-color:var(--tape)}   /* the ball is the orange in the badge */
   .day.optional{border-left-style:dashed;border-left-color:var(--court)}
   .day.today{box-shadow:0 0 0 2px var(--court)}
   .day.rest.today{box-shadow:0 0 0 2px var(--rest)}
@@ -213,7 +221,7 @@
   }
   .day-check.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
   /* armed = one tap away from clearing an already-completed day */
-  .day-check.warn{background:var(--tape);border-color:var(--tape);color:var(--rehab-panel)}
+  .day-check.warn{background:var(--tape);border-color:var(--tape);color:var(--on-tape)}
   .day-check:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   .day-check-tip{
     position:absolute;top:100%;right:14px;margin-top:4px;z-index:5;
@@ -253,7 +261,7 @@
     font-family:var(--mono);font-size:11px;color:var(--court);
     font-weight:500;text-transform:uppercase;letter-spacing:.08em;text-align:right;
   }
-  .day.ball .day-focus{color:var(--ink)}
+  .day.ball .day-focus{color:var(--tape)}
   .day.rest .day-focus{color:var(--rest)}
   .day-count{
     font-family:var(--mono);font-size:11px;font-weight:500;
@@ -402,7 +410,7 @@
   .wt-pr{
     display:inline-block;margin-left:6px;
     font-family:var(--mono);font-size:10px;font-weight:500;
-    letter-spacing:.08em;color:#15201C;background:var(--tape);
+    letter-spacing:.08em;color:var(--on-tape);background:var(--tape);
     padding:2px 6px;border-radius:2px;
   }
   .wt-adjust{display:flex;align-items:stretch;gap:8px}
@@ -562,7 +570,7 @@
   }
   .cal-cell.c-future{color:var(--rest);opacity:.45}
   .cal-cell.c-done{background:var(--court);color:var(--on-court);font-weight:500}
-  .cal-cell.c-ball{background:var(--ink);color:var(--floor);font-weight:500}
+  .cal-cell.c-ball{background:var(--tape);color:var(--on-tape);font-weight:500}
   .cal-cell.c-assumed{box-shadow:inset 0 0 0 1.5px var(--court);color:var(--court-deep)}
   .cal-cell.c-rest::after{
     content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
@@ -580,7 +588,7 @@
     box-shadow:inset 0 0 0 1px var(--line);
   }
   button.cal-cell.c-warn{
-    background:var(--tape);color:var(--rehab-panel);
+    background:var(--tape);color:var(--on-tape);
     box-shadow:0 0 0 2px var(--tape);
   }
   button.cal-cell:focus-visible{outline:2px solid var(--court);outline-offset:1px}
@@ -627,7 +635,7 @@
   .celebrate{
     position:fixed;inset:0;z-index:50;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(14,21,18,.93);
+    background:rgba(5,16,32,.94);
     padding:24px;
   }
   .celebrate[hidden]{display:none}
@@ -635,7 +643,7 @@
     position:absolute;inset:0;width:100%;height:100%;
     pointer-events:none;
   }
-  .cel-card{position:relative;text-align:center;color:#F6EFE3}
+  .cel-card{position:relative;text-align:center;color:#EEF3F9}
   @keyframes celpop{from{transform:scale(.82);opacity:0}}
   .cel-card{animation:celpop .45s cubic-bezier(.2,.9,.3,1.2)}
   .cel-eyebrow{
@@ -648,7 +656,7 @@
     font-size:clamp(44px,13vw,64px);line-height:.95;
     text-transform:uppercase;letter-spacing:.01em;
   }
-  .cel-card p{margin-top:14px;font-size:14px;color:#CFC9BC}
+  .cel-card p{margin-top:14px;font-size:14px;color:#9FB3C9}
   .cel-stats{
     font-family:var(--mono);font-size:12.5px;color:var(--tape) !important;
     letter-spacing:.04em;
@@ -662,7 +670,7 @@
   #cel-reset{
     font-family:var(--mono);font-size:13px;font-weight:500;
     letter-spacing:.06em;text-transform:uppercase;
-    color:#15201C;background:var(--tape);
+    color:#08152A;background:var(--tape);
     border:none;border-radius:4px;
     padding:14px 22px;min-height:48px;
     cursor:pointer;touch-action:manipulation;
@@ -671,8 +679,8 @@
   #cel-close{
     font-family:var(--mono);font-size:13px;font-weight:500;
     letter-spacing:.06em;text-transform:uppercase;
-    color:#CFC9BC;background:none;
-    border:1px solid #3D443F;border-radius:4px;
+    color:#9FB3C9;background:none;
+    border:1px solid #2B4A6B;border-radius:4px;
     padding:14px 22px;min-height:48px;
     cursor:pointer;touch-action:manipulation;
     -webkit-tap-highlight-color:transparent;
@@ -764,7 +772,7 @@
   .backup{
     position:fixed;inset:0;z-index:60;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(14,21,18,.7);
+    background:rgba(5,16,32,.72);
     padding:20px;
   }
   .backup[hidden]{display:none}
@@ -805,7 +813,7 @@
   .foot-btns{display:flex;gap:6px;flex-shrink:0}
   .bk-age{
     margin-top:8px;font-family:var(--mono);font-size:11px;
-    color:var(--rehab-panel);background:var(--tape);
+    color:var(--on-tape);background:var(--tape);
     padding:7px 10px;border-radius:3px;
   }
   .bk-age[hidden]{display:none}
@@ -835,7 +843,7 @@
   .pref-action:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   .editor{
     position:fixed;inset:0;z-index:60;
-    background:rgba(14,21,18,.7);
+    background:rgba(5,16,32,.72);
     padding:16px;overflow-y:auto;
     display:flex;align-items:flex-start;justify-content:center;
   }
@@ -909,17 +917,23 @@
   .ed-actions button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
 
   /* ---------- rest timer ---------- */
+  /* a floating card rather than a full-bleed bar: phone screens curve at the
+     corners, and a rectangle pinned to the edges gets pinched by them */
   .rest-bar{
-    position:fixed;left:0;right:0;bottom:0;z-index:40;
-    padding:0 14px calc(10px + env(safe-area-inset-bottom));
-    background:var(--ink);color:var(--floor);
-    box-shadow:0 -2px 12px rgba(0,0,0,.18);
+    position:fixed;z-index:40;
+    left:max(12px, calc(env(safe-area-inset-left) + 12px));
+    right:max(12px, calc(env(safe-area-inset-right) + 12px));
+    bottom:max(14px, calc(env(safe-area-inset-bottom) + 10px));
+    padding:0 14px 12px;
+    background:var(--bar-bg);color:var(--bar-fg);
+    border-radius:16px;overflow:hidden;
+    box-shadow:0 6px 24px rgba(3,10,20,.4);
   }
   .rest-bar[hidden]{display:none}
-  /* keep the footer controls clear of the fixed bar while it's up */
-  body.resting{padding-bottom:160px}
+  /* keep the footer controls clear of the floating card while it's up */
+  body.resting{padding-bottom:calc(190px + env(safe-area-inset-bottom))}
   .rb-track{
-    height:3px;margin:0 -14px 8px;background:rgba(246,239,227,.16);
+    height:3px;margin:0 -14px 10px;background:rgba(255,255,255,.16);
   }
   .rb-fill{
     height:100%;width:100%;background:var(--tape);
@@ -928,7 +942,7 @@
   @media (prefers-reduced-motion:no-preference){
     .rb-fill{transition:width .25s linear}
   }
-  .rest-bar.done .rb-fill{background:var(--floor)}
+  .rest-bar.done .rb-fill{background:#FFFFFF}
   .rb-ctx{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
   .rb-lab{
     font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
@@ -936,7 +950,7 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .rb-set{
-    font-family:var(--mono);font-size:10.5px;color:#9BA398;
+    font-family:var(--mono);font-size:10.5px;color:rgba(242,245,249,.65);
     margin-left:auto;white-space:nowrap;
   }
   .rb-main{display:flex;align-items:center;gap:8px}
@@ -947,16 +961,16 @@
   }
   .rest-bar.done{background:var(--court)}
   .rest-bar.done .rb-lab{color:var(--floor)}
-  .rest-bar.done .rb-set{color:rgba(246,239,227,.75)}
+  .rest-bar.done .rb-set{color:rgba(242,245,249,.8)}
   .rest-bar button{
     font-family:var(--mono);font-size:12px;font-weight:500;
     color:var(--floor);background:none;
-    border:1px solid rgba(246,239,227,.35);border-radius:4px;
+    border:1px solid rgba(255,255,255,.3);border-radius:4px;
     padding:9px 10px;min-height:44px;min-width:48px;
     cursor:pointer;touch-action:manipulation;
     -webkit-tap-highlight-color:transparent;
   }
-  #rb-stop{background:rgba(246,239,227,.14)}
+  #rb-stop{background:rgba(255,255,255,.14)}
   .rest-bar button:focus-visible{outline:2px solid var(--tape);outline-offset:2px}
   .reset-btn{
     font-family:var(--mono);font-size:11px;font-weight:500;
@@ -1368,8 +1382,8 @@
   /* exercise name without the coaching notes: full text minus .why, cut at " — " */
   function exName(row){
     var ex = row.querySelector('.ex').cloneNode(true);
-    var why = ex.querySelector('.why');
-    if (why) why.parentNode.removeChild(why);
+    /* the coaching line and any note live inside .ex but aren't part of the name */
+    ex.querySelectorAll('.why, .row-note').forEach(function(n){ n.remove(); });
     var t = ex.textContent.replace(/\s+/g, ' ').trim();
     var cut = t.indexOf(' — ');
     return cut > 0 ? t.slice(0, cut) : t;
@@ -2224,7 +2238,7 @@
     }
     h += '</div><div class="cal-legend">' +
       '<span><i style="background:var(--court)"></i>trained</span>' +
-      '<span><i style="background:var(--ink)"></i>game</span>' +
+      '<span><i style="background:var(--tape)"></i>game</span>' +
       '<span><i style="box-shadow:inset 0 0 0 1.5px var(--court)"></i>before tracking</span>' +
       '<span><i style="background:var(--rest);border-radius:50%"></i>rest</span>' +
       '</div>' +
@@ -2396,7 +2410,7 @@
     var ctx = canvas.getContext('2d');
     var W = canvas.width = canvas.clientWidth;
     var H = canvas.height = canvas.clientHeight;
-    var colors = ['#1E5E4E', '#E4B33D', '#0F8A60', '#8ECDB6', '#F6EFE3'];
+    var colors = ['#12294A', '#F26402', '#2F6DB5', '#9CC6EE', '#FBF9F8'];
     var ps = [];
     for (var i = 0; i < count; i++){
       ps.push({

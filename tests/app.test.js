@@ -537,7 +537,20 @@ async function main() {
     await page.fill('.wt-panel .wt-notes', 'seat pin 4');
     await page.waitForTimeout(200);
     check('shows on the row', (await page.textContent('[data-id="mon-1"] .row-note')).trim(), '✎ seat pin 4');
+
+    // the note lives inside .ex, so it must not leak into the exercise's name
     await page.click('.wt-panel .wt-close');
+    await page.click('[data-id="mon-1"] .ex');
+    await page.waitForTimeout(200);
+    check('name is clean in the rest bar', (await page.textContent('#rb-lab')).trim(),
+      'Rest · Leg press or goblet squat');
+    await page.click('#rb-stop');
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    check('and in chart titles',
+      await page.locator('.cc-name', { hasText: 'seat pin' }).count(), 0);
+    await page.click('#tab-week');
+    await page.waitForTimeout(200);
     await page.reload();
     await page.waitForTimeout(350);
     check('survives reload', (await page.textContent('[data-id="mon-1"] .row-note')).trim(), '✎ seat pin 4');
