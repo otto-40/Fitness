@@ -447,21 +447,66 @@ async function main() {
       () => (JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'] || []).length), 0);
   });
 
-  await test('rest length is set per exercise', { date: '2026-07-23T09:00:00' }, async (page) => {
-    await page.click('[data-id="mon-1"] .wt');
-    check('defaults to 2:30', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 2:30');
+  await test('rest length follows the exercise', { date: '2026-07-23T09:00:00' }, async (page) => {
+    // heavy compounds get long rests, isolation gets short ones
+    await page.click('[data-id="mon-1"] .ex');      // leg press, 4 x 6-8
+    await page.waitForTimeout(200);
+    check('heavy compound rests 3:00', await page.textContent('#rb-time'), '3:00');
+    await page.click('#rb-stop');
+
+    await page.click('[data-id="mon-4"] .ex');      // calf/tib raise, 3 x 15
+    await page.waitForTimeout(200);
+    check('isolation rests 1:00', await page.textContent('#rb-time'), '1:00');
+    await page.click('#rb-stop');
+
+    await page.click('[data-id="mon-6"] .ex');      // zone-2 walk
+    await page.waitForTimeout(200);
+    check('cardio starts no timer', await page.locator('#rest-bar').isHidden(), true);
+
+    // and can be overridden per exercise, including switched off
+    await page.click('[data-id="mon-4"] .wt');
+    check('panel shows the prescribed span', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 1:00');
     await page.click('.wt-panel [data-rest]');
     await page.waitForTimeout(120);
-    check('cycles on tap', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 3:00');
+    check('cycles on tap', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 1:30');
     await page.click('.wt-panel .wt-close');
-
-    await page.click('[data-id="mon-1"] .ex');   // log a set on that exercise
+    await page.click('[data-id="mon-4"] .ex');
     await page.waitForTimeout(200);
-    check('timer uses the exercise span', await page.textContent('#rb-time'), '3:00');
+    check('override is used', await page.textContent('#rb-time'), '1:30');
+  });
 
-    await page.click('[data-id="mon-3"] .ex');   // a different lift keeps the default
+  await test('rest bar shows context, progress and overtime', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .ex');
     await page.waitForTimeout(200);
-    check('others are unaffected', await page.textContent('#rb-time'), '2:30');
+    check('names the lift', (await page.textContent('#rb-lab')).trim(), 'Rest · Leg press or goblet squat');
+    check('counts the set', (await page.textContent('#rb-set')).trim(), 'set 1 of 4');
+    check('bar starts full', await page.locator('#rb-fill').evaluate((e) => parseFloat(e.style.width) > 99), true);
+
+    await page.clock.fastForward(90000);
+    await page.waitForTimeout(150);
+    check('halfway down', await page.textContent('#rb-time'), '1:30');
+    const pct = await page.locator('#rb-fill').evaluate((e) => parseFloat(e.style.width));
+    check('bar tracks remaining', pct > 45 && pct < 55, true);
+
+    // -30 and +30 both work
+    await page.click('#rb-minus');
+    await page.waitForTimeout(120);
+    check('minus 30', await page.textContent('#rb-time'), '1:00');
+    await page.click('#rb-plus');
+    await page.waitForTimeout(120);
+    check('plus 30', await page.textContent('#rb-time'), '1:30');
+
+    // past zero it counts up rather than vanishing
+    await page.clock.fastForward(105000);
+    await page.waitForTimeout(150);
+    check('overtime counts up', (await page.textContent('#rb-time')).startsWith('+'), true);
+    check('switches to go', (await page.textContent('#rb-lab')).trim().startsWith('Go ·'), true);
+    check('still on screen', await page.locator('#rest-bar').isVisible(), true);
+
+    // and gives up eventually
+    await page.clock.fastForward(130000);
+    await page.waitForTimeout(200);
+    check('clears itself after a while', await page.locator('#rest-bar').isHidden(), true);
   });
 
   await test('notes stick to the exercise', { date: '2026-07-23T09:00:00' }, async (page) => {
@@ -568,20 +613,20 @@ async function main() {
     await page.click('[data-id="thu-1"] .ex'); // log a working set
     await page.waitForTimeout(150);
     check('bar appears', await page.locator('#rest-bar').isVisible(), true);
-    check('starts at default', await page.textContent('#rb-time'), '2:30');
+    check('starts at the prescribed span', await page.textContent('#rb-time'), '3:00');
 
     await page.clock.fastForward(60000);
     await page.waitForTimeout(100);
-    check('counts down', await page.textContent('#rb-time'), '1:30');
+    check('counts down', await page.textContent('#rb-time'), '2:00');
 
     await page.click('#rb-plus');
     await page.waitForTimeout(100);
-    check('+30s extends', await page.textContent('#rb-time'), '2:00');
+    check('+30s extends', await page.textContent('#rb-time'), '2:30');
 
-    await page.clock.fastForward(125000);
+    await page.clock.fastForward(155000);
     await page.waitForTimeout(150);
-    check('reaches zero', await page.textContent('#rb-time'), '0:00');
-    check('signals go', (await page.textContent('#rest-bar .rb-lab')).trim(), 'Go');
+    check('reaches zero', (await page.textContent('#rb-time')).startsWith('+'), true);
+    check('signals go', (await page.textContent('#rb-lab')).trim().startsWith('Go ·'), true);
 
     // the fixed bar must not sit on top of the footer controls
     await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));

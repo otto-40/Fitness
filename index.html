@@ -372,6 +372,7 @@
   .wt-rest{
     margin-left:auto;
     font-family:var(--mono);font-size:11px;color:var(--court-deep);
+    background:none;
     border:1px solid var(--line);border-radius:3px;
     padding:7px 10px;min-height:34px;
     display:flex;align-items:center;
@@ -910,33 +911,52 @@
   /* ---------- rest timer ---------- */
   .rest-bar{
     position:fixed;left:0;right:0;bottom:0;z-index:40;
-    display:flex;align-items:center;gap:10px;
-    padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    padding:0 14px calc(10px + env(safe-area-inset-bottom));
     background:var(--ink);color:var(--floor);
     box-shadow:0 -2px 12px rgba(0,0,0,.18);
   }
   .rest-bar[hidden]{display:none}
   /* keep the footer controls clear of the fixed bar while it's up */
-  body.resting{padding-bottom:130px}
+  body.resting{padding-bottom:160px}
+  .rb-track{
+    height:3px;margin:0 -14px 8px;background:rgba(246,239,227,.16);
+  }
+  .rb-fill{
+    height:100%;width:100%;background:var(--tape);
+    transform-origin:left center;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .rb-fill{transition:width .25s linear}
+  }
+  .rest-bar.done .rb-fill{background:var(--floor)}
+  .rb-ctx{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
   .rb-lab{
     font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--tape);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
+  .rb-set{
+    font-family:var(--mono);font-size:10.5px;color:#9BA398;
+    margin-left:auto;white-space:nowrap;
+  }
+  .rb-main{display:flex;align-items:center;gap:8px}
   .rb-time{
-    font-family:var(--mono);font-size:22px;font-weight:500;
+    font-family:var(--mono);font-size:26px;font-weight:500;
     font-variant-numeric:tabular-nums;letter-spacing:.02em;
-    margin-right:auto;
+    margin-right:auto;min-width:84px;
   }
   .rest-bar.done{background:var(--court)}
   .rest-bar.done .rb-lab{color:var(--floor)}
+  .rest-bar.done .rb-set{color:rgba(246,239,227,.75)}
   .rest-bar button{
     font-family:var(--mono);font-size:12px;font-weight:500;
     color:var(--floor);background:none;
     border:1px solid rgba(246,239,227,.35);border-radius:4px;
-    padding:9px 12px;min-height:40px;min-width:44px;
+    padding:9px 10px;min-height:44px;min-width:48px;
     cursor:pointer;touch-action:manipulation;
     -webkit-tap-highlight-color:transparent;
   }
+  #rb-stop{background:rgba(246,239,227,.14)}
   .rest-bar button:focus-visible{outline:2px solid var(--tape);outline-offset:2px}
   .reset-btn{
     font-family:var(--mono);font-size:11px;font-weight:500;
@@ -1132,10 +1152,14 @@
 
   <!-- REST TIMER -->
   <div class="rest-bar" id="rest-bar" hidden>
-    <span class="rb-lab">Rest</span>
-    <span class="rb-time" id="rb-time" role="timer" aria-live="off">2:30</span>
-    <button type="button" id="rb-plus">+30s</button>
-    <button type="button" id="rb-stop" aria-label="Dismiss rest timer">✕</button>
+    <div class="rb-track"><div class="rb-fill" id="rb-fill"></div></div>
+    <div class="rb-ctx"><span class="rb-lab" id="rb-lab">Rest</span><span class="rb-set" id="rb-set"></span></div>
+    <div class="rb-main">
+      <span class="rb-time" id="rb-time" role="timer" aria-live="off">2:30</span>
+      <button type="button" id="rb-minus" aria-label="30 seconds less">−30</button>
+      <button type="button" id="rb-plus" aria-label="30 seconds more">+30</button>
+      <button type="button" id="rb-stop">Skip</button>
+    </div>
   </div>
 
   <!-- BACKUP / RESTORE -->
@@ -1375,34 +1399,34 @@
      history is keyed off them, so an id is never reused or renumbered. */
   var DEFAULT_PROGRAM = {
     'd-mon': [
-      { id: 'mon-1', name: 'Leg press or goblet squat', why: 'leg strength = longevity anchor', rx: '4 × 6–8', sets: 4, wt: true, reps: '6-8', variants: ['Leg press', 'Goblet squat'] },
-      { id: 'mon-2', name: 'Bulgarian split squat', why: 'single-leg control for cuts & landings', rx: '3 × 8 /leg', sets: 3, wt: true, reps: '8' },
-      { id: 'mon-3', name: 'DB bench press — neutral grip', why: 'press strength, low wrist torque', rx: '4 × 6–8', sets: 4, wt: true, reps: '6-8' },
-      { id: 'mon-4', name: 'Seated calf ⇄ tibialis raise', why: 'ankle armour — hoops injury #1', rx: '3 × 15 ea', sets: 3, wt: true, reps: '15' },
-      { id: 'mon-5', name: 'Copenhagen adductor plank', why: '~40% groin-injury cut in RCTs', rx: '3 × 20s /side', sets: 3 },
-      { id: 'mon-6', name: 'Incline walk — zone 2', rx: '15 min', sets: 1, finisher: true }
+      { id: 'mon-1', rest: 180, name: 'Leg press or goblet squat', why: 'leg strength = longevity anchor', rx: '4 × 6–8', sets: 4, wt: true, reps: '6-8', variants: ['Leg press', 'Goblet squat'] },
+      { id: 'mon-2', rest: 120, name: 'Bulgarian split squat', why: 'single-leg control for cuts & landings', rx: '3 × 8 /leg', sets: 3, wt: true, reps: '8' },
+      { id: 'mon-3', rest: 180, name: 'DB bench press — neutral grip', why: 'press strength, low wrist torque', rx: '4 × 6–8', sets: 4, wt: true, reps: '6-8' },
+      { id: 'mon-4', rest: 60, name: 'Seated calf ⇄ tibialis raise', why: 'ankle armour — hoops injury #1', rx: '3 × 15 ea', sets: 3, wt: true, reps: '15' },
+      { id: 'mon-5', rest: 60, name: 'Copenhagen adductor plank', why: '~40% groin-injury cut in RCTs', rx: '3 × 20s /side', sets: 3 },
+      { id: 'mon-6', rest: 0, name: 'Incline walk — zone 2', rx: '15 min', sets: 1, finisher: true }
     ],
     'd-wed': [
-      { id: 'wed-1', name: 'Basketball', why: 'covers plyometrics + high-intensity intervals', rx: 'evening', sets: 1 }
+      { id: 'wed-1', rest: 0, name: 'Basketball', why: 'covers plyometrics + high-intensity intervals', rx: 'evening', sets: 1 }
     ],
     'd-thu': [
-      { id: 'thu-1', name: 'Trap bar / RDL — use straps', why: 'posterior chain; straps spare the elbow', rx: '4 × 5–6', sets: 4, wt: true, reps: '5-6', variants: ['Trap bar DL', 'RDL'] },
-      { id: 'thu-2', name: 'Chest-supported row — neutral grip', why: 'strict pulling, no momentum on the tendon', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
-      { id: 'thu-3', name: 'Lat pulldown — neutral grip', why: 'vertical pull minus pull-up hang', rx: '3 × 10', sets: 3, wt: true, reps: '10' },
-      { id: 'thu-4', name: 'Overhead DB press — neutral grip', why: 'shoulder strength for rebounds/contests', rx: '3 × 8', sets: 3, wt: true, reps: '8' },
-      { id: 'thu-5', name: 'Nordic / slider leg curl', why: '~50% hamstring-injury cut in meta-analyses', rx: '3 × 5', sets: 3 },
-      { id: 'thu-6', name: 'Incline walk — zone 2', rx: '15 min', sets: 1, finisher: true }
+      { id: 'thu-1', rest: 180, name: 'Trap bar / RDL — use straps', why: 'posterior chain; straps spare the elbow', rx: '4 × 5–6', sets: 4, wt: true, reps: '5-6', variants: ['Trap bar DL', 'RDL'] },
+      { id: 'thu-2', rest: 120, name: 'Chest-supported row — neutral grip', why: 'strict pulling, no momentum on the tendon', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
+      { id: 'thu-3', rest: 120, name: 'Lat pulldown — neutral grip', why: 'vertical pull minus pull-up hang', rx: '3 × 10', sets: 3, wt: true, reps: '10' },
+      { id: 'thu-4', rest: 120, name: 'Overhead DB press — neutral grip', why: 'shoulder strength for rebounds/contests', rx: '3 × 8', sets: 3, wt: true, reps: '8' },
+      { id: 'thu-5', rest: 120, name: 'Nordic / slider leg curl', why: '~50% hamstring-injury cut in meta-analyses', rx: '3 × 5', sets: 3 },
+      { id: 'thu-6', rest: 0, name: 'Incline walk — zone 2', rx: '15 min', sets: 1, finisher: true }
     ],
     'd-sat': [
-      { id: 'sat-1', name: 'Hip thrust or 45° back extension', why: 'glute drive → jump & sprint, spares knees', rx: '3 × 8', sets: 3, wt: true, reps: '8', variants: ['Hip thrust', '45° back extension'] },
-      { id: 'sat-2', name: 'Incline DB press', why: '2×/week pressing beats 1× for muscle', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
-      { id: 'sat-3', name: 'Cable row', why: 'pulling volume, elbow-friendly', rx: '3 × 10', sets: 3, wt: true, reps: '10' },
-      { id: 'sat-4', name: 'Single-leg calf raise', why: 'Achilles capacity, side-to-side balance', rx: '3 × 12 /leg', sets: 3, wt: true, reps: '12' },
-      { id: 'sat-5', name: 'Pallof press + side plank', why: 'anti-rotation trunk for contact & cuts', rx: '2 rounds', sets: 2 },
-      { id: 'sat-6', name: 'Incline walk — zone 2', rx: '45 min', sets: 1, finisher: true }
+      { id: 'sat-1', rest: 150, name: 'Hip thrust or 45° back extension', why: 'glute drive → jump & sprint, spares knees', rx: '3 × 8', sets: 3, wt: true, reps: '8', variants: ['Hip thrust', '45° back extension'] },
+      { id: 'sat-2', rest: 150, name: 'Incline DB press', why: '2×/week pressing beats 1× for muscle', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
+      { id: 'sat-3', rest: 120, name: 'Cable row', why: 'pulling volume, elbow-friendly', rx: '3 × 10', sets: 3, wt: true, reps: '10' },
+      { id: 'sat-4', rest: 60, name: 'Single-leg calf raise', why: 'Achilles capacity, side-to-side balance', rx: '3 × 12 /leg', sets: 3, wt: true, reps: '12' },
+      { id: 'sat-5', rest: 60, name: 'Pallof press + side plank', why: 'anti-rotation trunk for contact & cuts', rx: '2 rounds', sets: 2 },
+      { id: 'sat-6', rest: 0, name: 'Incline walk — zone 2', rx: '45 min', sets: 1, finisher: true }
     ],
     'd-sun': [
-      { id: 'sun-1', name: 'Incline walk — zone 2', why: 'tops up weekly aerobic dose toward 150 min', rx: '30 min', sets: 1 }
+      { id: 'sun-1', rest: 0, name: 'Incline walk — zone 2', why: 'tops up weekly aerobic dose toward 150 min', rx: '30 min', sets: 1 }
     ]
   };
   var DAY_IDS = ['d-mon', 'd-wed', 'd-thu', 'd-sat', 'd-sun'];
@@ -1677,7 +1701,7 @@
     html += '<div class="wt-setctl">' +
       '<button type="button" class="wt-nset" data-d="-1"' + (nSets <= 1 ? ' disabled' : '') + '>− set</button>' +
       '<button type="button" class="wt-nset" data-d="1">+ set</button>' +
-      '<span class="wt-rest" data-rest>rest ' + fmtClock(restFor(id) * 1000) + '</span>' +
+      '<button type="button" class="wt-rest" data-rest>rest ' + restLabel(restFor(id)) + '</button>' +
     '</div>';
     html += '<div class="wt-hint" data-hint hidden></div>' +
       '<input class="wt-notes" type="text" maxlength="80" placeholder="Note — seat pin, bench angle…" value="' +
@@ -1796,13 +1820,13 @@
     var restEl = panel.querySelector('[data-rest]');
     if (restEl){
       restEl.addEventListener('click', function(){
-        var opts = [60, 90, 120, 150, 180, 240];
-        var i = opts.indexOf(restFor(id));
-        var next = opts[(i + 1) % opts.length];
+        var i = REST_STEPS.indexOf(restFor(id));
+        var next = REST_STEPS[(i + 1) % REST_STEPS.length];
         wstore.rest[id] = next;
         saveW();
-        restEl.textContent = 'rest ' + fmtClock(next * 1000);
-        if (restEnd) startRest(next);   /* retime a countdown already running */
+        restEl.textContent = 'rest ' + restLabel(next);
+        /* retime a countdown already running for this exercise */
+        if (restEnd) startRest(next, exName(row));
       });
     }
     var noteEl = panel.querySelector('.wt-notes');
@@ -2439,11 +2463,8 @@
       var logging = count < total;   /* false when the tap wraps back to zero */
       store.sets[id] = logging ? count + 1 : 0;
       save();
-      /* rest applies between working sets — not after a zone-2 walk or the
-         single "evening" entry on game night */
-      if (logging && !row.classList.contains('finisher') && !row.closest('.day').classList.contains('ball')){
-        startRest(restFor(id));
-      }
+      /* cardio and game night carry rest 0, so nothing fires for them */
+      if (logging) startRest(restFor(id), exName(row), count + 1, total);
       renderRow(row);
       var sec = row.closest('.day');
       /* editing one exercise directly resolves any pending "undo the
@@ -2472,52 +2493,77 @@
      vibrate once the page isn't in the foreground. */
   var restBar = document.getElementById('rest-bar');
   var rbTime = document.getElementById('rb-time');
-  var rbLab = restBar.querySelector('.rb-lab');
-  var restEnd = 0, restInt = 0, restClear = 0;
+  var rbLab = document.getElementById('rb-lab');
+  var rbSet = document.getElementById('rb-set');
+  var rbFill = document.getElementById('rb-fill');
+  var restEnd = 0, restInt = 0, restClear = 0, restSpan = 0, restName = '';
 
   function fmtClock(ms){
     var s = Math.max(0, Math.ceil(ms / 1000));
     return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
   }
-  function restFor(id){ return wstore.rest[id] || wstore.prefs.restSecs; }
+  /* your own choice wins, then the program's prescribed rest, then the
+     generic default. 0 means no timer — cardio and game night. */
+  function restFor(id){
+    if (wstore.rest[id] != null) return wstore.rest[id];
+    var x = exById(id);
+    if (x && x.rest != null) return x.rest;
+    return wstore.prefs.restSecs;
+  }
+  var REST_STEPS = [0, 45, 60, 90, 120, 150, 180, 240];
+  function restLabel(s){ return s > 0 ? fmtClock(s * 1000) : 'off'; }
   function stopRest(){
     clearInterval(restInt);
     clearTimeout(restClear);
-    restInt = restClear = restEnd = 0;
+    restInt = restClear = restEnd = restSpan = 0;
     restBar.hidden = true;
     restBar.classList.remove('done');
     document.body.classList.remove('resting');
   }
   function tickRest(){
     var left = restEnd - Date.now();
-    rbTime.textContent = fmtClock(left);
-    if (left > 0) return;
-    clearInterval(restInt);
-    restInt = 0;
+    if (left > 0){
+      restBar.classList.remove('done');
+      rbLab.textContent = restName ? 'Rest · ' + restName : 'Rest';
+      rbTime.textContent = fmtClock(left);
+      rbFill.style.width = Math.max(0, Math.min(100, (left / (restSpan * 1000)) * 100)) + '%';
+      return;
+    }
+    /* past zero: keep counting up so you can see how long you've stood there */
     restBar.classList.add('done');
-    rbLab.textContent = 'Go';
-    restClear = setTimeout(stopRest, 20000);
+    rbLab.textContent = restName ? 'Go · ' + restName : 'Go';
+    rbFill.style.width = '100%';
+    var over = -left;
+    rbTime.textContent = '+' + fmtClock(over);
+    if (over > 120000) stopRest();
   }
   function runRest(){
     clearInterval(restInt);
     clearTimeout(restClear);
-    restBar.classList.remove('done');
-    rbLab.textContent = 'Rest';
     restBar.hidden = false;
     document.body.classList.add('resting');
     tickRest();
     if (restEnd) restInt = setInterval(tickRest, 250);
   }
-  function startRest(secs){
-    if (!wstore.prefs.rest) return;
+  function startRest(secs, name, setNo, setTotal){
+    if (!wstore.prefs.rest || !(secs > 0)) return;
+    restSpan = secs;
+    restName = name || '';
+    rbSet.textContent = setNo ? 'set ' + setNo + ' of ' + setTotal : '';
     restEnd = Date.now() + secs * 1000;
     runRest();
   }
-  document.getElementById('rb-plus').addEventListener('click', function(){
+  function nudgeRest(ms){
     if (!restEnd) return;
-    restEnd = Math.max(Date.now(), restEnd) + 30000;
+    /* from zero or below, a nudge restarts the clock rather than adding to a
+       debt you've already run up */
+    var base = Math.max(Date.now(), restEnd);
+    restEnd = Math.max(Date.now() + 1000, base + ms);
+    restSpan = Math.max(restSpan + ms / 1000, 5);
     runRest();
-  });
+  }
+  document.getElementById('rb-plus').addEventListener('click', function(){ nudgeRest(30000); });
+  document.getElementById('rb-minus').addEventListener('click', function(){ nudgeRest(-30000); });
   document.getElementById('rb-stop').addEventListener('click', stopRest);
 
   /* ---- preferences: rest timer + screen wake lock ---- */
