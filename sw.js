@@ -2,8 +2,13 @@
    The page itself is fetched network-first so updates land immediately,
    with the cached copy as the offline fallback. Static assets are
    cache-first. Bump CACHE to invalidate old caches on deploy. */
-var CACHE = 'training-week-v4';
-var ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+var CACHE = 'training-week-v5';
+var ASSETS = [
+  './', './index.html', './manifest.webmanifest',
+  './icons/icon-180.png',            /* the iOS home-screen icon */
+  './icons/icon-192.png', './icons/icon-512.png',
+  './icons/icon-maskable-512.png'
+];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(

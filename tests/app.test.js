@@ -91,12 +91,25 @@ function checkInstallIdentity() {
   check('manifest name', manifest.name, 'Longevity');
   check('home-screen label', manifest.short_name, 'Longevity');
   check('iOS home-screen label matches', appleTitle, manifest.short_name);
-  check('icons declared', manifest.icons.map((i) => i.sizes), ['192x192', '512x512']);
-  check('icons are not maskable', manifest.icons.every((i) => i.purpose === 'any'), true);
+  check('icons declared', manifest.icons.map((i) => i.sizes), ['192x192', '512x512', '512x512']);
+  /* Android crops a non-maskable icon to a circle and takes the badge's
+     corners with it, so exactly one padded icon has to be offered. */
+  const maskable = manifest.icons.filter((i) => i.purpose === 'maskable');
+  check('one maskable icon offered', maskable.length, 1);
+  check('the rest are plain', manifest.icons.filter((i) => i.purpose === 'any').length, 2);
   manifest.icons.concat([{ src: 'icons/icon-180.png' }]).forEach((i) => {
     check(i.src + ' exists', fs.existsSync(path.join(ROOT, i.src)), true);
   });
   check('apple-touch-icon points at the 180', html.includes('href="icons/icon-180.png"'), true);
+
+  /* Every icon the install path can ask for has to survive going offline,
+     including the iOS 180 the manifest never mentions. */
+  const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  const precached = (sw.match(/'\.\/(icons\/[a-z0-9.-]+)'/g) || []).map((s) => s.slice(3, -1));
+  const referenced = manifest.icons.map((i) => i.src).concat(['icons/icon-180.png']);
+  referenced.forEach((src) => {
+    check(src + ' is precached', precached.indexOf(src) !== -1, true);
+  });
 }
 
 async function main() {
@@ -729,6 +742,230 @@ async function main() {
     check('sets reset', await page.locator('.pip.filled').count(), 0);
     check('weight carried over as the target', await page.locator('[data-id="mon-1"] .wt.is-prev').count(), 1);
     check('target value', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '75');
+  });
+
+  // ------------------------------------------------------- program-safe rules
+  /* An exercise name is arbitrary text from the editor. It used to reach the
+     Progress tab through innerHTML unescaped, so a name with a tag in it
+     both broke the card and ran whatever it contained. */
+  await test('an exercise name is text, not markup', { date: '2026-07-23T09:00:00',
+    seed: () => {
+      const evil = 'Squat <img src=x onerror="document.title=\'PWNED\'">';
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        program: {
+          'd-mon': [{ id: 'mon-1', name: evil, rx: '3 × 8', sets: 1, wt: true, reps: '8' }],
+          'd-wed': [], 'd-thu': [], 'd-sat': [], 'd-sun': []
+        },
+        wt: { 'mon-1': [{ ew: 2950, w: 60, s: [{ w: 60, r: 8 }] }, { ew: 2951, w: 65, s: [{ w: 65, r: 8 }] }] }
+      }));
+    } }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    check('nothing executed', await page.title(), "Sam's Training Week");
+    check('no injected element', await page.locator('.chart-card img').count(), 0);
+    check(
+      'the name renders verbatim',
+      // last group is Monday's; the first .pg-day is the Body section
+      (await page.locator('.pg-day').last().locator('.cc-name').first().textContent()).trim(),
+      'Squat <img src=x onerror="document.title=\'PWNED\'">'
+    );
+  });
+
+  /* Emptying a day used to leave a requirement nothing could satisfy: the
+     card celebrated the week while History scored it 3/4 with no streak. */
+  await test('a week completes on the days the program still has', { date: '2026-07-25T09:00:00',
+    seed: () => {
+      const ex = (id) => [{ id, name: id, rx: '3 × 8', sets: 1, wt: true, reps: '8' }];
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        program: { 'd-mon': ex('mon-1'), 'd-wed': [], 'd-thu': ex('thu-1'), 'd-sat': ex('sat-1'), 'd-sun': [] }
+      }));
+    } }, async (page) => {
+    for (const d of ['d-mon', 'd-thu', 'd-sat']) await completeDay(page, d);
+    await page.waitForTimeout(250);
+    check('the week is celebrated', await page.locator('#celebrate').isVisible(), true);
+    await page.click('#cel-close');
+    await page.waitForTimeout(150);
+
+    await page.click('#tab-history');
+    await page.waitForTimeout(300);
+    check('History agrees it is done', (await page.locator('.wk-line b').first().textContent()).includes('3/3 sessions'), true);
+    check('and the streak counts it', (await page.textContent('.hist-streak')).trim(), 'streak · 1 wk');
+  });
+
+  /* The old 30-week cap dropped the oldest week on every new session. */
+  await test('history outlives thirty weeks', { date: '2026-07-23T09:00:00',
+    seed: () => {
+      const es = [];
+      for (let i = 0; i < 60; i++) es.push({ ew: 2880 + i, w: 50 + i, s: [{ w: 50 + i, r: 8 }] });
+      localStorage.setItem('sams-training-weights', JSON.stringify({ wt: { 'mon-1': es } }));
+    } }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.waitForTimeout(150);
+    await page.fill('.wt-panel .wt-sw[data-i="0"]', '120');
+    await page.waitForTimeout(300);
+    const n = await page.evaluate(() => JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'].length);
+    check('every seeded week survives the new entry', n, 61);
+    check(
+      'the oldest week is still the one seeded',
+      await page.evaluate(() => JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'][0].ew),
+      2880
+    );
+  });
+
+  // --------------------------------------------------------------- the modals
+  await test('modals trap focus, close on Escape and hand focus back',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.focus('#backup-btn');
+    await page.click('#backup-btn');
+    await page.waitForTimeout(200);
+    check('dialog is announced as one', await page.getAttribute('#backup', 'role'), 'dialog');
+    check('and as modal', await page.getAttribute('#backup', 'aria-modal'), 'true');
+    check(
+      'focus moved inside',
+      await page.evaluate(() => document.getElementById('backup').contains(document.activeElement)),
+      true
+    );
+
+    // tab all the way round: focus must never escape the dialog
+    for (let i = 0; i < 8; i++) await page.keyboard.press('Tab');
+    check(
+      'focus stayed inside after wrapping',
+      await page.evaluate(() => document.getElementById('backup').contains(document.activeElement)),
+      true
+    );
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    check('Escape closed it', await page.locator('#backup').isVisible(), false);
+    check(
+      'focus went back to the button that opened it',
+      await page.evaluate(() => document.activeElement && document.activeElement.id),
+      'backup-btn'
+    );
+    check('scroll is released', await page.evaluate(() => document.body.style.overflow), '');
+  });
+
+  await test('the editor is a dialog too', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('#pref-edit');
+    await page.waitForTimeout(200);
+    check('labelled by its heading', await page.getAttribute('#editor', 'aria-labelledby'), 'ed-title');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    check('Escape closes without saving', await page.locator('#editor').isVisible(), false);
+    check(
+      'no program was written',
+      await page.evaluate(() => {
+        const w = JSON.parse(localStorage.getItem('sams-training-weights') || '{}');
+        return w.program === undefined;
+      }),
+      true
+    );
+  });
+
+  // ---------------------------------------------------------------- data care
+  await test('a failed save is reported, not swallowed', { date: '2026-07-23T09:00:00' }, async (page) => {
+    check('nothing to report at rest', await page.locator('#save-err').isVisible(), false);
+    await page.evaluate(() => {
+      /* what a full or locked-down localStorage does on write */
+      localStorage.setItem = () => { throw new Error('QuotaExceededError'); };
+    });
+    await page.click('[data-id="mon-1"]');
+    await page.waitForTimeout(200);
+    check('the failure is on screen', await page.locator('#save-err').isVisible(), true);
+    check(
+      'and says the change was lost',
+      (await page.textContent('#save-err')).includes('was not stored'),
+      true
+    );
+  });
+
+  await test('a backup can be saved to a file', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-top', '82.5');
+    await page.waitForTimeout(120);
+    await page.click('.wt-panel .wt-close');
+
+    await page.click('#backup-btn');
+    await page.waitForTimeout(200);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#bk-download')
+    ]);
+    check('named for the app and the day', download.suggestedFilename(), 'longevity-backup-2026-07-23.json');
+
+    const stream = await download.createReadStream();
+    let body = '';
+    for await (const chunk of stream) body += chunk;
+    const parsed = JSON.parse(body);
+    check('it is a real backup', parsed.app, 'sams-training-week');
+    check('carrying the logged weight', parsed.history.wt['mon-1'][0].w, 82.5);
+    check('and it counts as a backup', await page.locator('#bk-age').isVisible(), false);
+  });
+
+  await test('a backup file can be loaded back', { date: '2026-07-23T09:00:00' }, async (page) => {
+    const blob = JSON.stringify({
+      app: 'sams-training-week',
+      v: 1,
+      week: { week: '2026-W30', sets: {}, celebrated: false },
+      history: { wt: { 'mon-1': [{ ew: 2951, w: 97.5, s: [{ w: 97.5, r: 6 }] }] } }
+    });
+    await page.click('#backup-btn');
+    await page.waitForTimeout(200);
+    await page.setInputFiles('#bk-file', {
+      name: 'longevity-backup-2026-07-20.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(blob)
+    });
+    await page.waitForTimeout(250);
+    check('the file lands in the box', (await page.inputValue('#bk-text')).includes('97.5'), true);
+    check('but nothing is restored yet', await page.locator('[data-id="mon-1"] .wt.is-empty').count(), 1);
+
+    await page.click('#bk-restore');
+    check('restore still arms first', (await page.textContent('#bk-restore')).trim(), 'Replace all data?');
+    await page.click('#bk-restore');
+    await page.waitForTimeout(300);
+    check('now it is restored', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '97.5');
+    check('and the dialog closed', await page.locator('#backup').isVisible(), false);
+  });
+
+  // ------------------------------------------------------------- rest signals
+  await test('the rest timer signals when it hits zero', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.evaluate(() => {
+      window.__buzzes = [];
+      navigator.vibrate = (p) => { window.__buzzes.push(p); return true; };
+    });
+    await page.click('[data-id="thu-2"]');            // 120s rest
+    await page.waitForTimeout(150);
+    check('bar is running', await page.locator('#rest-bar').isVisible(), true);
+    check('nothing buzzed yet', await page.evaluate(() => window.__buzzes.length), 0);
+
+    await page.clock.runFor(121000);
+    await page.waitForTimeout(200);
+    check('it went off at zero', await page.evaluate(() => window.__buzzes.length), 1);
+
+    await page.clock.runFor(5000);
+    await page.waitForTimeout(200);
+    check('and only once per rest', await page.evaluate(() => window.__buzzes.length), 1);
+  });
+
+  await test('rest sound can be turned off', { date: '2026-07-23T09:00:00' }, async (page) => {
+    check('on by default', await page.getAttribute('#pref-sound', 'aria-pressed'), 'true');
+    await page.evaluate(() => {
+      window.__buzzes = [];
+      navigator.vibrate = (p) => { window.__buzzes.push(p); return true; };
+    });
+    await page.click('#pref-sound');
+    check('the toggle sticks', await page.getAttribute('#pref-sound', 'aria-pressed'), 'false');
+
+    await page.click('[data-id="thu-2"]');
+    await page.clock.runFor(121000);
+    await page.waitForTimeout(200);
+    check('silent at zero', await page.evaluate(() => window.__buzzes.length), 0);
+    check('but the bar still says go', await page.textContent('#rb-lab'), 'Go · Chest-supported row');
+
+    await page.reload();
+    await page.waitForTimeout(300);
+    check('and the preference survives a reload', await page.getAttribute('#pref-sound', 'aria-pressed'), 'false');
   });
 
   await browser.close();

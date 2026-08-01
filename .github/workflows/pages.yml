@@ -1,8 +1,11 @@
-name: Deploy to GitHub Pages
+name: Test and deploy
 
+# Tests gate every branch and every pull request; only the release branch goes
+# on to publish. Both jobs used to be pinned to one branch, so a push anywhere
+# else — and every pull request — reached GitHub with nothing run against it.
 on:
   push:
-    branches: [claude/workout-routine-ui-gmzbvt]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -11,7 +14,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # one queue per ref, so parallel branches don't cancel each other's runs
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -30,6 +34,7 @@ jobs:
 
   deploy:
     needs: test
+    if: github.event_name != 'pull_request' && github.ref_name == 'claude/workout-routine-ui-gmzbvt'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

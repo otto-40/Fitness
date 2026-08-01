@@ -11,6 +11,29 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Longevity">
+<script>
+/* Stamp the theme before first paint, so the stylesheet needs one block per
+   theme instead of a media query plus overrides that can drift apart.
+   Something else may own the attribute already (the artifact viewer sets it
+   on its theme toggle) — in that case leave it alone, and stop following the
+   OS once our own value has been replaced. */
+(function(){
+  var root = document.documentElement;
+  if (root.getAttribute('data-theme')) return;
+  var mq = window.matchMedia && matchMedia('(prefers-color-scheme: dark)');
+  var mine = '';
+  function apply(){
+    mine = mq && mq.matches ? 'dark' : 'light';
+    root.setAttribute('data-theme', mine);
+  }
+  apply();
+  if (mq && mq.addEventListener){
+    mq.addEventListener('change', function(){
+      if (root.getAttribute('data-theme') === mine) apply();
+    });
+  }
+})();
+</script>
 <style>
   /* Oswald 600 + IBM Plex Mono 500, latin subsets, embedded so the page
      works offline and inside the artifact CSP (no external hosts). */
@@ -26,6 +49,20 @@
   }
 
   :root{
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --display:'Oswald','Arial Narrow',ui-sans-serif,system-ui,sans-serif;
+    color-scheme:light dark;
+  }
+  /* Exactly one block per theme. The theme is always an explicit data-theme
+     attribute — the head script stamps it from prefers-color-scheme before
+     first paint, and the artifact viewer's toggle writes the same attribute.
+     The previous shape (base palette + dark media query + a full override
+     for each attribute) meant writing every palette twice, and the light
+     override had silently lost --done, --on-done, --warn and --on-warn:
+     toggling to light on a dark phone left dark-mode green and a washed-out
+     pink on white, so destructive confirms stopped reading as dangerous. */
+  :root, :root[data-theme="light"]{
+    color-scheme:light;
     --floor:#F2F5F9;        /* cool off-white, keyed to the badge navy */
     --panel:#FFFFFF;
     --ink:#0B1B30;          /* logo navy, as text */
@@ -44,35 +81,9 @@
     --chart:#2F6DB5;        /* validated against a white surface */
     --bar-bg:#0B1B30;       /* the rest bar stays dark in both themes */
     --bar-fg:#F2F5F9;
-    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --display:'Oswald','Arial Narrow',ui-sans-serif,system-ui,sans-serif;
-    color-scheme:light dark;
   }
-  @media (prefers-color-scheme:dark){
-    :root{
-      --floor:#0A1B33;        /* the badge background itself */
-      --panel:#12263F;
-      --ink:#EEF3F9;
-      --court:#4E93D9;        /* lifted blue, since navy is the ground here */
-      --court-deep:#9CC6EE;
-      --line:#23405E;
-      --rest:#8FA3BC;
-      --row-line:#1C3554;
-      --finisher-bg:#16304E;
-      --tap-flash:#1B3859;
-      --on-court:#08152A;
-      --done:#3FAF78;
-      --on-done:#08152A;
-      --warn:#E58C82;
-      --on-warn:#08152A;
-      --chart:#4E93D9;        /* validated against the dark panel */
-      --bar-bg:#16304E;
-      --bar-fg:#F2F5F9;
-    }
-  }
-  /* the artifact viewer's theme toggle stamps data-theme on the root and
-     must beat the media query in both directions */
   :root[data-theme="dark"]{
+    color-scheme:dark;
     --floor:#0A1B33;        /* the badge background itself */
     --panel:#12263F;
     --ink:#EEF3F9;
@@ -90,23 +101,6 @@
     --on-warn:#08152A;
     --chart:#4E93D9;        /* validated against the dark panel */
     --bar-bg:#16304E;
-    --bar-fg:#F2F5F9;
-  }
-  :root[data-theme="light"]{
-    --floor:#F2F5F9;        /* cool off-white, keyed to the badge navy */
-    --panel:#FFFFFF;
-    --ink:#0B1B30;          /* logo navy, as text */
-    --court:#12294A;        /* primary fill — deep navy from the badge */
-    --court-deep:#14355C;   /* brand-coloured text that still reads on white */
-    --line:#D6DEE8;
-    --rest:#6B7A8D;
-    --row-line:#E8EDF3;
-    --finisher-bg:#EDF2F8;
-    --tap-flash:#E3EAF3;
-    --on-court:#FFFFFF;     /* text on primary fills */
-    --on-tape:#0B1B30;      /* text on orange fills */
-    --chart:#2F6DB5;        /* validated against a white surface */
-    --bar-bg:#0B1B30;       /* the rest bar stays dark in both themes */
     --bar-fg:#F2F5F9;
   }
   *{margin:0;padding:0;box-sizing:border-box}
@@ -791,6 +785,17 @@
     text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
   }
   .bk-note{font-size:12.5px;color:var(--rest);margin-bottom:10px}
+  .bk-file{display:flex;gap:8px;margin-bottom:10px}
+  .bk-file button{
+    flex:1;
+    font-family:var(--mono);font-size:12px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    border-radius:4px;padding:10px 12px;min-height:44px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    background:var(--finisher-bg);border:1px solid var(--line);color:var(--court-deep);
+  }
+  .bk-file button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   #bk-text{
     width:100%;resize:vertical;
     font-family:var(--mono);font-size:11px;line-height:1.5;
@@ -823,6 +828,12 @@
     padding:8px 10px;border-radius:3px;border-left:3px solid var(--warn);
   }
   .bk-age[hidden]{display:none}
+  .save-err{
+    margin-top:8px;font-family:var(--mono);font-size:11px;line-height:1.5;
+    color:var(--on-warn);background:var(--warn);
+    padding:9px 11px;border-radius:3px;
+  }
+  .save-err[hidden]{display:none}
   .prefs{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
   .pref{
     font-family:var(--mono);font-size:11px;
@@ -1143,9 +1154,11 @@
     </span>
   </div>
   <p class="bk-age" id="bk-age" hidden></p>
+  <p class="save-err" id="save-err" role="alert" hidden></p>
 
   <div class="prefs">
     <button type="button" class="pref" id="pref-rest" aria-pressed="true">Rest timer</button>
+    <button type="button" class="pref" id="pref-sound" aria-pressed="true">Rest sound</button>
     <button type="button" class="pref" id="pref-wake" aria-pressed="false" hidden>Keep screen on</button>
     <button type="button" class="pref-action" id="pref-edit">Edit program</button>
   </div>
@@ -1157,9 +1170,9 @@
   <div id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden></div>
 
   <!-- PROGRAM EDITOR -->
-  <div class="editor" id="editor" hidden>
+  <div class="editor" id="editor" role="dialog" aria-modal="true" aria-labelledby="ed-title" hidden>
     <div class="ed-card">
-      <h3>Edit program</h3>
+      <h3 id="ed-title">Edit program</h3>
       <p class="ed-note">Changing sets or reps only affects future logging — everything you've already recorded stays put.</p>
       <div id="ed-body"></div>
       <div class="ed-actions">
@@ -1183,10 +1196,15 @@
   </div>
 
   <!-- BACKUP / RESTORE -->
-  <div class="backup" id="backup" hidden>
+  <div class="backup" id="backup" role="dialog" aria-modal="true" aria-labelledby="bk-title" hidden>
     <div class="bk-card">
-      <h3>Backup &amp; restore</h3>
-      <p class="bk-note">Copy this text somewhere safe (notes, email). To move to a new phone or recover, paste a saved backup below and tap Restore.</p>
+      <h3 id="bk-title">Backup &amp; restore</h3>
+      <p class="bk-note">Save the file somewhere safe, or copy the text into notes or email. To move to a new phone or recover, load a saved file — or paste the text below — and tap Restore.</p>
+      <div class="bk-file">
+        <button type="button" id="bk-download">Save file</button>
+        <button type="button" id="bk-load">Load file</button>
+        <input type="file" id="bk-file" accept="application/json,.json,text/plain" hidden>
+      </div>
       <textarea id="bk-text" rows="7" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
       <div class="bk-actions">
         <button type="button" id="bk-copy">Copy</button>
@@ -1197,11 +1215,11 @@
   </div>
 
   <!-- WEEK-COMPLETE CELEBRATION -->
-  <div class="celebrate" id="celebrate" hidden>
+  <div class="celebrate" id="celebrate" role="dialog" aria-modal="true" aria-labelledby="cel-title" hidden>
     <canvas aria-hidden="true"></canvas>
     <div class="cel-card">
       <div class="cel-eyebrow">Every session logged</div>
-      <h2>Week<br>Complete</h2>
+      <h2 id="cel-title">Week<br>Complete</h2>
       <p>3 lifts, 1 game, rest. That's how weeks compound.</p>
       <p class="cel-stats" id="cel-stats"></p>
       <div class="cel-actions">
@@ -1229,12 +1247,35 @@
   }
   function freshStore(){ return { week: weekId(), sets: {}, celebrated: false }; }
 
+  /* A failed write means the set you just logged is gone, and there is no
+     server to fall back on — so it has to be said out loud rather than
+     swallowed. The banner stays up until a later write succeeds. */
+  var saveErrEl = null;
+  function reportSave(ok){
+    if (!saveErrEl) saveErrEl = document.getElementById('save-err');
+    if (!saveErrEl) return ok;
+    if (ok){
+      saveErrEl.hidden = true;
+    } else {
+      saveErrEl.textContent = 'Could not save to this device — the last change was not stored. ' +
+        'Back up now (copy the text or save the file) before closing the app.';
+      saveErrEl.hidden = false;
+    }
+    return ok;
+  }
+  function writeKey(key, value){
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return reportSave(true);
+    } catch (e) {
+      return reportSave(false);
+    }
+  }
+
   var store;
   try { store = JSON.parse(localStorage.getItem(STORE_KEY)) || freshStore(); } catch (e) { store = freshStore(); }
   if (store.week !== weekId()) store = freshStore();
-  function save(){
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
-  }
+  function save(){ return writeKey(STORE_KEY, store); }
 
   /* ---- history store: weights, reps, variants, body weight, completed
      weeks — all under one key the Monday reset never touches ---- */
@@ -1255,6 +1296,7 @@
     if (wstore.prefs.rest == null) wstore.prefs.rest = true;
     if (wstore.prefs.restSecs == null) wstore.prefs.restSecs = 150;
     if (wstore.prefs.wake == null) wstore.prefs.wake = false;
+    if (wstore.prefs.sound == null) wstore.prefs.sound = true;
     if (!wstore.prefs.metric) wstore.prefs.metric = 'e1rm';
     if (!wstore.rest) wstore.rest = {};      /* exercise id -> rest seconds */
     if (!wstore.notes) wstore.notes = {};    /* exercise id -> free text */
@@ -1279,7 +1321,9 @@
       saveW();
     }
     /* one-time: weeks completed before day-level tracking existed get their
-       training days marked "assumed" so the calendar isn't empty */
+       training days marked "assumed" so the calendar isn't empty. The
+       offsets stay hard-coded on purpose — those weeks were trained on the
+       default program, whatever the program looks like now. */
     if (!wstore.backfilled){
       wstore.weeksDone.forEach(function(w){
         if (w >= epochWeek()) return;
@@ -1293,9 +1337,7 @@
     }
   }
   migrateW();
-  function saveW(){
-    try { localStorage.setItem(WT_KEY, JSON.stringify(wstore)); } catch (e) {}
-  }
+  function saveW(){ return writeKey(WT_KEY, wstore); }
 
   /* Monday-based week number since epoch — "weeks ago" is then plain subtraction */
   function epochWeek(){
@@ -1330,6 +1372,11 @@
   function setWeights(e){
     return setsOf(e).filter(function(s){ return s && s.w != null; }).map(function(s){ return s.w; });
   }
+  /* How much history each log keeps. All three used to truncate inside a
+     year or two, which for a training log is the data you most want back. */
+  var MAX_ENTRIES = 260;   /* weeks per lift */
+  var MAX_BW = 2000;       /* daily weigh-ins */
+  var MAX_GAME = 260;      /* weekly game ratings */
   /* Writes this week's sets, dropping the entry when nothing is left in it. */
   function writeSets(key, sets){
     var es = entriesFor(key), ew = epochWeek(), last = es[es.length - 1];
@@ -1340,7 +1387,10 @@
       if (!live) return;
       last = { ew: ew, w: null, s: [] };
       es.push(last);
-      if (es.length > 30) es.shift();
+      /* five years a lift. The old 30-week cap silently dropped the oldest
+         week on every new session, which quietly cost you the long trend
+         this app exists to show; a few hundred small rows cost nothing. */
+      if (es.length > MAX_ENTRIES) es.shift();
     }
     if (!live){
       es.pop();
@@ -1946,7 +1996,7 @@
     var wrap = document.createElement('div');
     wrap.className = 'cc-plot';
     wrap.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + H + '" role="img" aria-label="' +
-      name + ': ' + pts0.length + ' entries, from ' + fmtV(pts0[0].v) + ' to ' +
+      esc(name) + ': ' + pts0.length + ' entries, from ' + fmtV(pts0[0].v) + ' to ' +
       fmtV(lastP.v) + ' ' + unit + '">' + g + '</svg><div class="cc-tip"></div>';
     var svg = wrap.querySelector('svg'), tip = wrap.querySelector('.cc-tip');
     var xh = svg.querySelector('.xh');
@@ -1980,7 +2030,8 @@
 
   /* head line for a chart card; downGood inverts delta colors (body weight in a cut) */
   function cardHead(name, es, unit, downGood){
-    var head = '<div class="cc-head"><span class="cc-name">' + name + '</span>';
+    /* names come from the program editor, so they are arbitrary user text */
+    var head = '<div class="cc-head"><span class="cc-name">' + esc(name) + '</span>';
     if (es.length){
       var last = es[es.length - 1];
       head += '<span class="cc-now">' + fmtV(last.v) + ' ' + unit + '</span>';
@@ -2061,7 +2112,7 @@
       var prev = wstore.bw[wstore.bw.length - 1];
       if (prev && prev.dn === e.dn) wstore.bw[wstore.bw.length - 1] = e;
       else wstore.bw.push(e);
-      if (wstore.bw.length > 400) wstore.bw.shift();
+      if (wstore.bw.length > MAX_BW) wstore.bw.shift();
       saveW();
       buildProgress();
     });
@@ -2135,13 +2186,32 @@
   /* ---- history tab: month calendar + week roll-ups ---- */
   function ewOf(dn){ return Math.floor((dn + 3) / 7); }
   function mondayDnOf(w){ return 7 * w - 3; }
-  /* day offsets from Monday: the four sessions a week is judged on
-     (Mon lift, Wed game, Thu lift, Sat lift). Sunday's walk is a bonus. */
-  var REQ = [0, 2, 3, 5];
-  var SUN = 6;
+  /* The sessions a week is judged on are whatever the program actually
+     prescribes: a day counts once it holds an exercise. Hard-coding the
+     default week's offsets meant emptying a day in the editor left a
+     requirement nothing could ever satisfy, so the streak stuck at zero.
+     Sunday stays a bonus — it is marked optional in the markup. */
+  var DAY_OFF = { 'd-mon': 0, 'd-wed': 2, 'd-thu': 3, 'd-sat': 5, 'd-sun': 6 };
+  var OPTIONAL_DAY = { 'd-sun': 1 };
+  var SUN = DAY_OFF['d-sun'];
+  function requiredOffsets(){
+    var p = program();
+    return DAY_IDS.filter(function(d){
+      return !OPTIONAL_DAY[d] && (p[d] || []).length;
+    }).map(function(d){ return DAY_OFF[d]; });
+  }
+  /* every day the program can put work on, optional ones included */
+  function programOffsets(){
+    var p = program();
+    return DAY_IDS.filter(function(d){ return (p[d] || []).length; })
+                  .map(function(d){ return DAY_OFF[d]; });
+  }
   function weekComplete(w){
+    var req = requiredOffsets();
+    /* a program with nothing required in it can't be "completed" */
+    if (!req.length) return false;
     var m = mondayDnOf(w);
-    return REQ.every(function(off){ return !!wstore.daysDone[m + off]; });
+    return req.every(function(off){ return !!wstore.daysDone[m + off]; });
   }
   /* streak reads straight off the day log, so retroactive calendar edits
      and the live week both feed it from one source of truth */
@@ -2157,7 +2227,7 @@
   function weekActive(w){
     if (gameEffort(w) != null) return true;   /* a rated game is activity too */
     var m = mondayDnOf(w);
-    if ([0, 2, 3, 5, 6].some(function(off){ return wstore.daysDone[m + off]; })) return true;
+    if (programOffsets().some(function(off){ return wstore.daysDone[m + off]; })) return true;
     return weekLifts(w).length > 0;
   }
   /* every exercise logged in a given week, for the History detail view */
@@ -2313,14 +2383,15 @@
     vh.appendChild(cal);
 
     var lines = '';
+    var req = requiredOffsets();
     for (var k = 0; k < 12; k++){
       var w = ew - k;
       if (!weekActive(w)) continue;
       var m = mondayDnOf(w);
       var sess = 0;
-      REQ.forEach(function(off){ if (wstore.daysDone[m + off]) sess++; });
-      var full = sess === REQ.length;
-      var bits = [sess + '/' + REQ.length + ' sessions'];
+      req.forEach(function(off){ if (wstore.daysDone[m + off]) sess++; });
+      var full = req.length > 0 && sess === req.length;
+      var bits = [sess + '/' + req.length + ' sessions'];
       if (wstore.daysDone[m + SUN]) bits.push('+Sun walk');
       var up = liftsUpFor(w);
       if (up) bits.push(up + (up === 1 ? ' lift up' : ' lifts up'));
@@ -2369,19 +2440,71 @@
     vh.appendChild(list);
   }
 
+  /* ---- modal plumbing ----
+     The overlays are plain divs, so they get none of <dialog>'s behaviour:
+     focus stays wherever it was, Tab walks out behind the overlay, and
+     Escape does nothing. Wire it once here for all three. */
+  var modalStack = [];
+  function focusables(el){
+    var sel = 'a[href],button:not([disabled]),input:not([disabled]),' +
+              'textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    return Array.prototype.filter.call(el.querySelectorAll(sel), function(n){
+      /* offsetParent is null inside position:fixed, so measure boxes instead */
+      return n.offsetWidth || n.offsetHeight || n.getClientRects().length;
+    });
+  }
+  function openModal(el){
+    if (modalStack.some(function(m){ return m.el === el; })) return;
+    var entry = { el: el, from: document.activeElement };
+    entry.onKey = function(e){
+      if (e.key === 'Escape'){
+        e.preventDefault();
+        closeModal(el);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      var f = focusables(el);
+      if (!f.length){ e.preventDefault(); return; }
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === first || !el.contains(document.activeElement))){
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last){
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    modalStack.push(entry);
+    el.hidden = false;
+    document.body.style.overflow = 'hidden';
+    el.addEventListener('keydown', entry.onKey);
+    var f = focusables(el);
+    if (f.length) f[0].focus();
+  }
+  function closeModal(el){
+    var i = -1;
+    modalStack.forEach(function(m, n){ if (m.el === el) i = n; });
+    if (i === -1){ el.hidden = true; return; }
+    var entry = modalStack.splice(i, 1)[0];
+    el.removeEventListener('keydown', entry.onKey);
+    el.hidden = true;
+    if (!modalStack.length) document.body.style.overflow = '';
+    /* put focus back where it came from, so closing doesn't dump you at the
+       top of the page mid-session */
+    if (entry.from && entry.from.focus && entry.from.isConnected) entry.from.focus();
+  }
+
   /* ---- week-complete celebration ---- */
   var cel = document.getElementById('celebrate');
 
-  /* Sunday's walk is labelled Optional in the routine, so it must not gate
-     the week: a week counts as done on the required days alone. */
-  function allDaysDone(){
-    for (var i = 0; i < days.length; i++){
-      if (days[i].hasAttribute('data-optional')) continue;
-      if (!dayIsDone(days[i])) return false;
-    }
-    return true;
-  }
+  /* One definition of a finished week, shared with the History streak:
+     every required day stamped in the day log. Walking the DOM instead
+     used to disagree with the streak, because a day emptied in the editor
+     reads as a rest day here but stayed a requirement there — the app
+     threw confetti over a week History scored 3/4. */
+  function allDaysDone(){ return weekComplete(epochWeek()); }
   function maybeCelebrate(){
+    stampWeek();   /* the day log is the input, so make sure it is current */
     if (store.celebrated || !allDaysDone()) return;
     store.celebrated = true;
     save();
@@ -2393,14 +2516,10 @@
     if (streak > 1) bits.push(streak + ' weeks in a row');
     if (up > 0) bits.push(up + (up === 1 ? ' lift' : ' lifts') + ' moved up');
     document.getElementById('cel-stats').textContent = bits.join(' · ');
-    cel.hidden = false;
-    document.body.style.overflow = 'hidden';
+    openModal(cel);
     confettiBurst(cel.querySelector('canvas'), 140, 7000);
   }
-  function hideCelebration(){
-    cel.hidden = true;
-    document.body.style.overflow = '';
-  }
+  function hideCelebration(){ closeModal(cel); }
   document.getElementById('cel-close').addEventListener('click', hideCelebration);
   document.getElementById('cel-reset').addEventListener('click', function(){
     store = freshStore();
@@ -2519,6 +2638,49 @@
   var rbSet = document.getElementById('rb-set');
   var rbFill = document.getElementById('rb-fill');
   var restEnd = 0, restInt = 0, restClear = 0, restSpan = 0, restName = '';
+  var restRang = false;
+
+  /* iOS won't let a backgrounded page make a sound, but nothing stopped the
+     timer being silent in the foreground either — which is the normal case
+     with the screen lock on and the phone sitting on the bench. One short
+     blip and a buzz when the clock hits zero. The AudioContext is created on
+     the tap that starts the rest, since that is the gesture that unlocks it. */
+  var audioCtx = null;
+  function primeAudio(){
+    if (!wstore.prefs.sound) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) { audioCtx = null; }
+  }
+  function blip(){
+    if (!audioCtx) return;
+    try {
+      var t = audioCtx.currentTime;
+      [0, 0.28].forEach(function(off){
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(880, t + off);
+        /* ramped envelope: a soft blip rather than a click that carries */
+        g.gain.setValueAtTime(0.0001, t + off);
+        g.gain.exponentialRampToValueAtTime(0.2, t + off + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.22);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(t + off);
+        o.stop(t + off + 0.24);
+      });
+    } catch (e) {}
+  }
+  function restAlert(){
+    if (restRang) return;
+    restRang = true;                 /* once per rest, not every tick */
+    if (!wstore.prefs.sound) return;
+    blip();
+    try { if (navigator.vibrate) navigator.vibrate([120, 80, 120]); } catch (e) {}
+  }
 
   function fmtClock(ms){
     var s = Math.max(0, Math.ceil(ms / 1000));
@@ -2538,6 +2700,7 @@
     clearInterval(restInt);
     clearTimeout(restClear);
     restInt = restClear = restEnd = restSpan = 0;
+    restRang = false;
     restBar.hidden = true;
     restBar.classList.remove('done');
     document.body.classList.remove('resting');
@@ -2552,6 +2715,7 @@
       return;
     }
     /* past zero: keep counting up so you can see how long you've stood there */
+    restAlert();
     restBar.classList.add('done');
     rbLab.textContent = restName ? 'Go · ' + restName : 'Go';
     rbFill.style.width = '100%';
@@ -2569,6 +2733,8 @@
   }
   function startRest(secs, name, setNo, setTotal){
     if (!wstore.prefs.rest || !(secs > 0)) return;
+    primeAudio();
+    restRang = false;
     restSpan = secs;
     restName = name || '';
     rbSet.textContent = setNo ? 'set ' + setNo + ' of ' + setTotal : '';
@@ -2582,6 +2748,8 @@
     var base = Math.max(Date.now(), restEnd);
     restEnd = Math.max(Date.now() + 1000, base + ms);
     restSpan = Math.max(restSpan + ms / 1000, 5);
+    /* nudged back into the future, so it should ring again on the way down */
+    if (restEnd > Date.now()) restRang = false;
     runRest();
   }
   document.getElementById('rb-plus').addEventListener('click', function(){ nudgeRest(30000); });
@@ -2590,11 +2758,13 @@
 
   /* ---- preferences: rest timer + screen wake lock ---- */
   var prefRest = document.getElementById('pref-rest');
+  var prefSound = document.getElementById('pref-sound');
   var prefWake = document.getElementById('pref-wake');
   var wakeSentinel = null;
 
   function renderPrefs(){
     prefRest.setAttribute('aria-pressed', wstore.prefs.rest ? 'true' : 'false');
+    prefSound.setAttribute('aria-pressed', wstore.prefs.sound ? 'true' : 'false');
     prefWake.setAttribute('aria-pressed', wstore.prefs.wake ? 'true' : 'false');
   }
   prefRest.addEventListener('click', function(){
@@ -2602,6 +2772,13 @@
     saveW();
     renderPrefs();
     if (!wstore.prefs.rest) stopRest();
+  });
+  prefSound.addEventListener('click', function(){
+    wstore.prefs.sound = !wstore.prefs.sound;
+    saveW();
+    renderPrefs();
+    /* the tap itself is the gesture that unlocks audio, so use it */
+    if (wstore.prefs.sound) primeAudio();
   });
 
   function releaseWake(){
@@ -2701,13 +2878,9 @@
     draft = JSON.parse(JSON.stringify(program()));
     DAY_IDS.forEach(function(d){ if (!draft[d]) draft[d] = []; });
     edRender();
-    editorEl.hidden = false;
-    document.body.style.overflow = 'hidden';
+    openModal(editorEl);
   });
-  function closeEditor(){
-    editorEl.hidden = true;
-    document.body.style.overflow = '';
-  }
+  function closeEditor(){ closeModal(editorEl); }
   document.getElementById('ed-cancel').addEventListener('click', closeEditor);
   document.getElementById('ed-save').addEventListener('click', function(){
     var out = {};
@@ -2746,7 +2919,7 @@
     wstore.game = wstore.game.filter(function(g){ return g.ew !== w; });
     if (e != null){
       wstore.game.push({ ew: w, e: e });
-      if (wstore.game.length > 60) wstore.game.shift();
+      if (wstore.game.length > MAX_GAME) wstore.game.shift();
     }
     saveW();
   }
@@ -2815,9 +2988,61 @@
     bkText.value = exportBlob();
     bkNote.textContent = BK_NOTE;
     bkNote.classList.remove('err');
-    backupEl.hidden = false;
+    openModal(backupEl);
   });
-  document.getElementById('bk-close').addEventListener('click', function(){ backupEl.hidden = true; });
+  document.getElementById('bk-close').addEventListener('click', function(){ closeModal(backupEl); });
+
+  /* A file is the backup people actually keep: it lands in Files/Downloads
+     and syncs with the phone, where a wall of pasted text does not. */
+  function backupName(){
+    var d = new Date();
+    var p = function(n){ return ('0' + n).slice(-2); };
+    return 'longevity-backup-' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '.json';
+  }
+  document.getElementById('bk-download').addEventListener('click', function(){
+    var btn = this;
+    var url;
+    try {
+      url = URL.createObjectURL(new Blob([bkText.value], { type: 'application/json' }));
+    } catch (e) {
+      bkNote.textContent = 'This browser will not save files here — use Copy instead.';
+      bkNote.classList.add('err');
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = backupName();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    wstore.lastBackup = todayDn();
+    saveW();
+    renderBackupAge();
+    btn.textContent = 'Saved ✓';
+    setTimeout(function(){ btn.textContent = 'Save file'; }, 2000);
+  });
+
+  var bkFile = document.getElementById('bk-file');
+  document.getElementById('bk-load').addEventListener('click', function(){ bkFile.click(); });
+  /* loading only fills the textarea — Restore still has to be tapped, and
+     still arms twice, so opening the wrong file cannot wipe anything */
+  bkFile.addEventListener('change', function(){
+    var f = bkFile.files && bkFile.files[0];
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      bkText.value = String(fr.result || '');
+      bkNote.textContent = 'Loaded ' + f.name + ' — tap Restore twice to replace everything on this device.';
+      bkNote.classList.remove('err');
+    };
+    fr.onerror = function(){
+      bkNote.textContent = 'Could not read that file.';
+      bkNote.classList.add('err');
+    };
+    fr.readAsText(f);
+    bkFile.value = '';   /* so re-picking the same file fires change again */
+  });
   document.getElementById('bk-copy').addEventListener('click', function(){
     var btn = this;
     wstore.lastBackup = todayDn();
@@ -2856,7 +3081,7 @@
       saveW();
       syncToday(); /* also applies the weekly reset if the backup is from an older week */
       if (!viewProg.hidden) buildProgress();
-      backupEl.hidden = true;
+      closeModal(backupEl);
     });
   });
 
@@ -3003,6 +3228,24 @@
   if (todayCard && !location.hash){
     todayCard.scrollIntoView({ block: 'start', behavior: 'instant' });
   }
+
+  /* Test hook. These are the pure helpers whose edge cases — ISO week 53,
+     year boundaries, Epley rounding, gridline steps — are awkward to reach
+     by driving the page and trivial to assert directly. Read-only: nothing
+     here mutates state, so exposing them costs the app nothing. */
+  window.__logic = {
+    weekId: weekId,
+    epochWeek: epochWeek,
+    ewOf: ewOf,
+    mondayDnOf: mondayDnOf,
+    niceStep: niceStep,
+    metricOf: metricOf,
+    fmtW: fmtW,
+    fmtV: fmtV,
+    fmtClock: fmtClock,
+    requiredOffsets: requiredOffsets,
+    weekComplete: weekComplete
+  };
 
   /* offline support when installed from GitHub Pages; skipped on file://
      and inside the artifact viewer, where service workers can't register */
