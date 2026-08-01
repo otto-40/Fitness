@@ -191,6 +191,23 @@
   }
   .daynav a:focus-visible{outline:2px solid var(--court);outline-offset:2px}
 
+  /* ---------- week band: which week the cards below belong to ---------- */
+  .week-band{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    padding:0 2px 12px;
+    font-family:var(--mono);font-size:11px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--rest);
+  }
+  .wb-count{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wb-count.done{color:var(--done)}
+  @keyframes wbfresh{from{background:var(--done);color:var(--on-done)}}
+  .week-band.fresh .wb-when{
+    animation:wbfresh 1.6s ease-out;
+    border-radius:3px;padding:2px 4px;margin:-2px -4px;
+  }
+  @media (prefers-reduced-motion:reduce){ .week-band.fresh .wb-when{animation:none} }
+
   /* ---------- day cards ---------- */
   .day{
     background:var(--panel);
@@ -673,7 +690,7 @@
     opacity:0;animation:celfade .4s ease 1s forwards;
   }
   @keyframes celfade{to{opacity:1}}
-  #cel-reset{
+  #cel-next{
     font-family:var(--mono);font-size:13px;font-weight:500;
     letter-spacing:.06em;text-transform:uppercase;
     color:var(--on-done);background:var(--done);
@@ -682,16 +699,7 @@
     cursor:pointer;touch-action:manipulation;
     -webkit-tap-highlight-color:transparent;
   }
-  #cel-close{
-    font-family:var(--mono);font-size:13px;font-weight:500;
-    letter-spacing:.06em;text-transform:uppercase;
-    color:#9FB3C9;background:none;
-    border:1px solid #2B4A6B;border-radius:4px;
-    padding:14px 22px;min-height:48px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-  }
-  #cel-reset:focus-visible,#cel-close:focus-visible{outline:2px solid var(--done);outline-offset:2px}
+  #cel-next:focus-visible{outline:2px solid var(--done);outline-offset:2px}
   @media (prefers-reduced-motion:reduce){
     .cel-card{animation:none}
     .cel-actions{animation:none;opacity:1}
@@ -978,13 +986,13 @@
   }
   #rb-stop{background:rgba(255,255,255,.14)}
   .rest-bar button:focus-visible{outline:2px solid #7FA9D8;outline-offset:2px}
-  .reset-btn{
+  .foot-btn{
     font-family:var(--mono);font-size:11px;font-weight:500;
     color:var(--rest);background:none;
     border:1px solid var(--line);border-radius:3px;
     padding:7px 12px;cursor:pointer;touch-action:manipulation;
   }
-  .reset-btn:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .foot-btn:focus-visible{outline:2px solid var(--court);outline-offset:2px}
 
   @media (max-width:420px){
     .ex{font-size:14.5px}
@@ -1024,6 +1032,11 @@
   </div>
 
   <div id="view-week" role="tabpanel" aria-labelledby="tab-week">
+
+  <div class="week-band" id="week-band" aria-live="polite">
+    <span class="wb-when" id="wb-when"></span>
+    <span class="wb-count" id="wb-count"></span>
+  </div>
 
   <!-- MONDAY -->
   <section class="day" id="d-mon" data-day="1">
@@ -1136,10 +1149,9 @@
   </details>
 
   <div class="foot">
-    <small>Tap an exercise to log a set, tap its weight chip to record the load · sets reset every Monday, weights keep their history · saved on this device</small>
+    <small>Tap an exercise to log a set, tap its weight chip to record the load · a finished week rolls straight into the next, weights keep their history · saved on this device</small>
     <span class="foot-btns">
-      <button class="reset-btn" id="backup-btn" type="button">Backup</button>
-      <button class="reset-btn" id="reset-btn" type="button">Reset week</button>
+      <button class="foot-btn" id="backup-btn" type="button">Backup</button>
     </span>
   </div>
   <p class="bk-age" id="bk-age" hidden></p>
@@ -1205,8 +1217,7 @@
       <p>3 lifts, 1 game, rest. That's how weeks compound.</p>
       <p class="cel-stats" id="cel-stats"></p>
       <div class="cel-actions">
-        <button type="button" id="cel-reset">Reset week</button>
-        <button type="button" id="cel-close">Not yet</button>
+        <button type="button" id="cel-next">Start next week</button>
       </div>
     </div>
   </div>
@@ -1217,27 +1228,14 @@
 (function(){
   var STORE_KEY = 'sams-training-week';
 
-  /* ISO week id, e.g. "2026-W29" — ISO weeks start Monday, so progress resets with the routine */
-  function weekId(){
-    var d = new Date();
-    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    var day = (t.getUTCDay() + 6) % 7;
-    t.setUTCDate(t.getUTCDate() - day + 3);
-    var firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
-    var week = 1 + Math.round(((t - firstThu) / 864e5 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
-    return t.getUTCFullYear() + '-W' + (week < 10 ? '0' : '') + week;
-  }
-  function freshStore(){ return { week: weekId(), sets: {}, celebrated: false }; }
-
-  var store;
-  try { store = JSON.parse(localStorage.getItem(STORE_KEY)) || freshStore(); } catch (e) { store = freshStore(); }
-  if (store.week !== weekId()) store = freshStore();
-  function save(){
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
-  }
+  /* Which routine day each card stands for, counted from Monday. A training
+     week keeps these slots whatever weekday it happens to start on. */
+  var CARD_OFF = { 'd-mon': 0, 'd-tue': 1, 'd-wed': 2, 'd-thu': 3, 'd-fri': 4, 'd-sat': 5, 'd-sun': 6 };
+  /* the cards that carry exercises — Tuesday and Friday are rest */
+  var SESSION_CARDS = ['d-mon', 'd-wed', 'd-thu', 'd-sat', 'd-sun'];
 
   /* ---- history store: weights, reps, variants, body weight, completed
-     weeks — all under one key the Monday reset never touches ---- */
+     weeks — all under one key starting a new week never touches ---- */
   var WT_KEY = 'sams-training-weights';
   var wstore;
   try { wstore = JSON.parse(localStorage.getItem(WT_KEY)) || {}; } catch (e) { wstore = {}; }
@@ -1258,9 +1256,27 @@
     if (!wstore.prefs.metric) wstore.prefs.metric = 'e1rm';
     if (!wstore.rest) wstore.rest = {};      /* exercise id -> rest seconds */
     if (!wstore.notes) wstore.notes = {};    /* exercise id -> free text */
+    /* training weeks: w -> { start: dn, done: { cardId -> dn it was finished } }.
+       Weeks used to be calendar weeks that wiped themselves every Monday; now
+       one runs until it is finished, then the next starts that same day. The
+       index carries on from the calendar numbering so older entries — weights,
+       game ratings — still sort and subtract the way they always did. */
+    if (!wstore.weeks) wstore.weeks = {};
+    if (wstore.weekNo == null){
+      wstore.weekNo = epochWeek();
+      /* the week in progress at upgrade keeps its Monday start, and the days
+         already ticked keep the dates the old model gave them */
+      var mon = todayDn() - ((todayDn() + 3) % 7);
+      var seed = { start: mon, done: {} };
+      SESSION_CARDS.forEach(function(id){
+        if (wstore.daysDone[mon + CARD_OFF[id]]) seed.done[id] = mon + CARD_OFF[id];
+      });
+      wstore.weeks[wstore.weekNo] = seed;
+      saveW();   /* pin it now, or the next Monday would move the week again */
+    }
     /* drop PR marks older than ~2 months so the map can't grow forever */
     Object.keys(wstore.prSeen).forEach(function(k){
-      if (+k.split(':')[1] < epochWeek() - 8) delete wstore.prSeen[k];
+      if (+k.split(':')[1] < wstore.weekNo - 8) delete wstore.prSeen[k];
     });
     /* one-time: entries used to hold a single weight plus a rep array.
        Fan them out to per-set rows so every set can carry its own load. */
@@ -1297,20 +1313,80 @@
     try { localStorage.setItem(WT_KEY, JSON.stringify(wstore)); } catch (e) {}
   }
 
-  /* Monday-based week number since epoch — "weeks ago" is then plain subtraction */
+  /* Monday-based week number since epoch — the numbering training weeks
+     started from, and still what a date maps to before the first tracked week */
   function epochWeek(){
     var d = new Date();
     var dn = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
     return Math.floor((dn + 3) / 7);
   }
+
+  /* ---- training weeks ----
+     A week is a numbered block of the five sessions, not a slice of the
+     calendar: it begins on a date, runs until every required session is
+     ticked off, and the next one begins the day that happens. Seven days is
+     the longest one can run, so an abandoned week still turns over on its
+     own. Everything that used to key off the calendar week — weights, game
+     ratings, PR marks, the history roll-ups — keys off this number. */
+  function curWeek(){ return wstore.weekNo; }
+  function weekRec(w){ return wstore.weeks[w] || null; }
+  function weekStartDn(w){
+    var r = weekRec(w);
+    return r ? r.start : mondayDnOf(w);
+  }
+  /* the training week a date falls in: the latest one that had started by then */
+  function weekOfDn(dn){
+    var best = null;
+    Object.keys(wstore.weeks).forEach(function(k){
+      var w = +k;
+      if (wstore.weeks[k].start <= dn && (best === null || w > best)) best = w;
+    });
+    return best === null ? ewOf(dn) : best;
+  }
+  function beginWeek(start){
+    var w = curWeek() + 1;
+    wstore.weekNo = w;
+    wstore.weeks[w] = { start: start, done: {} };
+    saveW();
+    store = freshStore();
+    save();
+  }
+  /* finishing the week rolls straight into the next one, starting today */
+  function advanceWeek(){ beginWeek(todayDn()); }
+  /* and a week nobody finished gives way after seven days */
+  function rollStaleWeek(){
+    var guard = 0;
+    while (todayDn() - weekStartDn(curWeek()) >= 7 && guard++ < 520)
+      beginWeek(weekStartDn(curWeek()) + 7);
+  }
+
+  /* the ISO week id weeks used to be stamped with, kept only long enough to
+     carry a week that was already in progress across the upgrade */
+  function isoWeek(){
+    var d = new Date();
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7) + 3);
+    var firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+    var week = 1 + Math.round(((t - firstThu) / 864e5 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
+    return t.getUTCFullYear() + '-W' + (week < 10 ? '0' : '') + week;
+  }
+
+  function freshStore(){ return { week: curWeek(), sets: {}, celebrated: false }; }
+  var store;
+  try { store = JSON.parse(localStorage.getItem(STORE_KEY)) || freshStore(); } catch (e) { store = freshStore(); }
+  if (typeof store.week === 'string') store.week = store.week === isoWeek() ? curWeek() : -1;
+  if (store.week !== curWeek()) store = freshStore();
+  function save(){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+  }
   function entriesFor(id){ return wstore.wt[id] || []; }
   function currentEntry(id){
     var es = entriesFor(id), last = es[es.length - 1];
-    return (last && last.ew === epochWeek()) ? last : null;
+    return (last && last.ew === curWeek()) ? last : null;
   }
   function previousEntry(id){
     /* latest prior week WITH a weight — reps-only entries don't count */
-    var es = entriesFor(id), ew = epochWeek();
+    var es = entriesFor(id), ew = curWeek();
     for (var i = es.length - 1; i >= 0; i--)
       if (es[i].ew < ew && es[i].w != null) return es[i];
     return null;
@@ -1332,7 +1408,7 @@
   }
   /* Writes this week's sets, dropping the entry when nothing is left in it. */
   function writeSets(key, sets){
-    var es = entriesFor(key), ew = epochWeek(), last = es[es.length - 1];
+    var es = entriesFor(key), ew = curWeek(), last = es[es.length - 1];
     /* a session is defined by its loads — reps arrive pre-filled, so they
        must not keep an emptied entry alive */
     var live = sets.some(function(s){ return s && s.w != null; });
@@ -1485,7 +1561,7 @@
   }
   renderProgram();
 
-  var todayDow, todayIdx;                        /* dow: 0 = Sun … 6 = Sat; idx: 0 = Mon … 6 = Sun */
+  var todayDow;                                  /* 0 = Sun … 6 = Sat, to match the cards' data-day */
   var rows = Array.prototype.slice.call(document.querySelectorAll('.row'));
   var days = Array.prototype.slice.call(document.querySelectorAll('.day'));
   function renderRow(row){
@@ -1507,31 +1583,50 @@
     row.setAttribute('aria-label', exName(row) + ' — ' + count + ' of ' + total + ' sets logged');
   }
 
+  /* the date a card's slot falls on in a given week — Monday's slot is the
+     first Monday on or after that week started, and so on round */
+  function slotDn(w, id){
+    var start = weekStartDn(w);
+    return start + ((CARD_OFF[id] - ((start + 3) % 7)) + 7) % 7;
+  }
+  function cardDn(section){ return slotDn(curWeek(), section.id); }
+
   function dayIsDone(section){
     var dayRows = section.querySelectorAll('.row');
-    /* rest days complete themselves once their date arrives */
-    if (!dayRows.length) return ((+section.dataset.day + 6) % 7) <= todayIdx;
+    /* rest days complete themselves once their slot's date arrives */
+    if (!dayRows.length) return cardDn(section) <= todayDn();
     for (var i = 0; i < dayRows.length; i++){
       if ((store.sets[dayRows[i].dataset.id] || 0) < +dayRows[i].dataset.sets) return false;
     }
     return true;
   }
 
-  /* keep the permanent day-level log in step with this week's live state;
-     stamps carry the routine day's own date, not the tap date */
+  /* keep the permanent log in step with this week's live state. A session is
+     stamped with the date it was actually finished — do Monday's lift on
+     Wednesday and Wednesday is what the calendar shows. The week record keeps
+     that date, so re-rendering days later never restamps it. */
   function stampWeek(){
-    var changed = false, monday = todayDn() - todayIdx;
+    var rec = weekRec(curWeek()), changed = false;
+    if (!rec){ rec = wstore.weeks[curWeek()] = { start: todayDn(), done: {} }; changed = true; }
     days.forEach(function(sec){
       if (!sec.querySelectorAll('.row').length) return;
-      var dn = monday + ((+sec.dataset.day + 6) % 7);
       if (dayIsDone(sec)){
+        if (rec.done[sec.id] == null){ rec.done[sec.id] = todayDn(); changed = true; }
+        var dn = rec.done[sec.id];
         if (wstore.daysDone[dn] !== 1){ wstore.daysDone[dn] = 1; changed = true; }
-      } else if (wstore.daysDone[dn]){
-        delete wstore.daysDone[dn];
+      } else if (rec.done[sec.id] != null){
+        var was = rec.done[sec.id];
+        delete rec.done[sec.id];
+        /* the calendar mark only goes if no other session of the week claims
+           that date — two sessions in one day share one square */
+        if (!dnClaimed(rec, was)) delete wstore.daysDone[was];
         changed = true;
       }
     });
     if (changed) saveW();
+  }
+  function dnClaimed(rec, dn){
+    return Object.keys(rec.done).some(function(k){ return rec.done[k] === dn; });
   }
 
   function refreshDay(section){
@@ -1561,11 +1656,36 @@
     });
   }
 
+  /* the band names the week the cards stand for — it is the only thing that
+     changes when one week hands over to the next, so it says so out loud */
+  var band = document.getElementById('week-band');
+  function renderBand(){
+    var start = weekStartDn(curWeek());
+    var done = 0, need = 0;
+    days.forEach(function(sec){
+      if (sec.hasAttribute('data-optional') || !sec.querySelectorAll('.row').length) return;
+      need++;
+      if (dayIsDone(sec)) done++;
+    });
+    document.getElementById('wb-when').textContent =
+      (start === todayDn() ? 'New week from today' : 'Week of ' + dayLabel(start));
+    var count = document.getElementById('wb-count');
+    count.textContent = done + '/' + need + ' sessions';
+    count.classList.toggle('done', done >= need);
+  }
+  function flashWeekBand(){
+    band.classList.remove('fresh');
+    void band.offsetWidth;      /* restart the animation on a second finish */
+    band.classList.add('fresh');
+    setTimeout(function(){ band.classList.remove('fresh'); }, 1800);
+  }
+
   function renderAll(){
     disarmAllDayChecks();
     rows.forEach(renderRow);
     days.forEach(refreshDay);
     days.forEach(function(sec){ sec.classList.toggle('closed', dayIsDone(sec)); });
+    renderBand();
     renderChips();
     renderNotes();
     renderEffort();
@@ -1605,7 +1725,7 @@
   function renderChips(){ wtRows.forEach(renderChip); }
 
   function histLines(key){
-    var es = entriesFor(key).slice(-5).reverse(), ew = epochWeek(), out = [];
+    var es = entriesFor(key).slice(-5).reverse(), ew = curWeek(), out = [];
     es.forEach(function(e, i){
       var ago = ew - e.ew;
       var label = ago === 0 ? 'this week' : ago === 1 ? 'last week' : ago + ' wks ago';
@@ -1779,7 +1899,7 @@
     }
     function commit(){
       var sets = shown();
-      var best = -Infinity, ew = epochWeek();
+      var best = -Infinity, ew = curWeek();
       entriesFor(key).forEach(function(e){
         if (e.ew < ew && e.w != null && e.w > best) best = e.w;
       });
@@ -1884,8 +2004,8 @@
   /* ---- progress tab: one week-on-week chart per weighted lift ---- */
   var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function weekLabel(ew){
-    if (ew === epochWeek()) return 'this wk';
-    var d = new Date((ew * 7 - 3) * 864e5); /* Monday of that ISO-style week */
+    if (ew === curWeek()) return 'this wk';
+    var d = new Date(weekStartDn(ew) * 864e5); /* the day that week started */
     return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()];
   }
 
@@ -1975,7 +2095,7 @@
     return wrap;
   }
 
-  function weekTip(t){ return t === epochWeek() ? 'this wk' : 'wk of ' + weekLabel(t); }
+  function weekTip(t){ return t === curWeek() ? 'this wk' : 'wk of ' + weekLabel(t); }
   function dayTip(t){ return t === todayDn() ? 'today' : dayLabel(t); }
 
   /* head line for a chart card; downGood inverts delta colors (body weight in a cut) */
@@ -2139,25 +2259,45 @@
      (Mon lift, Wed game, Thu lift, Sat lift). Sunday's walk is a bonus. */
   var REQ = [0, 2, 3, 5];
   var SUN = 6;
-  function weekComplete(w){
-    var m = mondayDnOf(w);
-    return REQ.every(function(off){ return !!wstore.daysDone[m + off]; });
+  /* Weeks tracked under the training-week model carry their own record of
+     which sessions were done, so they read off that. Weeks that predate it
+     have only the day log, whose dates sat at fixed offsets from Monday. */
+  function sessionsIn(w){
+    var rec = weekRec(w);
+    if (rec){
+      var n = 0;
+      Object.keys(rec.done).forEach(function(k){ if (k !== 'd-sun') n++; });
+      return Math.min(n, REQ.length);
+    }
+    var m = mondayDnOf(w), c = 0;
+    REQ.forEach(function(off){ if (wstore.daysDone[m + off]) c++; });
+    return c;
   }
-  /* streak reads straight off the day log, so retroactive calendar edits
-     and the live week both feed it from one source of truth */
+  function sundayWalk(w){
+    var rec = weekRec(w);
+    return rec ? rec.done['d-sun'] != null : !!wstore.daysDone[mondayDnOf(w) + SUN];
+  }
+  function weekComplete(w){ return sessionsIn(w) >= REQ.length; }
+  /* streak reads off the same session count as the roll-ups, so retroactive
+     calendar edits and the live week both feed it from one source of truth */
   function streakLen(){
-    var ew = epochWeek();
+    var ew = curWeek();
     var from = weekComplete(ew) ? ew : ew - 1;
     var n = 0;
     while (weekComplete(from - n)) n++;
     return n;
   }
-  /* the day log is the record; weeksDone survives only as the source the
+  /* the sessions are the record; weeksDone survives only as the source the
      one-time backfill read, and is no longer consulted here */
   function weekActive(w){
     if (gameEffort(w) != null) return true;   /* a rated game is activity too */
-    var m = mondayDnOf(w);
-    if ([0, 2, 3, 5, 6].some(function(off){ return wstore.daysDone[m + off]; })) return true;
+    var rec = weekRec(w);
+    if (rec){
+      if (Object.keys(rec.done).length) return true;
+    } else {
+      var m = mondayDnOf(w);
+      if ([0, 2, 3, 5, 6].some(function(off){ return wstore.daysDone[m + off]; })) return true;
+    }
     return weekLifts(w).length > 0;
   }
   /* every exercise logged in a given week, for the History detail view */
@@ -2198,8 +2338,37 @@
 
   var calY = null, calM = null;
 
+  /* date -> the card that was ticked off on it, so the calendar can still
+     tell game night from a lift now that sessions land on any weekday */
+  function stampCards(){
+    var map = {};
+    Object.keys(wstore.weeks).forEach(function(k){
+      var done = wstore.weeks[k].done;
+      Object.keys(done).forEach(function(id){
+        if (map[done[id]] == null || id === 'd-wed') map[done[id]] = id;
+      });
+    });
+    return map;
+  }
+  /* a day added or removed on the calendar has to reach the week record too,
+     or the roll-ups and the streak would keep reading the old count */
+  function editSession(dn, on){
+    var rec = weekRec(weekOfDn(dn));
+    if (!rec) return;
+    if (on){
+      if (!Object.keys(rec.done).some(function(k){ return rec.done[k] === dn; })) rec.done['x' + dn] = dn;
+    } else {
+      Object.keys(rec.done).forEach(function(k){ if (rec.done[k] === dn) delete rec.done[k]; });
+    }
+  }
+  function stampCard(dn, stamps){
+    /* before training weeks were tracked every Wednesday was game night */
+    return stamps[dn] || ((dn + 3) % 7 === 2 ? 'd-wed' : null);
+  }
+
   function calHtml(){
     var tdn = todayDn();
+    var stamps = stampCards();
     var firstDn = Date.UTC(calY, calM, 1) / 864e5;
     var dow0 = (new Date(Date.UTC(calY, calM, 1)).getUTCDay() + 6) % 7;
     var nDays = new Date(Date.UTC(calY, calM + 1, 0)).getUTCDate();
@@ -2214,26 +2383,28 @@
       '</span></div><div class="cal-grid">';
     ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(function(l){ h += '<span class="dow">' + l + '</span>'; });
     for (var b = 0; b < dow0; b++) h += '<span></span>';
-    var thisMonday = todayDn() - todayIdx;
+    var weekStart = weekStartDn(curWeek());
     for (var d = 1; d <= nDays; d++){
       var dn = firstDn + d - 1;
-      var dow = (dow0 + d - 1) % 7;
       var cls = 'cal-cell';
       var editable = false;
       if (dn === tdn) cls += ' c-today';
+      var v = wstore.daysDone[dn];
       if (dn > tdn){
         cls += ' c-future';
-      } else if (dow === 1 || dow === 4){
-        if (weekActive(ewOf(dn))) cls += ' c-rest';
+      } else if (!v){
+        /* a rest slot of a week that saw training */
+        var rw = weekOfDn(dn);
+        if (weekActive(rw) && (slotDn(rw, 'd-tue') === dn || slotDn(rw, 'd-fri') === dn)) cls += ' c-rest';
+        if (dn < weekStart) editable = true;
       } else {
-        var v = wstore.daysDone[dn];
-        if (v === 1) cls += dow === 2 ? ' c-ball' : ' c-done';
+        if (v === 1) cls += stampCard(dn, stamps) === 'd-wed' ? ' c-ball' : ' c-done';
         else if (v === 2) cls += ' c-assumed';
-        /* days in finished weeks are editable: the weekly reset has already
-           cleared their sets, so the card can no longer speak for them.
-           This week's days stay read-only — tick them on the day card, which
-           still holds the real set data stampWeek() derives them from. */
-        if (dn < thisMonday) editable = true;
+        /* days in weeks already put to bed are editable: their sets are gone,
+           so the day card can no longer speak for them. The running week's
+           days stay read-only — tick them on the card, which still holds the
+           real set data stampWeek() derives them from. */
+        if (dn < weekStart) editable = true;
       }
       h += editable
         ? '<button type="button" class="' + cls + ' c-edit" data-dn="' + dn + '" aria-pressed="' +
@@ -2260,7 +2431,7 @@
       calY = n.getUTCFullYear();
       calM = n.getUTCMonth();
     }
-    var ew = epochWeek();
+    var ew = curWeek();
     var streak = streakLen();
 
     var head = document.createElement('div');
@@ -2301,8 +2472,10 @@
               return;
             }
             delete wstore.daysDone[dn];
+            editSession(dn, false);
           } else {
             wstore.daysDone[dn] = 1;
+            editSession(dn, true);
           }
           saveW();
           buildHistory();   /* streak, roll-ups and the grid all re-derive */
@@ -2316,12 +2489,11 @@
     for (var k = 0; k < 12; k++){
       var w = ew - k;
       if (!weekActive(w)) continue;
-      var m = mondayDnOf(w);
-      var sess = 0;
-      REQ.forEach(function(off){ if (wstore.daysDone[m + off]) sess++; });
-      var full = sess === REQ.length;
+      var m = weekStartDn(w);
+      var sess = sessionsIn(w);
+      var full = sess >= REQ.length;
       var bits = [sess + '/' + REQ.length + ' sessions'];
-      if (wstore.daysDone[m + SUN]) bits.push('+Sun walk');
+      if (sundayWalk(w)) bits.push('+Sun walk');
       var up = liftsUpFor(w);
       if (up) bits.push(up + (up === 1 ? ' lift up' : ' lifts up'));
       var ge = gameEffort(w);
@@ -2385,7 +2557,7 @@
     if (store.celebrated || !allDaysDone()) return;
     store.celebrated = true;
     save();
-    var ew = epochWeek();
+    var ew = curWeek();
     if (wstore.weeksDone.indexOf(ew) === -1){ wstore.weeksDone.push(ew); saveW(); }
     var streak = streakLen();
     var up = liftsUpFor(ew);
@@ -2397,17 +2569,22 @@
     document.body.style.overflow = 'hidden';
     confettiBurst(cel.querySelector('canvas'), 140, 7000);
   }
-  function hideCelebration(){
+  /* dismissing the celebration is what moves the routine on: the finished
+     week is already in the log, so the app opens the next one there and then */
+  function startNextWeek(){
     cel.hidden = true;
     document.body.style.overflow = '';
-  }
-  document.getElementById('cel-close').addEventListener('click', hideCelebration);
-  document.getElementById('cel-reset').addEventListener('click', function(){
-    store = freshStore();
-    save();
+    advanceWeek();
     renderAll();
-    hideCelebration();
+    flashWeekBand();
     window.scrollTo(0, 0);
+  }
+  document.getElementById('cel-next').addEventListener('click', startNextWeek);
+  cel.addEventListener('click', function(e){
+    if (e.target === cel) startNextWeek();   /* tapping the backdrop counts */
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !cel.hidden) startNextWeek();
   });
 
   function confettiBurst(canvas, count, dur, onDone){
@@ -2465,12 +2642,16 @@
     requestAnimationFrame(frame);
   }
 
-  /* recompute today + weekly reset — runs on load and every time the page
-     is brought back into view, so a tab left open overnight stays correct */
+  /* recompute today + roll the week on — runs on load and every time the
+     page is brought back into view, so a tab left open overnight stays
+     correct */
   function syncToday(){
-    if (store.week !== weekId()){ store = freshStore(); save(); }
     todayDow = new Date().getDay();
-    todayIdx = (todayDow + 6) % 7;
+    if (store.week !== curWeek()){ store = freshStore(); save(); }
+    rollStaleWeek();
+    /* a week finished and celebrated in an earlier session moves on the
+       moment you come back to it */
+    if (store.celebrated && cel.hidden && allDaysDone()) advanceWeek();
     document.querySelectorAll('[data-day]').forEach(function(el){
       el.classList.toggle('today', +el.dataset.day === todayDow);
     });
@@ -2742,7 +2923,7 @@
     return null;
   }
   function setGameEffort(e){
-    var w = epochWeek();
+    var w = curWeek();
     wstore.game = wstore.game.filter(function(g){ return g.ew !== w; });
     if (e != null){
       wstore.game.push({ ew: w, e: e });
@@ -2751,13 +2932,13 @@
     saveW();
   }
   function renderEffort(){
-    var cur = gameEffort(epochWeek());
+    var cur = gameEffort(curWeek());
     fxBtns.forEach(function(b){ b.classList.toggle('on', +b.dataset.e === cur); });
   }
   fxBtns.forEach(function(b){
     b.addEventListener('click', function(){
       var v = +b.dataset.e;
-      setGameEffort(gameEffort(epochWeek()) === v ? null : v);
+      setGameEffort(gameEffort(curWeek()) === v ? null : v);
       renderEffort();
     });
   });
@@ -2781,14 +2962,6 @@
       }
     }, 4000);
   }
-
-  document.getElementById('reset-btn').addEventListener('click', function(){
-    armButton(this, 'Sure? Tap again', function(){
-      store = freshStore();
-      save();
-      renderAll();
-    });
-  });
 
   /* ---- backup / restore ---- */
   /* nudge once the backup is stale — everything lives on this one device */
@@ -2890,7 +3063,7 @@
      toggles the collapsed state of any day. Clearing an already-completed
      day is one fat-finger tap away from wiping every logged set, so it
      needs a first tap to arm a visible warning and a second to confirm —
-     the same two-tap idea as the reset/restore buttons below, just with
+     the same two-tap idea as the restore button below, just with
      a color and icon change instead of button text since this is a
      36px circle, not a labeled button. */
   function disarmDayCheck(check){

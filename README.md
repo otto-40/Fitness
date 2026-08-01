@@ -11,15 +11,24 @@ Three tabs:
 
 - **This Week** — the routine. Tap an exercise to log a set; tap its weight
   chip to record what you lifted, set by set. Days collapse once complete.
-  Rest days complete themselves when their date arrives.
+  Rest days complete themselves when their date arrives. The band at the top
+  says which week the cards below belong to.
 - **Progress** — body weight and body fat, plus a chart per lift. The
   measure toggle switches between estimated 1RM (moves with load *or* reps),
   top set, and volume.
 - **History** — a calendar of training days and a week-by-week log. Tap a
   past day to correct it; tap a week to see what you lifted.
 
-The week's ticks reset every Monday. Weights, reps, notes and history never
-reset.
+## How weeks flow
+
+There is nothing to reset. A week runs until every required session is
+ticked off; finish the last one, take the celebration, and the app hands you
+a clean set of cards there and then — the next week starts that day. A week
+nobody finishes gives way on its own seven days after it started.
+
+Each session is logged against the day you actually did it, not the day the
+card is named after: catch Monday's lift up on Wednesday and Wednesday is
+what the calendar shows. Weights, reps, notes and history are never cleared.
 
 **Edit program** in the footer changes exercises, sets and rep targets.
 Exercise IDs are permanent, so renaming a lift keeps its history.
@@ -64,8 +73,14 @@ Other files: `sw.js` (offline cache — bump `CACHE` when assets change),
 
 Two `localStorage` keys:
 
-- `sams-training-week` — the current week only: which sets are ticked. Wiped
-  every Monday.
+- `sams-training-week` — the week in progress only: which sets are ticked.
+  Replaced when the week rolls over.
 - `sams-training-weights` — everything durable: per-set weights and reps by
   exercise and week, body-weight log, day-level training history, game
   effort ratings, notes, rest lengths, preferences and any program edits.
+
+Weeks are numbered rather than pinned to the calendar. `weeks` maps a week
+number to the date it started and the date each session in it was finished;
+`weekNo` is the one running now. The numbering carries on from the Monday-
+based week count the app used before, so older weights and ratings still
+sort and subtract the way they did.
