@@ -3,7 +3,8 @@
    behaviour, so a regression fails the run instead of just printing.
 
    The app is date-sensitive (today's card, rest days completing by date,
-   the Monday reset), so most cases pin the clock to a known day. */
+   a week rolling into the next), so most cases pin the clock to a known
+   day. */
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright-core');
@@ -304,7 +305,7 @@ async function main() {
     check('celebrates on the last session', await page.locator('#celebrate').isVisible(), true);
     check('Sunday still untouched', await page.locator('#d-sun .pip.filled').count(), 0);
 
-    await page.click('#cel-close');
+    await page.click('#cel-next');
     await page.waitForTimeout(150);
     await page.click('#tab-history');
     await page.waitForTimeout(300);
@@ -312,10 +313,42 @@ async function main() {
     check('roll-up counts sessions', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('4/4 sessions'), true);
   });
 
+  // Finishing the week is the only thing that ends it: the celebration hands
+  // straight over to a fresh set of cards, with nothing left to reset.
+  await test('a finished week flows into the next', { date: '2026-08-01T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-top', '90');
+    await page.waitForTimeout(120);
+    await page.click('.wt-panel .wt-close');
+    for (const id of ['d-mon', 'd-wed', 'd-thu', 'd-sat']) await completeDay(page, id);
+    await page.waitForTimeout(300);
+    check('celebration shown', await page.locator('#celebrate').isVisible(), true);
+
+    await page.click('#cel-next');
+    await page.waitForTimeout(250);
+    check('next week starts clean', await page.locator('.pip.filled').count(), 0);
+    check('band names the new week', (await page.textContent('#wb-when')).trim(), 'New week from today');
+    check('no sessions yet', (await page.textContent('#wb-count')).trim(), '0/4 sessions');
+    check('last week is the weight to beat', await page.locator('[data-id="mon-1"] .wt.is-prev').count(), 1);
+    check('target value', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '90');
+
+    // the finished week is in the log, dated the day it was actually done
+    await page.click('#tab-history');
+    await page.waitForTimeout(300);
+    check('finished week logged', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('4/4 sessions'), true);
+    check('trained today', await page.locator('.cal-cell.c-today.c-ball, .cal-cell.c-today.c-done').count(), 1);
+
+    // and it stays put across a reload — no second celebration, no going back
+    await page.reload();
+    await page.waitForTimeout(350);
+    check('still on the new week', await page.locator('.pip.filled').count(), 0);
+    check('celebration does not repeat', await page.locator('#celebrate').isHidden(), true);
+  });
+
   await test('logging Sunday adds it as a bonus', { date: '2026-08-02T09:00:00' }, async (page) => {
     for (const id of ['d-mon', 'd-wed', 'd-thu', 'd-sat']) await completeDay(page, id);
     await page.waitForTimeout(250);
-    await page.click('#cel-close');
+    await page.click('#cel-next');
     await completeDay(page, 'd-sun');
     await page.click('#tab-history');
     await page.waitForTimeout(300);
@@ -689,23 +722,72 @@ async function main() {
     check('preference persists', await page.getAttribute('#pref-rest', 'aria-pressed'), 'false');
   });
 
-  // ------------------------------------------------------------------- resets
-  await test('reset clears the week but keeps history', { date: '2026-07-23T09:00:00' }, async (page) => {
-    await page.click('[data-id="mon-1"] .wt');
-    await page.fill('.wt-panel .wt-top', '90');
-    await page.waitForTimeout(120);
-    await page.click('.wt-panel .wt-close');
+  // -------------------------------------------------------------- roll-overs
+  await test('sessions are logged on the day they were done', { date: '2026-07-23T09:00:00' }, async (page) => {
+    // Thursday: Monday's lift is being caught up on, so Thursday is the date
+    // that belongs in the log — not the slot the card sits in.
     await completeDay(page, 'd-mon');
+    const marked = await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      return Object.keys(w.daysDone).map(Number).sort();
+    });
+    const today = await page.evaluate(() => {
+      const d = new Date();
+      return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+    });
+    check('stamped with today', marked, [today]);
 
-    await page.click('#reset-btn');
-    check('reset is armed first', (await page.textContent('#reset-btn')).trim(), 'Sure? Tap again');
-    await page.click('#reset-btn');
-    await page.waitForTimeout(250);
-    check('sets cleared', await page.locator('.pip.filled').count(), 0);
-    check('weight kept', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '90');
+    await clearDay(page, 'd-mon');
+    check('clearing takes the stamp back', await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      return Object.keys(w.daysDone).length;
+    }), 0);
   });
 
-  await test('a new week resets sets and keeps weights', { date: '2026-07-23T09:00:00' }, async (page) => {
+  await test('a week finished last session moves on when you come back',
+    { date: '2026-08-01T09:00:00' }, async (page) => {
+    for (const id of ['d-mon', 'd-wed', 'd-thu', 'd-sat']) await completeDay(page, id);
+    await page.waitForTimeout(300);
+    check('celebrating', await page.locator('#celebrate').isVisible(), true);
+
+    // closed without dismissing it, opened again the next day
+    await page.clock.setFixedTime(new Date('2026-08-02T09:00:00'));
+    await page.reload();
+    await page.waitForTimeout(400);
+    check('celebration is done with', await page.locator('#celebrate').isHidden(), true);
+    check('on the next week', await page.locator('.pip.filled').count(), 0);
+    check('band names it', (await page.textContent('#wb-when')).trim(), 'New week from today');
+  });
+
+  // Upgrading mid-week must not cost anyone the sets they have already ticked.
+  await test('a week in progress survives the upgrade', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const daysDone = { [monday]: 1, [monday + 2]: 1 };   // Mon and Wed done
+      const sets = {};
+      ['mon-1','mon-2','mon-3','mon-4','mon-5','mon-6','wed-1'].forEach(k => sets[k] = 99);
+      localStorage.setItem('sams-training-week', JSON.stringify({
+        week: '2026-W30', sets, celebrated: false,          // the old ISO week id
+      }));
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone, backfilled: 1, perSet: 1,
+      }));
+    `) }, async (page) => {
+    check('Monday still complete', await page.locator('#d-mon.closed').count(), 1);
+    check('its sets are intact', await page.locator('#d-mon .pip.filled').count(), 18);
+    check('band counts them', (await page.textContent('#wb-count')).trim(), '2/4 sessions');
+    check('the old stamps are kept', await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      return Object.keys(w.daysDone).length;
+    }), 2);
+    check('the week is pinned to its Monday', await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      const d = new Date();
+      const dn = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+      return w.weeks[w.weekNo].start === 7 * Math.floor((dn + 3) / 7) - 3;
+    }), true);
+  });
+
+  await test('an unfinished week gives way after seven days', { date: '2026-07-23T09:00:00' }, async (page) => {
     await completeDay(page, 'd-mon');
     await page.click('#d-mon .day-name');
     await page.waitForTimeout(300);
@@ -714,14 +796,11 @@ async function main() {
     await page.waitForTimeout(120);
     await page.click('.wt-panel .wt-close');
 
-    // roll the clock forward a week the way real time would: the stored week
-    // goes stale and the logged weight becomes last week's
+    // age the running week by a week the way real time would: it turns over
+    // on its own and the logged weight becomes last week's
     await page.evaluate(() => {
-      const s = JSON.parse(localStorage.getItem('sams-training-week'));
-      s.week = '2026-W01';
-      localStorage.setItem('sams-training-week', JSON.stringify(s));
       const w = JSON.parse(localStorage.getItem('sams-training-weights'));
-      w.wt['mon-1'].forEach((e) => { e.ew -= 1; });
+      w.weeks[w.weekNo].start -= 7;
       localStorage.setItem('sams-training-weights', JSON.stringify(w));
     });
     await page.reload();
@@ -729,6 +808,10 @@ async function main() {
     check('sets reset', await page.locator('.pip.filled').count(), 0);
     check('weight carried over as the target', await page.locator('[data-id="mon-1"] .wt.is-prev').count(), 1);
     check('target value', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '75');
+    check('the session it did log is kept', await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      return Object.keys(w.daysDone).length;
+    }), 1);
   });
 
   await browser.close();
