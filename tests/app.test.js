@@ -73,6 +73,21 @@ async function completeDay(page, id) {
   await page.waitForTimeout(120);
 }
 
+/* Effort is one tap per set — E, M, H — and tapping the lit one clears it. */
+async function rate(page, set, e) {
+  await page.click(`.wt-panel .wt-set:nth-child(${set}) .wt-fxb[data-e="${e}"]`);
+  await page.waitForTimeout(120);
+}
+
+/* the effort stored against the latest entry for a lift, one slot per set */
+function storedEfforts(page, key) {
+  return page.evaluate((k) => {
+    const es = JSON.parse(localStorage.getItem('sams-training-weights')).wt[k] || [];
+    const last = es[es.length - 1];
+    return last ? last.s.map((s) => (s.e == null ? null : s.e)) : null;
+  }, key);
+}
+
 /* Clearing a completed day is arm-then-confirm. */
 async function clearDay(page, id) {
   await page.click(`#${id} .day-check`);
@@ -248,6 +263,120 @@ async function main() {
     await page.fill('.wt-panel .wt-top', '102.5');
     await page.waitForTimeout(250);
     check('PR does not re-fire', await page.locator('.wt-panel .wt-pr').count(), 0);
+  });
+
+  // ------------------------------------------------------------------- effort
+  await test('effort is rated per set and stored with it', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    check('columns are labelled',
+      await page.locator('.wt-panel .wt-shead span').evaluateAll(
+        (els) => els.map((e) => e.textContent).filter(Boolean)),
+      ['kg', 'reps', 'effort']);
+    check('three choices per set',
+      await page.locator('.wt-panel .wt-set:nth-child(1) .wt-fxb').allTextContents(), ['E', 'M', 'H']);
+    check('nothing rated to start', await page.locator('.wt-panel .wt-fxb.on').count(), 0);
+
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+    await rate(page, 1, 0);
+    await rate(page, 2, 0);
+    await rate(page, 3, 1);
+    await rate(page, 4, 2);
+    check('each set keeps its own rating', await storedEfforts(page, 'mon-1'), [0, 0, 1, 2]);
+    check('history reads them back', (await page.textContent('.wt-panel .wt-hist')).includes('EEMH'), true);
+
+    await rate(page, 4, 2);   // the lit button clears
+    check('a rating can be taken back', await storedEfforts(page, 'mon-1'), [0, 0, 1, null]);
+    await rate(page, 4, 2);
+
+    await page.click('.wt-panel .wt-close');
+    await page.reload();
+    await page.waitForTimeout(350);
+    await page.click('[data-id="mon-1"] .wt');
+    check('ratings come back with the panel',
+      await page.locator('.wt-panel .wt-fxb.on').evaluateAll((els) => els.map((e) => e.dataset.e)),
+      ['0', '0', '1', '2']);
+  });
+
+  await test('effort decides whether the load goes up', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+    check('reps alone still say add load', (await page.textContent('.wt-panel [data-hint]')).trim(),
+      'All sets at 8 — load 102.5 kg next week.');
+
+    for (const n of [1, 2, 3, 4]) await rate(page, n, 2);
+    check('a grind at the top of the range holds it', (await page.textContent('.wt-panel [data-hint]')).trim(),
+      'All sets at 8, but every one was a grind — repeat 100 kg before adding.');
+    check('and reads as a caution', await page.locator('.wt-panel [data-hint].caution').count(), 1);
+
+    // back down the range: now effort is the only thing that can speak
+    for (const i of [0, 1, 2, 3]) await page.fill(`.wt-panel .wt-sr[data-i="${i}"]`, '6');
+    await page.waitForTimeout(200);
+    check('hard low in the range says stay', (await page.textContent('.wt-panel [data-hint]')).trim(),
+      'Every set hard — stay at 100 kg next week and add reps.');
+
+    for (const n of [1, 2, 3, 4]) await rate(page, n, 0);
+    check('easy low in the range says go up', (await page.textContent('.wt-panel [data-hint]')).trim(),
+      'Every set easy — 102.5 kg is there next week.');
+    check('and reads as a green light', await page.locator('.wt-panel [data-hint].caution').count(), 0);
+
+    await rate(page, 4, 1);
+    check('one unrated-away session says nothing new', (await page.textContent('.wt-panel [data-hint]')).trim(), '');
+  });
+
+  await test('last week\u2019s effort greets you at the lift', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-2': [{ ew: ew - 1, w: 40, s: [{w:40,r:8,e:0},{w:40,r:8,e:0},{w:40,r:8,e:0}] }] },
+      }));
+    `) }, async (page) => {
+    check('the chip carries it', await page.locator('[data-id="mon-2"] .wt .wt-fxdot.fx0').count(), 1);
+    await page.click('[data-id="mon-2"] .wt');
+    check('and the hint opens with it', (await page.textContent('.wt-panel [data-hint]')).trim(),
+      'Last week felt easy — start at 42.5 kg.');
+    check('today starts unrated', await page.locator('.wt-panel .wt-fxb.on').count(), 0);
+  });
+
+  await test('a plateau at one load is called out', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const wk = (w) => ({ ew: w, w: 40, s: [{w:40,r:6,e:2},{w:40,r:6,e:2},{w:40,r:6,e:2}] });
+      const flat = (w) => ({ ew: w, w: 30, s: [{w:30,r:6},{w:30,r:6},{w:30,r:6},{w:30,r:6}] });
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-2': [wk(ew - 3), wk(ew - 2), wk(ew - 1)],
+              'mon-3': [flat(ew - 3), flat(ew - 2), flat(ew - 1)] },
+      }));
+    `) }, async (page) => {
+    check('the chip warns', await page.locator('[data-id="mon-2"] .wt .wt-fxdot.fx2').count(), 1);
+    await page.click('[data-id="mon-2"] .wt');
+    check('the stall is named with a way out', (await page.textContent('.wt-panel [data-hint]')).trim(),
+      '3 sessions at 40 kg and still hard — hold the load and chase reps, or drop to 35 kg and build back.');
+
+    // the same stall with nothing rated can only ask for the missing input
+    await page.click('[data-id="mon-3"] .wt');
+    await page.waitForTimeout(150);
+    check('no dot without ratings', await page.locator('[data-id="mon-3"] .wt .wt-fxdot.fx0, [data-id="mon-3"] .wt .wt-fxdot.fx1, [data-id="mon-3"] .wt .wt-fxdot.fx2').count(), 0);
+    check('an unrated stall asks to be rated', (await page.textContent('.wt-panel [data-hint]')).trim(),
+      '30 kg for 3 sessions running — rate the sets and the next step picks itself.');
+  });
+
+  await test('chart dots carry the week\u2019s effort', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const wk = (w, r, e) => ({ ew: w, w: 100, s: [{w:100,r,e},{w:100,r,e},{w:100,r,e},{w:100,r,e}] });
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-1': [wk(ew - 2, 6, 2), wk(ew - 1, 7, 1), wk(ew, 8, 0)] },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    check('the colours are explained once', await page.locator('.fx-legend').count(), 1);
+    const card = page.locator('.chart-card', { hasText: 'Leg press' });
+    check('same load, week by week getting easier',
+      await card.locator('.cc-plot circle').evaluateAll((els) => els.map((e) => e.getAttribute('class'))),
+      ['dot fx2', 'dot fx1', 'end fx0']);
   });
 
   // --------------------------------------------------------------- body + log
@@ -445,6 +574,7 @@ async function main() {
 
     // default metric is estimated 1RM, which moves with reps
     check('est 1RM is the default', await page.locator('.mt.on').textContent(), 'Est. 1RM');
+    check('no effort legend when nothing is rated', await page.locator('.fx-legend').count(), 0);
     check('1RM rises on reps alone', (await card.locator('.cc-now').textContent()).trim(), '126.7 kg');
     check('delta is shown', (await card.locator('.cc-delta').textContent()).trim().startsWith('▲'), true);
 
@@ -638,7 +768,7 @@ async function main() {
       [0, 2, 3, 5].forEach(o => daysDone[monday - 7 + o] = 1);
       localStorage.setItem('sams-training-weights', JSON.stringify({
         unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone, backfilled: 1, perSet: 1,
-        wt: { 'mon-1': [{ ew: ew - 1, w: 100, s: [{w:100,r:8},{w:100,r:8},{w:95,r:6}] }] },
+        wt: { 'mon-1': [{ ew: ew - 1, w: 100, s: [{w:100,r:8,e:0},{w:100,r:8,e:0},{w:95,r:6,e:2}] }] },
       }));
     `) }, async (page) => {
     await page.click('#tab-history');
@@ -653,6 +783,7 @@ async function main() {
     const detail = (await page.textContent('.wk-detail')).replace(/\s+/g, ' ');
     check('names the lift', detail.includes('Leg press'), true);
     check('shows loads and reps', detail.includes('100–95 kg × 8,8,6'), true);
+    check('and how the sets felt', detail.includes('8,8,6 EEH'), true);
 
     await line.click();
     await page.waitForTimeout(200);

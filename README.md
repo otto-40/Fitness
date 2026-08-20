@@ -15,9 +15,29 @@ Three tabs:
   says which week the cards below belong to.
 - **Progress** — body weight and body fat, plus a chart per lift. The
   measure toggle switches between estimated 1RM (moves with load *or* reps),
-  top set, and volume.
+  top set, and volume. Each point is coloured by how that week's sets felt,
+  so a flat line whose dots are turning green is a plateau you can push out
+  of, and one that stays red is one to back off from.
 - **History** — a calendar of training days and a week-by-week log. Tap a
   past day to correct it; tap a week to see what you lifted.
+
+## Effort
+
+Every set takes an **E / M / H** rating — easy, moderate, hard — beside its
+weight and reps. It is optional, and one tap; tapping the lit letter takes it
+back. Load and reps say what you did, effort says what it cost, and the two
+together are what tell a week you should add weight apart from a week you
+should hold it.
+
+Once a session is rated the app says so in one line under the sets: every set
+easy is 2.5 kg you are leaving behind, every set a grind is a week to repeat,
+and the same load three sessions running is a plateau named out loud with a
+way out of it. Last week's rating rides on the weight chip as a coloured dot,
+so you can see what you are walking into before you open anything.
+
+Rate every loaded set of a session or the advice stays quiet — a half-rated
+session says nothing rather than something misleading. Sets logged before
+this existed simply have no rating, and nothing about them changes.
 
 ## How weeks flow
 
@@ -75,9 +95,10 @@ Two `localStorage` keys:
 
 - `sams-training-week` — the week in progress only: which sets are ticked.
   Replaced when the week rolls over.
-- `sams-training-weights` — everything durable: per-set weights and reps by
-  exercise and week, body-weight log, day-level training history, game
-  effort ratings, notes, rest lengths, preferences and any program edits.
+- `sams-training-weights` — everything durable: per-set weights, reps and
+  effort by exercise and week, body-weight log, day-level training history,
+  game effort ratings, notes, rest lengths, preferences and any program
+  edits.
 
 Weeks are numbered rather than pinned to the calendar. `weeks` maps a week
 number to the date it started and the date each session in it was finished;
