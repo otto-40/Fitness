@@ -166,6 +166,90 @@ async function main() {
     check('nothing cleared on expiry', await page.locator('#d-mon .pip.filled').count(), 18);
   });
 
+  await test('a completed exercise is locked against a stray tap', { date: '2026-07-23T09:00:00' }, async (page) => {
+    const filled = () => page.locator('[data-id="mon-1"] .pip.filled').count();
+    const undo = page.locator('[data-id="mon-1"] .undo');
+
+    check('no clear button before anything is logged', await undo.isVisible(), false);
+    await page.click('[data-id="mon-1"] .ex');
+    await page.waitForTimeout(150);
+    check('the first set logs', await filled(), 1);
+    check('and the clear button appears with it', await undo.isVisible(), true);
+
+    for (let i = 0; i < 3; i++) {
+      await page.click('[data-id="mon-1"] .ex');
+      await page.waitForTimeout(120);
+    }
+    check('all four sets logged', await filled(), 4);
+    check('the row reads complete', await page.locator('[data-id="mon-1"].done').count(), 1);
+
+    // the tap that used to wrap the whole exercise back to zero
+    await page.click('[data-id="mon-1"] .ex');
+    await page.waitForTimeout(150);
+    check('tapping a finished exercise changes nothing', await filled(), 4);
+    await page.click('[data-id="mon-1"] .ex');
+    await page.waitForTimeout(150);
+    check('however many times you tap it', await filled(), 4);
+    check('and it survives a reload', await page.reload().then(() => page.waitForTimeout(350)).then(filled), 4);
+
+    // clearing takes two deliberate taps on the clear button
+    await undo.click();
+    await page.waitForTimeout(150);
+    check('the first tap only arms', await filled(), 4);
+    check('and shows it', await page.locator('[data-id="mon-1"] .undo.warn').count(), 1);
+    await undo.click();
+    await page.waitForTimeout(150);
+    check('the second clears', await filled(), 0);
+    check('the row is live again', await page.locator('[data-id="mon-1"].done').count(), 0);
+    check('and the clear button goes with it', await undo.isVisible(), false);
+  });
+
+  await test('an armed clear can be walked away from', { date: '2026-07-23T09:00:00' }, async (page) => {
+    const filled = () => page.locator('[data-id="mon-1"] .pip.filled').count();
+    const undo = page.locator('[data-id="mon-1"] .undo');
+    for (let i = 0; i < 2; i++) {
+      await page.click('[data-id="mon-1"] .ex');
+      await page.waitForTimeout(120);
+    }
+
+    await undo.click();
+    await page.waitForTimeout(120);
+    await page.clock.fastForward(4500);
+    await page.waitForTimeout(150);
+    check('the warning expires', await page.locator('[data-id="mon-1"] .undo.warn').count(), 0);
+    check('with nothing cleared', await filled(), 2);
+
+    // and logging the next set counts as "never mind" too
+    await undo.click();
+    await page.waitForTimeout(120);
+    await page.click('[data-id="mon-1"] .ex');
+    await page.waitForTimeout(150);
+    check('tapping the row disarms it', await page.locator('[data-id="mon-1"] .undo.warn').count(), 0);
+    check('and logs as normal', await filled(), 3);
+  });
+
+  await test('clearing an exercise reopens its day and stops the rest timer',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    // Thursday is today; its four rows are the smallest complete day to drive
+    const rows = await page.locator('#d-thu .row').evaluateAll((els) => els.map((e) => e.dataset.id));
+    for (const id of rows) {
+      const sets = +(await page.getAttribute(`[data-id="${id}"]`, 'data-sets'));
+      for (let i = 0; i < sets; i++) {
+        await page.click(`[data-id="${id}"] .ex`);
+        await page.waitForTimeout(80);
+      }
+    }
+    check('the day closes when every exercise is done', await page.locator('#d-thu.closed').count(), 1);
+    check('rest is running', await page.locator('#rest-bar').isHidden(), false);
+
+    const undo = page.locator(`[data-id="${rows[0]}"] .undo`);
+    await undo.click();
+    await undo.click();
+    await page.waitForTimeout(200);
+    check('clearing one exercise reopens the day', await page.locator('#d-thu.closed').count(), 0);
+    check('and stops the timer it was counting', await page.locator('#rest-bar').isHidden(), true);
+  });
+
   // ------------------------------------------------------------------ weights
   await test('weights, reps, variants and progression hints', { date: '2026-07-23T09:00:00' }, async (page) => {
     await page.click('[data-id="mon-1"] .wt');

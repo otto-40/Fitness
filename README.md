@@ -10,9 +10,12 @@ accounts, no network needed once installed.
 Three tabs:
 
 - **This Week** — the routine. Tap an exercise to log a set; tap its weight
-  chip to record what you lifted, set by set. Days collapse once complete.
-  Rest days complete themselves when their date arrives. The band at the top
-  says which week the cards below belong to.
+  chip to record what you lifted, set by set. An exercise only ever counts
+  up — once every set is in it locks, so a stray tap can't scrap it. The ↺
+  beside the pips takes the sets back: one tap arms it, a second within four
+  seconds clears them. Days collapse once complete, and rest days complete
+  themselves when their date arrives. The band at the top says which week the
+  cards below belong to.
 - **Progress** — body weight and body fat, plus a chart per lift. The
   measure toggle switches between estimated 1RM (moves with load *or* reps),
   top set, and volume. Each point is coloured by how that week's sets felt,

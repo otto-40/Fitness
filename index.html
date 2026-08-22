@@ -318,14 +318,33 @@
     font-family:var(--mono);font-size:13px;font-weight:500;
     white-space:nowrap;color:var(--court-deep);
   }
+  .setline{display:flex;align-items:center;gap:8px}
   .pips{display:flex;gap:4px}
   .pip{
     width:11px;height:11px;border-radius:2px;
     border:1.5px solid var(--court);
   }
   .pip.filled{background:var(--court)}
+  /* clearing an exercise is deliberate: the row itself only ever logs, and
+     this is the one control that takes sets away — armed on the first tap,
+     the same contract as the day circle */
+  .undo{
+    width:28px;height:28px;flex-shrink:0;display:none;
+    align-items:center;justify-content:center;
+    font-size:13px;line-height:1;
+    color:var(--rest);background:none;
+    border:1px solid var(--line);border-radius:50%;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .undo.show{display:flex}
+  .undo.warn{background:var(--warn);border-color:var(--warn);color:var(--on-warn)}
+  .undo:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   .row.done .ex{opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
   .row.done .rx{opacity:.5}
+  /* a finished exercise is locked — nothing about it responds to a tap */
+  .row.done{cursor:default}
+  .row.done:active{background:none}
   .row.finisher{background:var(--finisher-bg);font-weight:600}
   .row.finisher .rx{color:var(--court)}
 
@@ -1660,7 +1679,11 @@
       '<span class="ex">' + esc(x.name) +
         (x.why ? '<span class="why">' + esc(x.why) + '</span>' : '') +
       '</span>' +
-      '<span class="meta"><span class="rx">' + esc(x.rx) + '</span></span>' +
+      '<span class="meta"><span class="rx">' + esc(x.rx) + '</span>' +
+        /* the clear button ships with the row so it can be wired once; the
+           pips are filled in by renderRow, which knows the set count */
+        '<span class="setline"><button type="button" class="undo">↺</button></span>' +
+      '</span>' +
     '</div>';
   }
   function renderProgram(){
@@ -1684,14 +1707,21 @@
       pips.className = 'pips';
       pips.setAttribute('aria-hidden', 'true');
       for (var i = 0; i < total; i++) pips.appendChild(document.createElement('span')).className = 'pip';
-      row.querySelector('.meta').appendChild(pips);
+      /* after the clear button, so the pips stay flush right */
+      row.querySelector('.setline').appendChild(pips);
     }
     Array.prototype.forEach.call(pips.children, function(p, i){
       p.classList.toggle('filled', i < count);
     });
+    var undo = row.querySelector('.undo');
+    undo.classList.toggle('show', count > 0);
+    undo.dataset.baseLabel = 'Clear logged sets for ' + exName(row);
+    if (!count) disarmUndo(undo);          /* nothing left to take back */
+    else if (!undo.dataset.armed) undo.setAttribute('aria-label', undo.dataset.baseLabel);
     row.classList.toggle('done', count >= total);
     row.setAttribute('aria-pressed', count >= total ? 'true' : 'false');
-    row.setAttribute('aria-label', exName(row) + ' — ' + count + ' of ' + total + ' sets logged');
+    row.setAttribute('aria-label', exName(row) + ' — ' + count + ' of ' + total + ' sets logged' +
+      (count >= total ? ', complete' : ''));
   }
 
   /* the date a card's slot falls on in a given week — Monday's slot is the
@@ -1793,6 +1823,7 @@
 
   function renderAll(){
     disarmAllDayChecks();
+    disarmAllUndos();
     rows.forEach(renderRow);
     days.forEach(refreshDay);
     days.forEach(function(sec){ sec.classList.toggle('closed', dayIsDone(sec)); });
@@ -2863,26 +2894,68 @@
     maybeCelebrate();
   }
 
+  /* Taking sets away is arm-then-confirm, like the day circle: the first tap
+     on ↺ only turns it into a warning, and it disarms itself if left alone. */
+  function disarmUndo(btn){
+    if (!btn.dataset.armed) return;
+    delete btn.dataset.armed;
+    clearTimeout(+btn.dataset.timer);
+    btn.classList.remove('warn');
+    btn.textContent = '↺';
+    btn.setAttribute('aria-label', btn.dataset.baseLabel);
+  }
+  function disarmAllUndos(){
+    document.querySelectorAll('.undo[data-armed]').forEach(disarmUndo);
+  }
+  function armUndo(btn){
+    disarmAllUndos();
+    disarmAllDayChecks();      /* only one destructive tap can be pending */
+    btn.dataset.armed = '1';
+    btn.classList.add('warn');
+    btn.textContent = '?';
+    btn.setAttribute('aria-label', btn.dataset.baseLabel + ' — tap again to confirm');
+    btn.dataset.timer = setTimeout(function(){ disarmUndo(btn); }, 4000);
+  }
+
   rows.forEach(function(row){
-    row.addEventListener('click', function(){
-      var id = row.dataset.id, total = +row.dataset.sets;
-      var count = Math.min(store.sets[id] || 0, total);
-      var logging = count < total;   /* false when the tap wraps back to zero */
-      store.sets[id] = logging ? count + 1 : 0;
-      save();
-      /* cardio and game night carry rest 0, so nothing fires for them */
-      if (logging) startRest(restFor(id), exName(row), count + 1, total);
-      renderRow(row);
+    /* what a change to this row's set count has to bring with it */
+    function settle(){
       var sec = row.closest('.day');
       /* editing one exercise directly resolves any pending "undo the
          whole day?" warning on that day's circle */
       var chk = sec.querySelector('.day-check');
       if (chk) disarmDayCheck(chk);
+      renderRow(row);
       refreshDay(sec);
       var full = dayIsDone(sec);
       sec.classList.toggle('closed', full);
       stampWeek();
       if (full) maybeCelebrate();
+    }
+
+    row.addEventListener('click', function(){
+      var id = row.dataset.id, total = +row.dataset.sets;
+      var count = Math.min(store.sets[id] || 0, total);
+      disarmAllUndos();     /* touching the row at all is "never mind" */
+      /* a finished exercise is locked: tapping it can no longer scrap the
+         session's work. ↺ on the row is the way back. */
+      if (count >= total) return;
+      store.sets[id] = count + 1;
+      save();
+      /* cardio and game night carry rest 0, so nothing fires for them */
+      startRest(restFor(id), exName(row), count + 1, total);
+      settle();
+    });
+
+    row.querySelector('.undo').addEventListener('click', function(e){
+      e.stopPropagation();       /* the row would otherwise log a set */
+      var btn = this;
+      if (!btn.dataset.armed){ armUndo(btn); return; }
+      disarmUndo(btn);
+      store.sets[row.dataset.id] = 0;
+      save();
+      stopRest();                /* the set it was counting is gone */
+      settle();
     });
     /* rows are divs with role=button, so Enter/Space need wiring by hand */
     row.addEventListener('keydown', function(e){
@@ -3364,6 +3437,7 @@
     topbar.classList.toggle('away', name !== 'week');
     closePanel();
     disarmAllDayChecks();
+    disarmAllUndos();
     if (name === 'progress') buildProgress();
     if (name === 'history') buildHistory();
     if (name === 'week'){
