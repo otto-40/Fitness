@@ -389,6 +389,46 @@
   .wt-x,.wt-su{
     font-family:var(--mono);font-size:11px;color:var(--rest);flex-shrink:0;
   }
+  .wt-x{width:9px;text-align:center}
+
+  /* per-set effort — how the set actually felt. The column headings carry
+     the labels so each row can stay a single line on a phone. */
+  .wt-shead{
+    display:flex;align-items:center;gap:7px;margin-top:10px;
+    font-family:var(--mono);font-size:9.5px;color:var(--rest);
+    text-transform:uppercase;letter-spacing:.07em;
+  }
+  .wt-shead span{text-align:center}
+  .wt-shead .h-n{width:14px;flex-shrink:0}
+  .wt-shead .h-w{flex:1.35}
+  .wt-shead .h-x{width:9px;flex-shrink:0}
+  .wt-shead .h-r{flex:1}
+  .wt-shead .h-e{width:100px;flex-shrink:0}
+  .wt-fx{display:flex;gap:2px;width:100px;flex-shrink:0}
+  .wt-fxb{
+    flex:1;min-width:0;min-height:42px;padding:0;
+    font-family:var(--mono);font-size:11.5px;font-weight:500;
+    color:var(--rest);background:var(--panel);
+    border:1px solid var(--line);border-radius:4px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wt-fxb.on{border-color:transparent}
+  .wt-fxb.fx0.on{background:var(--done);color:var(--on-done)}
+  .wt-fxb.fx1.on{background:var(--court);color:var(--on-court)}
+  .wt-fxb.fx2.on{background:var(--warn);color:var(--on-warn)}
+  .wt-fxb:focus-visible{outline:2px solid var(--court);outline-offset:-1px}
+  /* the same three colours wherever a logged effort is read back */
+  .fx-mark{font-style:normal;font-weight:500}
+  .fx-mark.fx0{color:var(--done)}
+  .fx-mark.fx1{color:var(--court-deep)}
+  .fx-mark.fx2{color:var(--warn)}
+  .wt-fxdot{
+    width:6px;height:6px;border-radius:50%;flex-shrink:0;display:none;
+  }
+  .wt-fxdot.fx0{display:block;background:var(--done)}
+  .wt-fxdot.fx1{display:block;background:var(--court)}
+  .wt-fxdot.fx2{display:block;background:var(--warn)}
   .wt-note{font-family:var(--mono);font-size:10px;color:var(--rest)}
   .wt-setctl{display:flex;align-items:center;gap:6px;margin-top:8px}
   .wt-nset{
@@ -429,6 +469,8 @@
     content:"";position:absolute;left:0;top:5px;
     width:8px;height:8px;background:var(--done);border-radius:1px;
   }
+  /* advice to hold or back off is a caution, and reads as one */
+  .wt-hint.caution::before{background:var(--warn)}
   .wt-pr{
     display:inline-block;margin-left:6px;
     font-family:var(--mono);font-size:10px;font-weight:500;
@@ -469,6 +511,7 @@
   }
   .wt-hist b{color:var(--ink);font-weight:500}
   .wt-hist .wt-h-reps{color:var(--rest);font-weight:400}
+  .wt-hist .wt-h-fx{font-weight:400;letter-spacing:.04em}
   .wt-hist em{font-style:normal;color:var(--court)}
   .wt-hist em.neg{color:var(--warn)}
   .wt-hist .wt-none{display:block;font-family:inherit;color:var(--rest);font-size:12.5px}
@@ -520,6 +563,11 @@
   }
   .cc-plot .dot{fill:var(--chart)}
   .cc-plot .end{fill:var(--chart);stroke:var(--panel);stroke-width:2}
+  /* a dot is coloured by how that week's sets felt, so a flat line whose
+     dots are turning green is a plateau you can push out of */
+  .cc-plot .fx0{fill:var(--done)}
+  .cc-plot .fx1{fill:var(--chart)}
+  .cc-plot .fx2{fill:var(--warn)}
   .cc-plot .endlab{fill:var(--ink);font-family:var(--mono);font-size:11px;font-weight:500}
   .cc-plot .xh{stroke:var(--rest);stroke-dasharray:2 3;visibility:hidden}
   .cc-tip{
@@ -535,6 +583,16 @@
     margin-bottom:16px;
   }
   .pg-note{font-size:11px;color:var(--rest);margin-top:4px}
+  .fx-legend{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    font-family:var(--mono);font-size:10.5px;color:var(--rest);
+    margin:-8px 0 16px;
+  }
+  .fx-legend span{display:flex;align-items:center;gap:5px}
+  .fx-legend i{width:8px;height:8px;border-radius:50%}
+  .fx-legend i.fx0{background:var(--done)}
+  .fx-legend i.fx1{background:var(--chart)}
+  .fx-legend i.fx2{background:var(--warn)}
   .metric-tabs{display:flex;gap:5px;margin-bottom:16px}
   .mt{
     flex:1;min-height:38px;
@@ -653,6 +711,7 @@
     font-family:var(--mono);font-size:11.5px;font-weight:500;
     color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;
   }
+  .wk-detail .wk-fx{letter-spacing:.04em}
 
   /* ---------- week-complete celebration ---------- */
   .celebrate{
@@ -1406,6 +1465,58 @@
   function setWeights(e){
     return setsOf(e).filter(function(s){ return s && s.w != null; }).map(function(s){ return s.w; });
   }
+
+  /* ---- effort per set ----
+     Each set can carry s.e — 0 easy, 1 moderate, 2 hard — recorded as you
+     lift it. Load and reps say what you did; effort says what it cost, which
+     is what tells a week you should add weight apart from a week you should
+     hold it. Rating is optional: sets logged before this existed, and sets
+     you didn't rate, simply have no value. */
+  var EFFORTS = [
+    { e: 0, mark: 'E', label: 'easy' },
+    { e: 1, mark: 'M', label: 'moderate' },
+    { e: 2, mark: 'H', label: 'hard' }
+  ];
+  function loadedSets(e){
+    return setsOf(e).filter(function(s){ return s && s.w != null; });
+  }
+  function hasEffort(e){
+    return loadedSets(e).some(function(s){ return s.e != null; });
+  }
+  /* One word for how a session felt — only once every loaded set carries a
+     rating, so a half-rated session stays silent rather than misleading. */
+  function effortRead(e){
+    var ss = loadedSets(e);
+    if (!ss.length || ss.some(function(s){ return s.e == null; })) return null;
+    var easy = 0, hard = 0;
+    ss.forEach(function(s){ if (s.e === 0) easy++; else if (s.e === 2) hard++; });
+    if (easy === ss.length) return 'easy';
+    if (hard * 2 >= ss.length) return 'hard';   /* half the sets hard is a hard session */
+    return 'moderate';
+  }
+  /* the colour band a session reads as, for the chart dots and the chip */
+  function effortBand(e){
+    var r = effortRead(e);
+    return r === 'easy' ? 0 : r === 'moderate' ? 1 : r === 'hard' ? 2 : null;
+  }
+  /* per-set letters, e.g. "EEMH" — an unrated set shows as a dash */
+  function effortMarks(e){
+    if (!hasEffort(e)) return '';
+    return loadedSets(e).map(function(s){
+      return s.e == null ? '<i class="fx-mark">–</i>'
+                         : '<i class="fx-mark fx' + s.e + '">' + EFFORTS[s.e].mark + '</i>';
+    }).join('');
+  }
+  /* how many sessions in a row have ended on this same top weight — the
+     length of a plateau, counted back from the entry given */
+  function sameLoadRun(key, e){
+    var es = entriesFor(key).filter(function(x){ return x.w != null; });
+    var i = es.indexOf(e);
+    if (i < 0) return 0;
+    var n = 1;
+    while (i - n >= 0 && es[i - n].w === e.w) n++;
+    return n;
+  }
   /* Writes this week's sets, dropping the entry when nothing is left in it. */
   function writeSets(key, sets){
     var es = entriesFor(key), ew = curWeek(), last = es[es.length - 1];
@@ -1421,7 +1532,7 @@
     if (!live){
       es.pop();
     } else {
-      last.s = sets.map(function(s){ return { w: s.w, r: s.r }; });
+      last.s = sets.map(function(s){ return { w: s.w, r: s.r, e: s.e }; });
       last.w = topOf(last.s);
     }
     wstore.wt[key] = es;
@@ -1704,6 +1815,12 @@
     var cur = currentEntry(key), prev = previousEntry(key);
     if (cur && cur.w == null) cur = null; /* reps-only entry: show last real weight */
     var val = chip.querySelector('.wt-val'), trend = chip.querySelector('.wt-trend');
+    /* the chip carries how the weight it is showing felt, so you can see
+       whether there is room to push before opening anything */
+    var dot = chip.querySelector('.wt-fxdot');
+    var band = effortBand(cur || prev);
+    dot.className = 'wt-fxdot' + (band == null ? '' : ' fx' + band);
+    dot.setAttribute('title', band == null ? '' : 'felt ' + EFFORTS[band].label);
     chip.classList.remove('is-set', 'is-prev', 'is-empty');
     trend.textContent = '';
     trend.classList.remove('down');
@@ -1720,7 +1837,8 @@
       chip.classList.add('is-empty');
     }
     chip.querySelector('.wt-unit').textContent = wstore.unit;
-    chip.setAttribute('aria-label', 'Weight for ' + activeName(row));
+    chip.setAttribute('aria-label', 'Weight for ' + activeName(row) +
+      (band == null ? '' : ', last felt ' + EFFORTS[band].label));
   }
   function renderChips(){ wtRows.forEach(renderChip); }
 
@@ -1748,7 +1866,8 @@
             return s && s.r != null ? s.r : '–';
           }).join(',') + '</span>'
         : '';
-      out.push('<div><span>' + label + '</span><b>' + load + d + reps + '</b></div>');
+      var fx = hasEffort(e) ? ' <span class="wt-h-fx">· ' + effortMarks(e) + '</span>' : '';
+      out.push('<div><span>' + label + '</span><b>' + load + d + reps + fx + '</b></div>');
     });
     return out.length ? out.join('')
                       : '<div class="wt-none">First time — log it now, beat it next week.</div>';
@@ -1813,6 +1932,12 @@
       if (c && c.r != null) return String(c.r);
       return repDefault != null ? String(repDefault) : '';
     }
+    /* effort is never pre-filled from another session — how last week felt
+       says nothing about today, and a guessed rating is worse than none */
+    function seedE(i){
+      var c = setsOf(cur)[i];
+      return c && c.e != null ? c.e : null;
+    }
 
     var html = '';
     if (names){
@@ -1827,14 +1952,25 @@
         '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for every set"><span>kg</span></label>' +
         '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 kg on every set">+2.5</button>' +
       '</div>';
+    html += '<div class="wt-shead" aria-hidden="true">' +
+        '<span class="h-n"></span><span class="h-w">kg</span><span class="h-x"></span>' +
+        '<span class="h-r">reps</span><span class="h-e">effort</span>' +
+      '</div>';
     html += '<div class="wt-sets">';
     for (var i = 0; i < nSets; i++){
+      var se = seedE(i);
       html += '<div class="wt-set">' +
         '<span class="wt-sn">' + (i + 1) + '</span>' +
         '<input class="wt-sw" data-i="' + i + '" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(i) + '" aria-label="Set ' + (i + 1) + ' weight in kg">' +
         '<span class="wt-x">×</span>' +
         '<input class="wt-sr" data-i="' + i + '" type="number" inputmode="numeric" step="1" min="0" value="' + seedR(i) + '" aria-label="Set ' + (i + 1) + ' reps">' +
-        '<span class="wt-su">reps</span>' +
+        '<span class="wt-fx" role="group" aria-label="Set ' + (i + 1) + ' effort">' +
+          EFFORTS.map(function(f){
+            return '<button type="button" class="wt-fxb fx' + f.e + (se === f.e ? ' on' : '') +
+                   '" data-i="' + i + '" data-e="' + f.e + '" aria-pressed="' + (se === f.e) +
+                   '" aria-label="Set ' + (i + 1) + ' felt ' + f.label + '">' + f.mark + '</button>';
+          }).join('') +
+        '</span>' +
       '</div>';
     }
     html += '</div>';
@@ -1856,18 +1992,24 @@
     var topInput = panel.querySelector('.wt-top');
     var wIn = Array.prototype.slice.call(panel.querySelectorAll('.wt-sw'));
     var rIn = Array.prototype.slice.call(panel.querySelectorAll('.wt-sr'));
+    var fxIn = Array.prototype.slice.call(panel.querySelectorAll('.wt-fx'));
 
     function num(el){
       var v = parseFloat(el.value);
       return isNaN(v) || v < 0 ? null : v;
     }
+    function fxOf(i){
+      var on = fxIn[i] && fxIn[i].querySelector('.wt-fxb.on');
+      return on ? +on.dataset.e : null;
+    }
     /* what the panel currently shows, as storable sets */
     function shown(){
       return wIn.map(function(el, i){
-        var w = num(el), r = num(rIn[i]);
+        var w = num(el), r = num(rIn[i]), e = fxOf(i);
         return {
           w: w == null || w <= 0 ? null : Math.round(w * 4) / 4,
-          r: r == null ? null : Math.round(r)
+          r: r == null ? null : Math.round(r),
+          e: e == null ? undefined : e
         };
       });
     }
@@ -1878,16 +2020,44 @@
       for (var i = 0; i < nSets; i++) if (!ss[i] || ss[i].r == null || ss[i].r < range.hi) return false;
       return true;
     }
+    /* The hint is the whole point of logging: it reads the session back as
+       one instruction. Reps say whether the range is finished, effort says
+       whether the load was the thing holding you up, and a run of sessions
+       at one weight says whether you have stopped moving. Effort only ever
+       speaks when every loaded set of that session was rated. */
     function updateHint(){
       var el = panel.querySelector('[data-hint]');
       var c2 = currentEntry(key), p2 = previousEntry(key);
+      var logged = c2 && c2.w != null;
+      /* the session the advice is about: today's if there is one, else last */
+      var ref = logged ? c2 : p2;
+      var fx = ref ? effortRead(ref) : null;
+      var run = ref ? sameLoadRun(key, ref) : 0;
       var msg = '';
-      if (repsAtTop(c2) && c2.w != null){
-        msg = 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + 2.5) + ' kg next week.';
-      } else if (repsAtTop(p2) && !(c2 && c2.w != null && c2.w > p2.w)){
+      /* holding or backing off is a caution, not a green light */
+      var hold = fx === 'hard';
+      if (logged && repsAtTop(c2)){
+        msg = fx === 'hard'
+          ? 'All sets at ' + range.hi + ', but every one was a grind — repeat ' + fmtW(c2.w) + ' kg before adding.'
+          : 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + 2.5) + ' kg next week.';
+      } else if (fx === 'easy'){
+        msg = logged
+          ? 'Every set easy — ' + fmtW(c2.w + 2.5) + ' kg is there next week.'
+          : 'Last week felt easy — start at ' + fmtW(p2.w + 2.5) + ' kg.';
+      } else if (fx === 'hard' && run >= 3){
+        msg = run + ' sessions at ' + fmtW(ref.w) + ' kg and still hard — hold the load and chase reps, or drop to ' +
+              fmtW(Math.max(0, ref.w - 5)) + ' kg and build back.';
+      } else if (fx === 'hard' && logged){
+        msg = 'Every set hard — stay at ' + fmtW(c2.w) + ' kg next week and add reps.';
+      } else if (p2 && repsAtTop(p2) && !(logged && c2.w > p2.w)){
         msg = 'Top of range last week — try ' + fmtW(p2.w + 2.5) + ' kg.';
+      } else if (run >= 3){
+        msg = fmtW(ref.w) + ' kg for ' + run + ' sessions running — ' + (fx == null
+          ? 'rate the sets and the next step picks itself.'
+          : 'a plateau unless the reps are climbing.');
       }
       el.textContent = msg;
+      el.classList.toggle('caution', !!msg && hold);
       el.hidden = !msg;
     }
     function refresh(){
@@ -1914,6 +2084,22 @@
     }
     /* set rows commit as you type; blank the weight to drop that set */
     wIn.concat(rIn).forEach(function(el){ el.addEventListener('input', commit); });
+
+    /* effort is one tap per set, and tapping the lit button clears it */
+    panel.querySelectorAll('.wt-fxb').forEach(function(b){
+      b.addEventListener('click', function(){
+        var was = b.classList.contains('on');
+        fxIn[+b.dataset.i].querySelectorAll('.wt-fxb').forEach(function(o){
+          o.classList.remove('on');
+          o.setAttribute('aria-pressed', 'false');
+        });
+        if (!was){
+          b.classList.add('on');
+          b.setAttribute('aria-pressed', 'true');
+        }
+        commit();
+      });
+    });
 
     /* the top field drives every set at once: typing levels them, the
        steppers shift them all by 2.5 and keep any differences intact */
@@ -2050,14 +2236,15 @@
     });
     g += '<text class="xlab" x="' + pl + '" y="' + (H - 6) + '">' + axisLabel(t0) + '</text>' +
          '<text class="xlab" x="' + (w - pr) + '" y="' + (H - 6) + '" text-anchor="end">' + axisLabel(t1) + '</text>';
-    var pts = pts0.map(function(p){ return { x: X(p.t), y: Y(p.v), t: p.t, v: p.v }; });
+    var pts = pts0.map(function(p){ return { x: X(p.t), y: Y(p.v), t: p.t, v: p.v, c: p.c, n: p.n }; });
     g += '<polyline class="ln" points="' +
          pts.map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ') + '"/>';
     g += '<line class="xh" x1="0" x2="0" y1="' + pt + '" y2="' + (H - pb) + '"/>';
     pts.forEach(function(p, i){
+      var fx = p.c ? ' ' + p.c : '';
       g += i === pts.length - 1
-        ? '<circle class="end" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5"/>'
-        : '<circle class="dot" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="4"/>';
+        ? '<circle class="end' + fx + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5"/>'
+        : '<circle class="dot' + fx + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="4"/>';
     });
     var lastP = pts[pts.length - 1];
     g += '<text class="endlab" x="' + (lastP.x - 8).toFixed(1) + '" y="' +
@@ -2082,7 +2269,7 @@
       pts.forEach(function(p){ if (Math.abs(p.x - sx) < Math.abs(best.x - sx)) best = p; });
       xh.setAttribute('x1', best.x); xh.setAttribute('x2', best.x);
       xh.style.visibility = 'visible';
-      tip.textContent = tipFor(best.t) + ' · ' + fmtV(best.v) + ' ' + unit;
+      tip.textContent = tipFor(best.t) + ' · ' + fmtV(best.v) + ' ' + unit + (best.n ? ' · ' + best.n : '');
       tip.style.left = Math.max(56, Math.min(r.width - 56, best.x * (r.width / w))) + 'px';
       tip.style.top = (best.y * (r.height / H) + svg.offsetTop) + 'px';
       tip.style.display = 'block';
@@ -2119,7 +2306,10 @@
     var pts = [];
     es.forEach(function(e){
       var v = metricOf(e, m);
-      if (v != null) pts.push({ t: e.ew, v: v });
+      if (v == null) return;
+      var band = effortBand(e);
+      pts.push({ t: e.ew, v: v, c: band == null ? null : 'fx' + band,
+                 n: band == null ? null : 'felt ' + EFFORTS[band].label });
     });
     var card = document.createElement('div');
     card.className = 'chart-card';
@@ -2219,6 +2409,19 @@
       });
     });
     viewProg.appendChild(mt);
+
+    /* the dot colours only mean anything once sets have been rated */
+    var rated = Object.keys(wstore.wt).some(function(k){
+      return entriesFor(k).some(function(e){ return hasEffort(e); });
+    });
+    if (rated){
+      var leg = document.createElement('div');
+      leg.className = 'fx-legend';
+      leg.innerHTML = '<span>how it felt:</span>' + EFFORTS.map(function(f){
+        return '<span><i class="fx' + f.e + '"></i>' + f.label + '</span>';
+      }).join('');
+      viewProg.appendChild(leg);
+    }
 
     viewProg.appendChild(bodySection());
     var any = false;
@@ -2528,7 +2731,8 @@
           var reps = hasReps(L.e)
             ? ' × ' + setsOf(L.e).map(function(s){ return s && s.r != null ? s.r : '–'; }).join(',')
             : '';
-          return '<div><span>' + esc(L.name) + '</span><b>' + load + ' kg' + reps + '</b></div>';
+          var fx = hasEffort(L.e) ? ' <span class="wk-fx">' + effortMarks(L.e) + '</span>' : '';
+          return '<div><span>' + esc(L.name) + '</span><b>' + load + ' kg' + reps + fx + '</b></div>';
         }).join('');
         el.insertAdjacentElement('afterend', d);
         el.setAttribute('aria-expanded', 'true');
@@ -3049,7 +3253,8 @@
     chip.className = 'wt';
     chip.setAttribute('aria-expanded', 'false');
     chip.setAttribute('aria-label', 'Weight for ' + exName(row));
-    chip.innerHTML = '<span class="wt-val"></span><span class="wt-unit"></span><span class="wt-trend" aria-hidden="true"></span>';
+    chip.innerHTML = '<span class="wt-val"></span><span class="wt-unit"></span>' +
+      '<span class="wt-trend" aria-hidden="true"></span><span class="wt-fxdot" aria-hidden="true"></span>';
     row.querySelector('.meta').appendChild(chip);
     chip.addEventListener('click', function(e){
       e.stopPropagation();
