@@ -326,6 +326,13 @@
   .pip.filled{background:var(--court)}
   .row.done .ex{opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
   .row.done .rx{opacity:.5}
+  /* the row is a disclosure: it opens the exercise, it never logs anything */
+  .row[aria-expanded="true"]{background:var(--finisher-bg)}
+  .row-caret{
+    font-family:var(--mono);font-size:10px;color:var(--rest);
+    margin-left:6px;display:inline-block;
+  }
+  .row[aria-expanded="true"] .row-caret{transform:rotate(180deg)}
   .row.finisher{background:var(--finisher-bg);font-weight:600}
   .row.finisher .rx{color:var(--court)}
 
@@ -368,11 +375,23 @@
   .wt-var button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   .wt-sets{display:flex;flex-direction:column;gap:6px;margin-top:10px}
   .wt-set{display:flex;align-items:center;gap:7px}
-  .wt-sn{
-    width:14px;flex-shrink:0;
-    font-family:var(--mono);font-size:11px;color:var(--rest);
+  /* the set number doubles as the done control — completing a set happens
+     here, next to the set it belongs to, and nowhere else */
+  .wt-sdone{
+    width:32px;height:42px;flex-shrink:0;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:13px;font-weight:500;
     font-variant-numeric:tabular-nums;
+    color:var(--rest);background:var(--panel);
+    border:1px solid var(--line);border-radius:4px;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
   }
+  .wt-sdone.on{background:var(--done);border-color:var(--done);color:var(--on-done)}
+  .wt-sdone:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  /* lifts that carry no weight get the ticks on their own, side by side */
+  .wt-ticks{display:flex;flex-wrap:wrap;gap:6px}
+  .wt-ticks .wt-sdone{flex:1;min-width:52px;max-width:96px;height:46px;width:auto}
   .wt-set input{
     min-width:0;min-height:42px;
     font-family:var(--mono);font-size:15px;font-weight:500;
@@ -399,7 +418,7 @@
     text-transform:uppercase;letter-spacing:.07em;
   }
   .wt-shead span{text-align:center}
-  .wt-shead .h-n{width:14px;flex-shrink:0}
+  .wt-shead .h-n{width:32px;flex-shrink:0}
   .wt-shead .h-w{flex:1.35}
   .wt-shead .h-x{width:9px;flex-shrink:0}
   .wt-shead .h-r{flex:1}
@@ -1575,8 +1594,9 @@
   /* exercise name without the coaching notes: full text minus .why, cut at " — " */
   function exName(row){
     var ex = row.querySelector('.ex').cloneNode(true);
-    /* the coaching line and any note live inside .ex but aren't part of the name */
-    ex.querySelectorAll('.why, .row-note').forEach(function(n){ n.remove(); });
+    /* the coaching line, the disclosure caret and any note live inside .ex
+       but aren't part of the name */
+    ex.querySelectorAll('.why, .row-note, .row-caret').forEach(function(n){ n.remove(); });
     var t = ex.textContent.replace(/\s+/g, ' ').trim();
     var cut = t.indexOf(' — ');
     return cut > 0 ? t.slice(0, cut) : t;
@@ -1656,8 +1676,10 @@
     if (x.wt) a += ' data-wt';
     if (x.reps) a += ' data-reps="' + esc(x.reps) + '"';
     if (x.variants && x.variants.length === 2) a += ' data-variants="' + esc(x.variants.join('|')) + '"';
-    return '<div class="row' + (x.finisher ? ' finisher' : '') + '" role="button" tabindex="0"' + a + '>' +
+    return '<div class="row' + (x.finisher ? ' finisher' : '') +
+      '" role="button" tabindex="0" aria-expanded="false"' + a + '>' +
       '<span class="ex">' + esc(x.name) +
+        '<span class="row-caret" aria-hidden="true">▾</span>' +
         (x.why ? '<span class="why">' + esc(x.why) + '</span>' : '') +
       '</span>' +
       '<span class="meta"><span class="rx">' + esc(x.rx) + '</span></span>' +
@@ -1675,9 +1697,27 @@
   var todayDow;                                  /* 0 = Sun … 6 = Sat, to match the cards' data-day */
   var rows = Array.prototype.slice.call(document.querySelectorAll('.row'));
   var days = Array.prototype.slice.call(document.querySelectorAll('.day'));
+  /* ---- which sets of an exercise are done ----
+     One flag per set rather than a count, so a set can be ticked on its own
+     and the pips show which ones. Weeks stored before this held a plain
+     count; reading converts them, so nothing needs migrating. */
+  function setFlags(id, total){
+    var v = store.sets[id], out = [];
+    for (var i = 0; i < total; i++) out.push(Array.isArray(v) ? !!v[i] : i < (+v || 0));
+    return out;
+  }
+  function doneCount(id, total){
+    return setFlags(id, total).filter(Boolean).length;
+  }
+  /* mutates only — callers save once they've finished changing things */
+  function writeFlags(id, flags){
+    if (flags.some(Boolean)) store.sets[id] = flags.map(function(f){ return f ? 1 : 0; });
+    else delete store.sets[id];
+  }
+
   function renderRow(row){
     var id = row.dataset.id, total = +row.dataset.sets;
-    var count = Math.min(store.sets[id] || 0, total);
+    var flags = setFlags(id, total), count = doneCount(id, total);
     var pips = row.querySelector('.pips');
     if (!pips){
       pips = document.createElement('span');
@@ -1687,11 +1727,33 @@
       row.querySelector('.meta').appendChild(pips);
     }
     Array.prototype.forEach.call(pips.children, function(p, i){
-      p.classList.toggle('filled', i < count);
+      p.classList.toggle('filled', flags[i]);
     });
     row.classList.toggle('done', count >= total);
-    row.setAttribute('aria-pressed', count >= total ? 'true' : 'false');
-    row.setAttribute('aria-label', exName(row) + ' — ' + count + ' of ' + total + ' sets logged');
+    row.setAttribute('aria-label', exName(row) + ' — ' + count + ' of ' + total + ' sets logged' +
+      (count >= total ? ', complete' : '') + '. Opens to log them.');
+  }
+
+  /* Ticking a set off inside the panel has to reach everything the row tap
+     used to reach: the row, the day's counter and collapse, the permanent
+     log, and the week-complete check. */
+  function settleRow(row){
+    var sec = row.closest('.day');
+    /* editing one exercise directly resolves any pending "undo the
+       whole day?" warning on that day's circle */
+    var chk = sec.querySelector('.day-check');
+    if (chk) disarmDayCheck(chk);
+    renderRow(row);
+    refreshDay(sec);
+    stampWeek();
+    /* the tick that finishes the day collapses it, as the day circle does.
+       The open panel has to go first — a collapsed day hides its rows, and
+       the panel lives among them. */
+    if (dayIsDone(sec)){
+      closePanel();
+      sec.classList.add('closed');
+      maybeCelebrate();
+    }
   }
 
   /* the date a card's slot falls on in a given week — Monday's slot is the
@@ -1707,7 +1769,7 @@
     /* rest days complete themselves once their slot's date arrives */
     if (!dayRows.length) return cardDn(section) <= todayDn();
     for (var i = 0; i < dayRows.length; i++){
-      if ((store.sets[dayRows[i].dataset.id] || 0) < +dayRows[i].dataset.sets) return false;
+      if (doneCount(dayRows[i].dataset.id, +dayRows[i].dataset.sets) < +dayRows[i].dataset.sets) return false;
     }
     return true;
   }
@@ -1876,7 +1938,9 @@
   function closePanel(){
     if (!openPanel) return;
     openPanel.panel.remove();
-    openPanel.chip.setAttribute('aria-expanded', 'false');
+    openPanel.row.setAttribute('aria-expanded', 'false');
+    var chip = openPanel.row.querySelector('.wt');
+    if (chip) chip.setAttribute('aria-expanded', 'false');
     openPanel = null;
   }
 
@@ -1894,27 +1958,33 @@
     confettiBurst(c, 50, 1500, function(){ if (c.parentNode) c.parentNode.removeChild(c); });
   }
 
-  function openWeightPanel(row){
+  /* Every exercise opens, weighted or not: the set ticks live in here, so a
+     bodyweight lift needs the panel just as much as a loaded one does. */
+  function openRowPanel(row){
     var id = row.dataset.id;
     if (openPanel && openPanel.rowId === id){ closePanel(); return; }
     closePanel();
-    var chip = row.querySelector('.wt');
     var panel = document.createElement('div');
     panel.className = 'wt-panel';
     row.insertAdjacentElement('afterend', panel);
-    openPanel = { rowId: id, panel: panel, chip: chip };
-    chip.setAttribute('aria-expanded', 'true');
+    openPanel = { rowId: id, panel: panel, row: row };
+    row.setAttribute('aria-expanded', 'true');
+    var chip = row.querySelector('.wt');
+    if (chip) chip.setAttribute('aria-expanded', 'true');
     buildPanel(row, panel);
   }
 
   function buildPanel(row, panel){
     var id = row.dataset.id, key = keyFor(row);
+    var weighted = row.hasAttribute('data-wt');
     var names = variantNames(row), range = repRange(row);
     var cur = currentEntry(key), prev = previousEntry(key);
     /* the prescription sets the default row count; a session can add to or
        drop from it without changing the program */
-    var nSets = +(panel.dataset.nsets || 0) ||
-                Math.max(+row.dataset.sets, setsOf(cur).length, 1);
+    var nSets = weighted
+      ? (+(panel.dataset.nsets || 0) || Math.max(+row.dataset.sets, setsOf(cur).length, 1))
+      : Math.max(+row.dataset.sets, 1);
+    var flags = setFlags(id, Math.max(nSets, +row.dataset.sets));
     var prevSets = setsOf(prev);
     /* reps start at the prescribed number — the top of a range is the target
        you're chasing — so a normal session needs no rep editing at all */
@@ -1939,6 +2009,14 @@
       return c && c.e != null ? c.e : null;
     }
 
+    /* the set-number button is the done control: one per set, sitting with
+       the set it belongs to */
+    function doneBtn(i){
+      return '<button type="button" class="wt-sdone' + (flags[i] ? ' on' : '') +
+             '" data-i="' + i + '" aria-pressed="' + (flags[i] ? 'true' : 'false') +
+             '" aria-label="Set ' + (i + 1) + ' done">' + (flags[i] ? '✓' : (i + 1)) + '</button>';
+    }
+
     var html = '';
     if (names){
       html += '<div class="wt-var">' + names.map(function(n, i){
@@ -1946,48 +2024,78 @@
                ' data-v="' + i + '">' + n + '</button>';
       }).join('') + '</div>';
     }
-    html +=
-      '<div class="wt-adjust">' +
-        '<button type="button" class="wt-step" data-step="-2.5" aria-label="2.5 kg off every set">−2.5</button>' +
-        '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for every set"><span>kg</span></label>' +
-        '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 kg on every set">+2.5</button>' +
+    if (weighted){
+      html +=
+        '<div class="wt-adjust">' +
+          '<button type="button" class="wt-step" data-step="-2.5" aria-label="2.5 kg off every set">−2.5</button>' +
+          '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for every set"><span>kg</span></label>' +
+          '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 kg on every set">+2.5</button>' +
+        '</div>';
+      html += '<div class="wt-shead" aria-hidden="true">' +
+          '<span class="h-n">done</span><span class="h-w">kg</span><span class="h-x"></span>' +
+          '<span class="h-r">reps</span><span class="h-e">effort</span>' +
+        '</div>';
+      html += '<div class="wt-sets">';
+      for (var i = 0; i < nSets; i++){
+        var se = seedE(i);
+        html += '<div class="wt-set">' +
+          doneBtn(i) +
+          '<input class="wt-sw" data-i="' + i + '" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(i) + '" aria-label="Set ' + (i + 1) + ' weight in kg">' +
+          '<span class="wt-x">×</span>' +
+          '<input class="wt-sr" data-i="' + i + '" type="number" inputmode="numeric" step="1" min="0" value="' + seedR(i) + '" aria-label="Set ' + (i + 1) + ' reps">' +
+          '<span class="wt-fx" role="group" aria-label="Set ' + (i + 1) + ' effort">' +
+            EFFORTS.map(function(f){
+              return '<button type="button" class="wt-fxb fx' + f.e + (se === f.e ? ' on' : '') +
+                     '" data-i="' + i + '" data-e="' + f.e + '" aria-pressed="' + (se === f.e) +
+                     '" aria-label="Set ' + (i + 1) + ' felt ' + f.label + '">' + f.mark + '</button>';
+            }).join('') +
+          '</span>' +
+        '</div>';
+      }
+      html += '</div>';
+      html += '<div class="wt-setctl">' +
+        '<button type="button" class="wt-nset" data-d="-1"' + (nSets <= 1 ? ' disabled' : '') + '>− set</button>' +
+        '<button type="button" class="wt-nset" data-d="1">+ set</button>' +
+        '<button type="button" class="wt-rest" data-rest>rest ' + restLabel(restFor(id)) + '</button>' +
       '</div>';
-    html += '<div class="wt-shead" aria-hidden="true">' +
-        '<span class="h-n"></span><span class="h-w">kg</span><span class="h-x"></span>' +
-        '<span class="h-r">reps</span><span class="h-e">effort</span>' +
-      '</div>';
-    html += '<div class="wt-sets">';
-    for (var i = 0; i < nSets; i++){
-      var se = seedE(i);
-      html += '<div class="wt-set">' +
-        '<span class="wt-sn">' + (i + 1) + '</span>' +
-        '<input class="wt-sw" data-i="' + i + '" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(i) + '" aria-label="Set ' + (i + 1) + ' weight in kg">' +
-        '<span class="wt-x">×</span>' +
-        '<input class="wt-sr" data-i="' + i + '" type="number" inputmode="numeric" step="1" min="0" value="' + seedR(i) + '" aria-label="Set ' + (i + 1) + ' reps">' +
-        '<span class="wt-fx" role="group" aria-label="Set ' + (i + 1) + ' effort">' +
-          EFFORTS.map(function(f){
-            return '<button type="button" class="wt-fxb fx' + f.e + (se === f.e ? ' on' : '') +
-                   '" data-i="' + i + '" data-e="' + f.e + '" aria-pressed="' + (se === f.e) +
-                   '" aria-label="Set ' + (i + 1) + ' felt ' + f.label + '">' + f.mark + '</button>';
-          }).join('') +
-        '</span>' +
-      '</div>';
+      html += '<div class="wt-hint" data-hint hidden></div>';
+    } else {
+      /* nothing to load or count — just the sets, tapped off as you do them */
+      html += '<div class="wt-ticks" role="group" aria-label="Sets done">';
+      for (var j = 0; j < nSets; j++) html += doneBtn(j);
+      html += '</div>';
+      if (restFor(id)){
+        html += '<div class="wt-setctl">' +
+          '<button type="button" class="wt-rest" data-rest>rest ' + restLabel(restFor(id)) + '</button>' +
+        '</div>';
+      }
     }
-    html += '</div>';
-    html += '<div class="wt-setctl">' +
-      '<button type="button" class="wt-nset" data-d="-1"' + (nSets <= 1 ? ' disabled' : '') + '>− set</button>' +
-      '<button type="button" class="wt-nset" data-d="1">+ set</button>' +
-      '<button type="button" class="wt-rest" data-rest>rest ' + restLabel(restFor(id)) + '</button>' +
-    '</div>';
-    html += '<div class="wt-hint" data-hint hidden></div>' +
+    html +=
       '<input class="wt-notes" type="text" maxlength="80" placeholder="Note — seat pin, bench angle…" value="' +
         esc(wstore.notes[key] || '') + '" aria-label="Note for this exercise">' +
-      '<div class="wt-hist">' + histLines(key) + '</div>' +
+      (weighted ? '<div class="wt-hist">' + histLines(key) + '</div>' : '') +
       '<div class="wt-foot">' +
-        '<span class="wt-note">Saves what you see</span>' +
-        '<button type="button" class="wt-close">Save</button>' +
+        '<span class="wt-note">' + (weighted ? 'Saves what you see' : 'Tap a set as you finish it') + '</span>' +
+        '<button type="button" class="wt-close">' + (weighted ? 'Save' : 'Done') + '</button>' +
       '</div>';
     panel.innerHTML = html;
+
+    /* ticking a set is the only way to complete one now, so it carries what
+       the row tap used to: the day's state, the log stamp, the rest timer */
+    panel.querySelectorAll('.wt-sdone').forEach(function(b){
+      b.addEventListener('click', function(){
+        var i = +b.dataset.i, on = !flags[i];
+        flags[i] = on;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.textContent = on ? '✓' : (i + 1);
+        writeFlags(id, flags);
+        save();
+        if (on) startRest(restFor(id), exName(row), doneCount(id, +row.dataset.sets), +row.dataset.sets);
+        else stopRest();     /* the rest it started was for a set you took back */
+        settleRow(row);
+      });
+    });
 
     var topInput = panel.querySelector('.wt-top');
     var wIn = Array.prototype.slice.call(panel.querySelectorAll('.wt-sw'));
@@ -2027,6 +2135,7 @@
        speaks when every loaded set of that session was rated. */
     function updateHint(){
       var el = panel.querySelector('[data-hint]');
+      if (!el) return;                 /* nothing to advise on an unloaded lift */
       var c2 = currentEntry(key), p2 = previousEntry(key);
       var logged = c2 && c2.w != null;
       /* the session the advice is about: today's if there is one, else last */
@@ -2062,10 +2171,13 @@
     }
     function refresh(){
       renderChip(row);
-      panel.querySelector('.wt-hist').innerHTML = histLines(key);
+      var hist = panel.querySelector('.wt-hist');
+      if (hist) hist.innerHTML = histLines(key);
       updateHint();
-      var t = topOf(shown());
-      topInput.value = t == null ? '' : fmtW(t);
+      if (topInput){
+        var t = topOf(shown());
+        topInput.value = t == null ? '' : fmtW(t);
+      }
     }
     function commit(){
       var sets = shown();
@@ -2103,10 +2215,12 @@
 
     /* the top field drives every set at once: typing levels them, the
        steppers shift them all by 2.5 and keep any differences intact */
-    topInput.addEventListener('input', function(){
-      wIn.forEach(function(el){ el.value = topInput.value; });
-      commit();
-    });
+    if (topInput){
+      topInput.addEventListener('input', function(){
+        wIn.forEach(function(el){ el.value = topInput.value; });
+        commit();
+      });
+    }
     panel.querySelectorAll('.wt-step').forEach(function(b){
       b.addEventListener('click', function(){
         var step = parseFloat(b.dataset.step);
@@ -2864,26 +2978,9 @@
   }
 
   rows.forEach(function(row){
-    row.addEventListener('click', function(){
-      var id = row.dataset.id, total = +row.dataset.sets;
-      var count = Math.min(store.sets[id] || 0, total);
-      var logging = count < total;   /* false when the tap wraps back to zero */
-      store.sets[id] = logging ? count + 1 : 0;
-      save();
-      /* cardio and game night carry rest 0, so nothing fires for them */
-      if (logging) startRest(restFor(id), exName(row), count + 1, total);
-      renderRow(row);
-      var sec = row.closest('.day');
-      /* editing one exercise directly resolves any pending "undo the
-         whole day?" warning on that day's circle */
-      var chk = sec.querySelector('.day-check');
-      if (chk) disarmDayCheck(chk);
-      refreshDay(sec);
-      var full = dayIsDone(sec);
-      sec.classList.toggle('closed', full);
-      stampWeek();
-      if (full) maybeCelebrate();
-    });
+    /* the row is a disclosure now — it opens the exercise and nothing else.
+       A day's work can no longer be started or scrapped by a stray tap. */
+    row.addEventListener('click', function(){ openRowPanel(row); });
     /* rows are divs with role=button, so Enter/Space need wiring by hand */
     row.addEventListener('keydown', function(e){
       if ((e.key === 'Enter' || e.key === ' ') && e.target === row){
@@ -3258,7 +3355,7 @@
     row.querySelector('.meta').appendChild(chip);
     chip.addEventListener('click', function(e){
       e.stopPropagation();
-      openWeightPanel(row);
+      openRowPanel(row);
     });
     renderChip(row);
     renderNote(row);
@@ -3309,7 +3406,9 @@
         }
         disarmDayCheck(check);
         Array.prototype.forEach.call(dayRows, function(r){
-          store.sets[r.dataset.id] = was ? 0 : +r.dataset.sets;
+          var n = +r.dataset.sets, flags = [];
+          for (var i = 0; i < n; i++) flags.push(!was);
+          writeFlags(r.dataset.id, flags);
         });
         save();
         dayRows.forEach(renderRow);

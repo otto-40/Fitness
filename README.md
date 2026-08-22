@@ -9,10 +9,15 @@ accounts, no network needed once installed.
 
 Three tabs:
 
-- **This Week** — the routine. Tap an exercise to log a set; tap its weight
-  chip to record what you lifted, set by set. Days collapse once complete.
-  Rest days complete themselves when their date arrives. The band at the top
-  says which week the cards below belong to.
+- **This Week** — the routine. Tap an exercise to open it. Everything for
+  that lift is inside: a row per set with a **done** button, and next to it
+  the weight, reps and effort for that set. Tick a set as you finish it —
+  that is the only thing that logs one, so nothing on the row can be started
+  or scrapped by a stray tap, and sets can be ticked in any order or taken
+  back by tapping again. Lifts that carry no weight get the same ticks
+  without the load fields. Days collapse once complete, and rest days
+  complete themselves when their date arrives. The band at the top says which
+  week the cards below belong to.
 - **Progress** — body weight and body fat, plus a chart per lift. The
   measure toggle switches between estimated 1RM (moves with load *or* reps),
   top set, and volume. Each point is coloured by how that week's sets felt,
@@ -93,8 +98,9 @@ Other files: `sw.js` (offline cache — bump `CACHE` when assets change),
 
 Two `localStorage` keys:
 
-- `sams-training-week` — the week in progress only: which sets are ticked.
-  Replaced when the week rolls over.
+- `sams-training-week` — the week in progress only: which sets are ticked,
+  one flag per set. Replaced when the week rolls over. (Weeks written before
+  sets were tracked individually hold a plain count; that still reads back.)
 - `sams-training-weights` — everything durable: per-set weights, reps and
   effort by exercise and week, body-weight log, day-level training history,
   game effort ratings, notes, rest lengths, preferences and any program

@@ -88,6 +88,28 @@ function storedEfforts(page, key) {
   }, key);
 }
 
+/* Sets are ticked off inside the exercise panel now: tap the name to open
+   it, then the numbered button beside the set you just finished. */
+async function openRow(page, id) {
+  if (!(await page.locator(`[data-id="${id}"][aria-expanded="true"]`).count())) {
+    await page.click(`[data-id="${id}"] .ex`);
+    await page.waitForTimeout(150);
+  }
+}
+async function tickSet(page, id, n) {            // n is 1-based
+  await openRow(page, id);
+  await page.click(`.wt-panel .wt-sdone[data-i="${n - 1}"]`);
+  await page.waitForTimeout(120);
+}
+async function tickAll(page, id) {
+  const sets = +(await page.getAttribute(`[data-id="${id}"]`, 'data-sets'));
+  for (let n = 1; n <= sets; n++) await tickSet(page, id, n);
+}
+async function completeDayBySet(page, dayId) {
+  const ids = await page.locator(`#${dayId} .row`).evaluateAll((els) => els.map((e) => e.dataset.id));
+  for (const id of ids) await tickAll(page, id);
+}
+
 /* Clearing a completed day is arm-then-confirm. */
 async function clearDay(page, id) {
   await page.click(`#${id} .day-check`);
@@ -164,6 +186,95 @@ async function main() {
     await page.waitForTimeout(150);
     check('warning expires', await page.locator('#d-mon .day-check.warn').count(), 0);
     check('nothing cleared on expiry', await page.locator('#d-mon .pip.filled').count(), 18);
+  });
+
+  await test('the exercise name opens the exercise, it never logs a set',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    const filled = () => page.locator('[data-id="mon-1"] .pip.filled').count();
+
+    check('nothing is open to start', await page.locator('.wt-panel').count(), 0);
+    await page.click('[data-id="mon-1"] .ex');
+    await page.waitForTimeout(200);
+    check('tapping the name opens it', await page.locator('.wt-panel').count(), 1);
+    check('the row says so', await page.getAttribute('[data-id="mon-1"]', 'aria-expanded'), 'true');
+    check('and logs nothing on the way', await filled(), 0);
+
+    check('a done control per set', await page.locator('.wt-panel .wt-sdone').count(), 4);
+    await page.click('[data-id="mon-1"] .ex');
+    await page.waitForTimeout(200);
+    check('tapping the name again closes it', await page.locator('.wt-panel').count(), 0);
+    check('still nothing logged', await filled(), 0);
+  });
+
+  await test('each set is ticked off on its own', { date: '2026-07-23T09:00:00' }, async (page) => {
+    const pips = () => page.locator('[data-id="mon-1"] .pip').evaluateAll(
+      (els) => els.map((e) => (e.classList.contains('filled') ? 1 : 0)));
+
+    await tickSet(page, 'mon-1', 2);
+    check('only the set you ticked fills', await pips(), [0, 1, 0, 0]);
+    check('the control shows done', await page.locator('.wt-panel .wt-sdone[data-i="1"].on').count(), 1);
+    check('and the rest timer starts with it', await page.locator('#rest-bar').isHidden(), false);
+
+    await tickSet(page, 'mon-1', 4);
+    check('sets do not have to be in order', await pips(), [0, 1, 0, 1]);
+    check('stored per set', await page.evaluate(
+      () => JSON.parse(localStorage.getItem('sams-training-week')).sets['mon-1']), [0, 1, 0, 1]);
+
+    // ticking the same one again takes it back
+    await tickSet(page, 'mon-1', 2);
+    check('a tick can be taken back', await pips(), [0, 0, 0, 1]);
+    check('and the rest it started stops with it', await page.locator('#rest-bar').isHidden(), true);
+
+    await tickSet(page, 'mon-1', 1);
+    await tickSet(page, 'mon-1', 2);
+    await tickSet(page, 'mon-1', 3);
+    check('the row completes on the last one', await page.locator('[data-id="mon-1"].done').count(), 1);
+    check('and it survives a reload', await page.reload().then(() => page.waitForTimeout(350)).then(
+      () => page.locator('[data-id="mon-1"] .pip.filled').count()), 4);
+  });
+
+  await test('lifts that carry no weight get ticks too', { date: '2026-07-23T09:00:00' }, async (page) => {
+    // Copenhagen plank: 3 x 20s a side, no load to record
+    await page.click('[data-id="mon-5"] .ex');
+    await page.waitForTimeout(200);
+    check('it opens like any other', await page.locator('.wt-panel').count(), 1);
+    check('with a tick per set', await page.locator('.wt-panel .wt-ticks .wt-sdone').count(), 3);
+    check('and no weight fields', await page.locator('.wt-panel .wt-sw').count(), 0);
+
+    await page.click('.wt-panel .wt-ticks .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(150);
+    check('ticking one counts', await page.locator('[data-id="mon-5"] .pip.filled').count(), 1);
+  });
+
+  await test('a day completed set by set closes and logs itself',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await completeDayBySet(page, 'd-thu');
+    check('every set is in', await page.locator('#d-thu .pip:not(.filled)').count(), 0);
+    check('the day collapses on the last tick', await page.locator('#d-thu.closed').count(), 1);
+    check('and the panel closes with it', await page.locator('.wt-panel').count(), 0);
+    check('the day reports complete', await page.locator('.daynav a[href="#d-thu"].complete').count(), 1);
+    check('and lands in the log', await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      return Object.keys(w.weeks[w.weekNo].done);
+    }), ['d-thu']);
+  });
+
+  await test('a week stored as plain counts still reads back', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      /* how sets were stored before they became one flag each */
+      localStorage.setItem('sams-training-week', JSON.stringify({
+        week: ew, sets: { 'mon-1': 3, 'mon-2': 3 }, celebrated: false,
+      }));
+    `) }, async (page) => {
+    check('a partial count fills from the first set',
+      await page.locator('[data-id="mon-1"] .pip').evaluateAll(
+        (els) => els.map((e) => (e.classList.contains('filled') ? 1 : 0))), [1, 1, 1, 0]);
+    check('a finished one still reads finished', await page.locator('[data-id="mon-2"].done').count(), 1);
+
+    // and the first edit rewrites it in the new shape
+    await tickSet(page, 'mon-1', 4);
+    check('converted on write', await page.evaluate(
+      () => JSON.parse(localStorage.getItem('sams-training-week')).sets['mon-1']), [1, 1, 1, 1]);
   });
 
   // ------------------------------------------------------------------ weights
@@ -271,7 +382,7 @@ async function main() {
     check('columns are labelled',
       await page.locator('.wt-panel .wt-shead span').evaluateAll(
         (els) => els.map((e) => e.textContent).filter(Boolean)),
-      ['kg', 'reps', 'effort']);
+      ['done', 'kg', 'reps', 'effort']);
     check('three choices per set',
       await page.locator('.wt-panel .wt-set:nth-child(1) .wt-fxb').allTextContents(), ['E', 'M', 'H']);
     check('nothing rated to start', await page.locator('.wt-panel .wt-fxb.on').count(), 0);
@@ -635,35 +746,30 @@ async function main() {
 
   await test('rest length follows the exercise', { date: '2026-07-23T09:00:00' }, async (page) => {
     // heavy compounds get long rests, isolation gets short ones
-    await page.click('[data-id="mon-1"] .ex');      // leg press, 4 x 6-8
-    await page.waitForTimeout(200);
+    await tickSet(page, 'mon-1', 1);                // leg press, 4 x 6-8
     check('heavy compound rests 3:00', await page.textContent('#rb-time'), '3:00');
     await page.click('#rb-stop');
 
-    await page.click('[data-id="mon-4"] .ex');      // calf/tib raise, 3 x 15
-    await page.waitForTimeout(200);
+    await tickSet(page, 'mon-4', 1);                // calf/tib raise, 3 x 15
     check('isolation rests 1:00', await page.textContent('#rb-time'), '1:00');
     await page.click('#rb-stop');
 
-    await page.click('[data-id="mon-6"] .ex');      // zone-2 walk
-    await page.waitForTimeout(200);
+    await tickSet(page, 'mon-6', 1);                // zone-2 walk
     check('cardio starts no timer', await page.locator('#rest-bar').isHidden(), true);
 
     // and can be overridden per exercise, including switched off
-    await page.click('[data-id="mon-4"] .wt');
+    await openRow(page, 'mon-4');
     check('panel shows the prescribed span', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 1:00');
     await page.click('.wt-panel [data-rest]');
     await page.waitForTimeout(120);
     check('cycles on tap', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest 1:30');
-    await page.click('.wt-panel .wt-close');
-    await page.click('[data-id="mon-4"] .ex');
+    await page.click('.wt-panel .wt-sdone[data-i="1"]');
     await page.waitForTimeout(200);
     check('override is used', await page.textContent('#rb-time'), '1:30');
   });
 
   await test('rest bar shows context, progress and overtime', { date: '2026-07-23T09:00:00' }, async (page) => {
-    await page.click('[data-id="mon-1"] .ex');
-    await page.waitForTimeout(200);
+    await tickSet(page, 'mon-1', 1);
     check('names the lift', (await page.textContent('#rb-lab')).trim(), 'Rest · Leg press or goblet squat');
     check('counts the set', (await page.textContent('#rb-set')).trim(), 'set 1 of 4');
     check('bar starts full', await page.locator('#rb-fill').evaluate((e) => parseFloat(e.style.width) > 99), true);
@@ -701,9 +807,9 @@ async function main() {
     await page.waitForTimeout(200);
     check('shows on the row', (await page.textContent('[data-id="mon-1"] .row-note')).trim(), '✎ seat pin 4');
 
-    // the note lives inside .ex, so it must not leak into the exercise's name
-    await page.click('.wt-panel .wt-close');
-    await page.click('[data-id="mon-1"] .ex');
+    // the note and the caret both live inside .ex, so neither may leak into
+    // the exercise's name
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
     await page.waitForTimeout(200);
     check('name is clean in the rest bar', (await page.textContent('#rb-lab')).trim(),
       'Rest · Leg press or goblet squat');
@@ -810,8 +916,7 @@ async function main() {
   await test('rest timer runs, extends and can be turned off', { date: '2026-07-23T09:00:00' }, async (page) => {
     check('hidden at rest', await page.locator('#rest-bar').isHidden(), true);
 
-    await page.click('[data-id="thu-1"] .ex'); // log a working set
-    await page.waitForTimeout(150);
+    await tickSet(page, 'thu-1', 1);           // log a working set
     check('bar appears', await page.locator('#rest-bar').isVisible(), true);
     check('starts at the prescribed span', await page.textContent('#rb-time'), '3:00');
 
@@ -839,14 +944,12 @@ async function main() {
     check('dismissable', await page.locator('#rest-bar').isHidden(), true);
 
     // a zone-2 finisher is not a working set
-    await page.click('[data-id="thu-6"] .ex');
-    await page.waitForTimeout(150);
+    await tickSet(page, 'thu-6', 1);
     check('no timer after a walk', await page.locator('#rest-bar').isHidden(), true);
 
     // and it can be switched off entirely
     await page.click('#pref-rest');
-    await page.click('[data-id="thu-2"] .ex');
-    await page.waitForTimeout(150);
+    await tickSet(page, 'thu-2', 1);
     check('off means off', await page.locator('#rest-bar').isHidden(), true);
     await page.reload();
     await page.waitForTimeout(350);
