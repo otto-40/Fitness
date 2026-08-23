@@ -66,6 +66,14 @@ somewhere safe. Pasting it back under **Restore** rebuilds everything, which
 is also how you move to a new phone. The app nags if the last backup is over
 a month old.
 
+Restore checks a pasted backup before it trusts it, and says what is wrong
+rather than half-applying it; if anything still fails, the write is undone and
+your data is left as it was. If a save ever fails — a full device, private
+browsing — the footer says so instead of letting a logged set look safe. And
+if the stored data is ever unreadable, the app starts empty rather than
+refusing to start, keeping the unreadable copy aside so a backup can be pasted
+back in.
+
 ## Installing on a phone
 
 Open the live app in Safari (iOS) or Chrome (Android) → Share → *Add to Home
