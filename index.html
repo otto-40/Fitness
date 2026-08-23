@@ -1227,12 +1227,14 @@
   </details>
 
   <div class="foot">
-    <small>Tap an exercise to log a set, tap its weight chip to record the load · a finished week rolls straight into the next, weights keep their history · saved on this device</small>
+    <small>Tap an exercise to open it, then tick each set as you finish it · a finished week rolls straight into the next, weights keep their history · saved on this device</small>
     <span class="foot-btns">
       <button class="foot-btn" id="backup-btn" type="button">Backup</button>
     </span>
   </div>
   <p class="bk-age" id="bk-age" hidden></p>
+  <p class="bk-age" id="store-warn" hidden>Changes are not saving on this device — free some space, then take a Backup before you lose today's session.</p>
+  <p class="bk-age" id="broken-warn" hidden>Saved data could not be read, so the app started empty. Nothing was deleted — paste a backup under Restore to get it back.</p>
 
   <div class="prefs">
     <button type="button" class="pref" id="pref-rest" aria-pressed="true">Rest timer</button>
@@ -1317,6 +1319,39 @@
   var WT_KEY = 'sams-training-weights';
   var wstore;
   try { wstore = JSON.parse(localStorage.getItem(WT_KEY)) || {}; } catch (e) { wstore = {}; }
+  /* A store the app can no longer read used to take the whole app down with
+     it: migrateW() throws, the script dies, nothing binds, and Restore — the
+     one way back — is as dead as everything else. Boot from empty instead,
+     keeping the unreadable copy under its own key so it is never destroyed. */
+  var BROKEN_KEY = 'sams-training-weights-unreadable';
+  /* set the unreadable store aside and carry on from empty, so the way back
+     in — Restore — is still wired up. Nothing is thrown away. */
+  function setAsideStore(){
+    try { localStorage.setItem(BROKEN_KEY, localStorage.getItem(WT_KEY) || ''); } catch (e) {}
+    wstore = {};
+    storeWasUnreadable = true;
+    migrateW();            /* seeds weekNo, which freshStore() reads */
+    store = freshStore();
+  }
+  function bootMigrate(){
+    try { migrateW(); }
+    catch (e) { setAsideStore(); }
+  }
+  /* the same for a store that migrates but breaks the first render: without
+     this the script dies here and every control on the page, Restore
+     included, is left unbound */
+  function bootRender(){
+    try {
+      syncToday();
+    } catch (e) {
+      setAsideStore();
+      saveW();
+      save();
+      syncToday();
+    }
+  }
+  var storeWasUnreadable = false;
+
   function migrateW(){
     if (!wstore || typeof wstore !== 'object') wstore = {};
     if (!wstore.wt) wstore.wt = {};
@@ -1386,9 +1421,27 @@
       saveW();
     }
   }
-  migrateW();
+  /* ---- storage failures are not silent ----
+     Everything the app is for lives in one browser. iOS throws here on quota
+     and in private browsing, so a swallowed exception means a set you watched
+     yourself log is gone at the next reload. Record it and say so instead. */
+  var writeFailed = false;
+  function noteWriteFailure(){
+    if (writeFailed) return;
+    writeFailed = true;
+    renderStoreWarning();
+  }
+  function renderStoreWarning(){
+    var el = document.getElementById('store-warn');
+    if (el) el.hidden = !writeFailed;
+    var broken = document.getElementById('broken-warn');
+    if (broken) broken.hidden = !storeWasUnreadable;
+  }
+
+  bootMigrate();
   function saveW(){
-    try { localStorage.setItem(WT_KEY, JSON.stringify(wstore)); } catch (e) {}
+    try { localStorage.setItem(WT_KEY, JSON.stringify(wstore)); }
+    catch (e) { noteWriteFailure(); }
   }
 
   /* Monday-based week number since epoch — the numbering training weeks
@@ -1455,7 +1508,8 @@
   if (typeof store.week === 'string') store.week = store.week === isoWeek() ? curWeek() : -1;
   if (store.week !== curWeek()) store = freshStore();
   function save(){
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+    catch (e) { noteWriteFailure(); }
   }
   function entriesFor(id){ return wstore.wt[id] || []; }
   function currentEntry(id){
@@ -1745,6 +1799,7 @@
     if (chk) disarmDayCheck(chk);
     renderRow(row);
     refreshDay(sec);
+    renderBand();
     stampWeek();
     /* the tick that finishes the day collapses it, as the day circle does.
        The open panel has to go first — a collapsed day hides its rows, and
@@ -1863,6 +1918,7 @@
     renderNotes();
     renderEffort();
     renderBackupAge();
+    renderStoreWarning();
     stampWeek();
   }
 
@@ -2367,7 +2423,7 @@
     var wrap = document.createElement('div');
     wrap.className = 'cc-plot';
     wrap.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + H + '" role="img" aria-label="' +
-      name + ': ' + pts0.length + ' entries, from ' + fmtV(pts0[0].v) + ' to ' +
+      esc(name) + ': ' + pts0.length + ' entries, from ' + fmtV(pts0[0].v) + ' to ' +
       fmtV(lastP.v) + ' ' + unit + '">' + g + '</svg><div class="cc-tip"></div>';
     var svg = wrap.querySelector('svg'), tip = wrap.querySelector('.cc-tip');
     var xh = svg.querySelector('.xh');
@@ -2400,8 +2456,10 @@
   function dayTip(t){ return t === todayDn() ? 'today' : dayLabel(t); }
 
   /* head line for a chart card; downGood inverts delta colors (body weight in a cut) */
+  /* name is whatever the program editor holds, so it is escaped like any
+     other user text — History already does this for the same strings */
   function cardHead(name, es, unit, downGood){
-    var head = '<div class="cc-head"><span class="cc-name">' + name + '</span>';
+    var head = '<div class="cc-head"><span class="cc-name">' + esc(name) + '</span>';
     if (es.length){
       var last = es[es.length - 1];
       head += '<span class="cc-now">' + fmtV(last.v) + ' ' + unit + '</span>';
@@ -2572,29 +2630,46 @@
   /* ---- history tab: month calendar + week roll-ups ---- */
   function ewOf(dn){ return Math.floor((dn + 3) / 7); }
   function mondayDnOf(w){ return 7 * w - 3; }
-  /* day offsets from Monday: the four sessions a week is judged on
-     (Mon lift, Wed game, Thu lift, Sat lift). Sunday's walk is a bonus. */
-  var REQ = [0, 2, 3, 5];
+  /* Day offsets from Monday for weeks that predate session tracking, when
+     the routine was fixed at Mon lift, Wed game, Thu lift, Sat lift. Only the
+     backward-looking count uses these. */
+  var LEGACY_REQ = [0, 2, 3, 5];
   var SUN = 6;
+  /* What a week is judged on now comes from the program: the days that
+     actually hold exercises, Sunday's optional walk aside. Emptying a day in
+     the editor used to leave a requirement nothing could satisfy, so the week
+     stuck one session short for good — the rule and the exercises are one
+     thing now. This is the same test renderBand() applies. */
+  function requiredCards(){
+    return days.filter(function(sec){
+      return !sec.hasAttribute('data-optional') && sec.querySelectorAll('.row').length;
+    });
+  }
+  function requiredCount(){ return requiredCards().length; }
   /* Weeks tracked under the training-week model carry their own record of
      which sessions were done, so they read off that. Weeks that predate it
      have only the day log, whose dates sat at fixed offsets from Monday. */
   function sessionsIn(w){
+    var need = requiredCount();
     var rec = weekRec(w);
     if (rec){
       var n = 0;
       Object.keys(rec.done).forEach(function(k){ if (k !== 'd-sun') n++; });
-      return Math.min(n, REQ.length);
+      return Math.min(n, need);
     }
     var m = mondayDnOf(w), c = 0;
-    REQ.forEach(function(off){ if (wstore.daysDone[m + off]) c++; });
-    return c;
+    LEGACY_REQ.forEach(function(off){ if (wstore.daysDone[m + off]) c++; });
+    return Math.min(c, need);
   }
   function sundayWalk(w){
     var rec = weekRec(w);
     return rec ? rec.done['d-sun'] != null : !!wstore.daysDone[mondayDnOf(w) + SUN];
   }
-  function weekComplete(w){ return sessionsIn(w) >= REQ.length; }
+  /* a program with nothing left in it has no week to complete */
+  function weekComplete(w){
+    var need = requiredCount();
+    return need > 0 && sessionsIn(w) >= need;
+  }
   /* streak reads off the same session count as the roll-ups, so retroactive
      calendar edits and the live week both feed it from one source of truth */
   function streakLen(){
@@ -2808,8 +2883,9 @@
       if (!weekActive(w)) continue;
       var m = weekStartDn(w);
       var sess = sessionsIn(w);
-      var full = sess >= REQ.length;
-      var bits = [sess + '/' + REQ.length + ' sessions'];
+      var need = requiredCount();
+      var full = need > 0 && sess >= need;
+      var bits = [sess + '/' + need + ' sessions'];
       if (sundayWalk(w)) bits.push('+Sun walk');
       var up = liftsUpFor(w);
       if (up) bits.push(up + (up === 1 ? ' lift up' : ' lifts up'));
@@ -3307,29 +3383,92 @@
       bkText.select();
     }
   });
+  /* ---- restoring is the one input that comes from outside the app ----
+     A blob that parses as JSON but holds the wrong shapes used to be written
+     over the real data and only fail afterwards, halfway through migration,
+     leaving nothing to go back to. Every key the app will later assume is
+     checked first, and the write is undone in full if anything still throws. */
+  function isObj(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
+  var BK_OBJECTS = ['wt', 'variants', 'daysDone', 'prSeen', 'prefs', 'rest', 'notes', 'weeks', 'program'];
+  var BK_ARRAYS = ['bw', 'weeksDone', 'game'];
+  function backupFault(data){
+    if (!isObj(data) || data.app !== 'sams-training-week') return 'not a backup';
+    if (!data.week && !data.history) return 'not a backup';
+    if (data.week != null && !isObj(data.week)) return 'the week is the wrong shape';
+    var h = data.history;
+    if (h == null) return null;
+    if (!isObj(h)) return 'the history is the wrong shape';
+    var bad = null;
+    BK_OBJECTS.forEach(function(k){ if (!bad && h[k] != null && !isObj(h[k])) bad = k; });
+    BK_ARRAYS.forEach(function(k){ if (!bad && h[k] != null && !Array.isArray(h[k])) bad = k; });
+    if (bad) return '“' + bad + '” is the wrong shape';
+    if (h.weekNo != null && typeof h.weekNo !== 'number') return '“weekNo” is the wrong shape';
+    if (isObj(h.wt)){
+      var lift = null;
+      Object.keys(h.wt).forEach(function(k){
+        if (lift) return;
+        var es = h.wt[k];
+        var ok = Array.isArray(es) && es.every(function(e){
+          /* s is the per-set list and r the pre-migration rep list; both are
+             walked without checking, so both are checked here */
+          return isObj(e) &&
+                 (e.s == null || Array.isArray(e.s)) &&
+                 (e.r == null || Array.isArray(e.r));
+        });
+        if (!ok) lift = k;
+      });
+      if (lift) return 'the history for “' + lift + '” is the wrong shape';
+    }
+    return null;
+  }
+  function restoreFailed(msg){
+    bkNote.textContent = msg;
+    bkNote.classList.add('err');
+  }
+
   document.getElementById('bk-restore').addEventListener('click', function(){
     var btn = this;
     var data;
     try { data = JSON.parse(bkText.value); } catch (e) { data = null; }
-    if (!data || data.app !== 'sams-training-week' || (!data.week && !data.history)){
-      bkNote.textContent = 'That doesn’t look like a backup — paste the exact saved text.';
-      bkNote.classList.add('err');
+    var fault = backupFault(data);
+    if (fault){
+      restoreFailed(fault === 'not a backup'
+        ? 'That doesn’t look like a backup — paste the exact saved text.'
+        : 'That backup is damaged (' + fault + ') — nothing has been changed.');
       return;
     }
     armButton(btn, 'Replace all data?', function(){
-      if (data.week && typeof data.week === 'object'){
-        store = data.week;
-        if (!store.week) store.week = '';
-        if (!store.sets) store.sets = {};
+      /* exactly what is on disk now, so a failure can put it all back */
+      var wasW = null, wasS = null, keepW = wstore, keepS = store;
+      try { wasW = localStorage.getItem(WT_KEY); wasS = localStorage.getItem(STORE_KEY); } catch (e) {}
+      try {
+        if (isObj(data.week)){
+          store = data.week;
+          if (!store.week) store.week = '';
+          if (!store.sets) store.sets = {};
+        }
+        if (isObj(data.history)){
+          wstore = data.history;
+          migrateW();
+        }
+        save();
+        saveW();
+        /* the redraw is inside the guard on purpose: a blob can migrate
+           cleanly and only break when something tries to read it back, and
+           by then the write has already landed */
+        syncToday(); /* also applies the weekly reset if the backup is from an older week */
+        if (!viewProg.hidden) buildProgress();
+      } catch (e) {
+        wstore = keepW;
+        store = keepS;
+        try {
+          if (wasW == null) localStorage.removeItem(WT_KEY); else localStorage.setItem(WT_KEY, wasW);
+          if (wasS == null) localStorage.removeItem(STORE_KEY); else localStorage.setItem(STORE_KEY, wasS);
+        } catch (e2) {}
+        try { syncToday(); } catch (e3) {}   /* put the screen back too */
+        restoreFailed('That backup could not be read — nothing has been changed.');
+        return;
       }
-      if (data.history && typeof data.history === 'object'){
-        wstore = data.history;
-        migrateW();
-      }
-      save();
-      saveW();
-      syncToday(); /* also applies the weekly reset if the backup is from an older week */
-      if (!viewProg.hidden) buildProgress();
       backupEl.hidden = true;
     });
   });
@@ -3341,7 +3480,7 @@
     if (restEnd && !restBar.hidden) tickRest();
   });
 
-  syncToday();
+  bootRender();
 
   /* chips are added after the first render so they land after the pips */
   wtRows.forEach(function(row){
@@ -3413,6 +3552,7 @@
         save();
         dayRows.forEach(renderRow);
         refreshDay(sec);
+        renderBand();
         var full = dayIsDone(sec);
         sec.classList.toggle('closed', full);
         stampWeek();

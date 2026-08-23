@@ -376,6 +376,59 @@ async function main() {
     check('PR does not re-fire', await page.locator('.wt-panel .wt-pr').count(), 0);
   });
 
+  await test('an exercise name is text, never markup', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-1': [{ ew: ew - 1, w: 100, s: [{w:100,r:8}] }, { ew: ew, w: 105, s: [{w:105,r:8}] }] },
+        program: { 'd-mon': [{ id: 'mon-1', name: '<img src=x onerror="window.__x=1">Squat',
+                               rx: '4 × 8', sets: 4, wt: true, reps: '8' }],
+                   'd-wed': [], 'd-thu': [], 'd-sat': [], 'd-sun': [] },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(400);
+    check('nothing ran', await page.evaluate(() => !!window.__x), false);
+    check('nothing was injected', await page.locator('.chart-card img').count(), 0);
+    const card = page.locator('.chart-card', { hasText: 'Squat' });
+    check('the name reads as written', (await card.locator('.cc-name').textContent()).trim(),
+      '<img src=x onerror="window.__x=1">Squat');
+  });
+
+  await test('emptying a day retires the session it required', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const one = (id, n) => ({ id, name: n, rx: '1 × 1', sets: 1, wt: true, reps: '8' });
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1, wt: {},
+        program: { 'd-mon': [one('mon-1','A')], 'd-wed': [], 'd-thu': [one('thu-1','C')],
+                   'd-sat': [one('sat-1','D')], 'd-sun': [] },
+      }));
+    `) }, async (page) => {
+    check('the week asks for three, not four', (await page.textContent('#wb-count')).trim(), '0/3 sessions');
+    for (const id of ['mon-1', 'thu-1', 'sat-1']) await tickSet(page, id, 1);
+
+    check('the band completes', (await page.textContent('#wb-count')).trim(), '3/3 sessions');
+    await page.click('#tab-history');
+    await page.waitForTimeout(350);
+    check('history agrees', (await page.textContent('.wk-lines')).includes('3/3 sessions'), true);
+    check('and the streak counts it', await page.locator('.hist-streak').count(), 1);
+  });
+
+  await test('the week band tracks progress as you go', { date: '2026-07-23T09:00:00' },
+    async (page) => {
+    const band = () => page.textContent('#wb-count').then((t) => t.trim());
+    check('starts empty', await band(), '0/4 sessions');
+
+    await completeDay(page, 'd-mon');
+    check('the day circle moves it', await band(), '1/4 sessions');
+
+    await completeDayBySet(page, 'd-thu');
+    check('ticking sets moves it too', await band(), '2/4 sessions');
+
+    await clearDay(page, 'd-mon');
+    check('and it goes back down', await band(), '1/4 sessions');
+  });
+
   // ------------------------------------------------------------------- effort
   await test('effort is rated per set and stored with it', { date: '2026-07-23T09:00:00' }, async (page) => {
     await page.click('[data-id="mon-1"] .wt');
@@ -894,6 +947,97 @@ async function main() {
     await line.click();
     await page.waitForTimeout(200);
     check('closes again', await page.locator('.wk-detail').count(), 0);
+  });
+
+  // --------------------------------------------------- restore is defensive
+  await test('a damaged backup is refused, and changes nothing', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-1': [{ ew: ew - 1, w: 142.5, s: [{w:142.5,r:8}] }] },
+      }));
+    `) }, async (page) => {
+    const stored = () => page.evaluate(() => localStorage.getItem('sams-training-weights'));
+    const before = await stored();
+
+    await page.click('#backup-btn');
+    await page.fill('#bk-text', JSON.stringify({
+      app: 'sams-training-week', v: 1, history: { wt: 'not-an-object' },
+    }));
+    await page.click('#bk-restore');
+    await page.waitForTimeout(200);
+    check('says what is wrong with it', (await page.textContent('.bk-note')).includes('wt'), true);
+    check('and does not even arm', (await page.textContent('#bk-restore')).trim(), 'Restore');
+    check('storage untouched', await stored(), before);
+
+    // a lift whose set list is not a list is caught the same way
+    await page.fill('#bk-text', JSON.stringify({
+      app: 'sams-training-week', v: 1, history: { wt: { 'mon-1': [{ ew: 1, w: 5, s: 'nope' }] } },
+    }));
+    await page.click('#bk-restore');
+    await page.waitForTimeout(200);
+    check('a bad set list is caught too', (await page.textContent('.bk-note')).includes('mon-1'), true);
+    check('still untouched', await stored(), before);
+
+    // and a good backup still restores
+    await page.fill('#bk-text', JSON.stringify({
+      app: 'sams-training-week', v: 1,
+      history: { unit: 'kg', wt: { 'mon-2': [{ ew: 1, w: 60, s: [{ w: 60, r: 8 }] }] } },
+    }));
+    await page.click('#bk-restore');
+    await page.waitForTimeout(150);
+    await page.click('#bk-restore');
+    await page.waitForTimeout(400);
+    check('a sound backup goes in', await page.evaluate(
+      () => Object.keys(JSON.parse(localStorage.getItem('sams-training-weights')).wt)), ['mon-2']);
+  });
+
+  await test('a backup that only breaks on use is rolled back', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-1': [{ ew: ew - 1, w: 142.5, s: [{w:142.5,r:8}] }] },
+      }));
+    `) }, async (page) => {
+    const before = await page.evaluate(() => localStorage.getItem('sams-training-weights'));
+
+    // every key is the declared shape, so this passes the door check — but a
+    // week record holding a number instead of a record throws once read
+    await page.click('#backup-btn');
+    await page.fill('#bk-text', JSON.stringify({
+      app: 'sams-training-week', v: 1,
+      history: { unit: 'kg', wt: {}, weeks: { 2951: 7 }, weekNo: 2951 },
+    }));
+    await page.click('#bk-restore');
+    await page.waitForTimeout(150);
+    await page.click('#bk-restore');
+    await page.waitForTimeout(500);
+
+    check('the user is told', (await page.textContent('.bk-note')).includes('nothing has been changed'), true);
+    check('the write is undone', await page.evaluate(
+      () => localStorage.getItem('sams-training-weights')), before);
+    check('the screen is put back', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '142.5');
+  });
+
+  await test('an unreadable store starts empty instead of dying', { date: '2026-07-23T09:00:00',
+    seed: new Function(`
+      localStorage.setItem('sams-training-weights', JSON.stringify({ wt: 'irrecoverable' }));
+    `) }, async (page) => {
+    check('the app still renders', await page.locator('.row').count() > 0, true);
+    check('and says what happened', await page.locator('#broken-warn').isVisible(), true);
+    check('the unreadable copy is kept', await page.evaluate(
+      () => (localStorage.getItem('sams-training-weights-unreadable') || '').includes('irrecoverable')), true);
+    check('Restore is still reachable', await page.locator('#backup-btn').isEnabled(), true);
+  });
+
+  await test('a write that fails is not passed off as saved', { date: '2026-07-23T09:00:00' },
+    async (page) => {
+    check('no warning to begin with', await page.locator('#store-warn').isVisible(), false);
+    await page.evaluate(() => {
+      localStorage.setItem = function(){ throw new Error('quota'); };
+    });
+    await tickSet(page, 'mon-1', 1);
+    check('the failure is surfaced', await page.locator('#store-warn').isVisible(), true);
   });
 
   // ------------------------------------------------------------- backup nudge
