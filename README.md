@@ -11,13 +11,13 @@ Three tabs:
 
 - **This Week** — the routine. Tap an exercise to open it. Everything for
   that lift is inside: a row per set with a **done** button, and next to it
-  the weight, reps and effort for that set. Tick a set as you finish it —
-  that is the only thing that logs one, so nothing on the row can be started
-  or scrapped by a stray tap, and sets can be ticked in any order or taken
-  back by tapping again. Lifts that carry no weight get the same ticks
-  without the load fields. Days collapse once complete, and rest days
-  complete themselves when their date arrives. The band at the top says which
-  week the cards below belong to.
+  the weight, reps and effort for that set. Tick a set as you finish it, or
+  rate how it felt and it ticks itself. Nothing else logs a set, so none can
+  be started or scrapped by a stray tap, and sets can be ticked in any order
+  or taken back by tapping the tick again. Lifts that carry no weight get the
+  same ticks without the load fields. Days collapse once complete, and rest
+  days complete themselves when their date arrives. The band at the top says
+  which week the cards below belong to.
 - **Progress** — body weight and body fat, plus a chart per lift. The
   measure toggle switches between estimated 1RM (moves with load *or* reps),
   top set, and volume. Each point is coloured by how that week's sets felt,
@@ -33,6 +33,11 @@ weight and reps. It is optional, and one tap; tapping the lit letter takes it
 back. Load and reps say what you did, effort says what it cost, and the two
 together are what tell a week you should add weight apart from a week you
 should hold it.
+
+Rating a set is the last thing you do to it, so the rating completes it:
+one tap logs the set and starts the rest timer, exactly as ticking it does.
+Clearing a rating clears only the rating — the set stays logged, and the
+done button is still the way to take one back.
 
 Once a session is rated the app says so in one line under the sets: every set
 easy is 2.5 kg you are leaving behind, every set a grind is a week to repeat,

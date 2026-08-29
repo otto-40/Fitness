@@ -2136,20 +2136,30 @@
       '</div>';
     panel.innerHTML = html;
 
-    /* ticking a set is the only way to complete one now, so it carries what
-       the row tap used to: the day's state, the log stamp, the rest timer */
-    panel.querySelectorAll('.wt-sdone').forEach(function(b){
-      b.addEventListener('click', function(){
-        var i = +b.dataset.i, on = !flags[i];
-        flags[i] = on;
+    /* ticking a set carries what the row tap used to: the day's state, the
+       log stamp, the rest timer. Rating a set goes through here too, so a
+       set completed by its effort is completed exactly the same way. */
+    var doneBtns = Array.prototype.slice.call(panel.querySelectorAll('.wt-sdone'));
+    function markSet(i, on){
+      on = !!on;
+      if (!!flags[i] === on) return;   /* already where it needs to be */
+      flags[i] = on;
+      var b = doneBtns[i];
+      if (b){
         b.classList.toggle('on', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
         b.textContent = on ? '✓' : (i + 1);
-        writeFlags(id, flags);
-        save();
-        if (on) startRest(restFor(id), exName(row), doneCount(id, +row.dataset.sets), +row.dataset.sets);
-        else stopRest();     /* the rest it started was for a set you took back */
-        settleRow(row);
+      }
+      writeFlags(id, flags);
+      save();
+      if (on) startRest(restFor(id), exName(row), doneCount(id, +row.dataset.sets), +row.dataset.sets);
+      else stopRest();     /* the rest it started was for a set you took back */
+      settleRow(row);
+    }
+    doneBtns.forEach(function(b){
+      b.addEventListener('click', function(){
+        var i = +b.dataset.i;
+        markSet(i, !flags[i]);
       });
     });
 
@@ -2253,11 +2263,15 @@
     /* set rows commit as you type; blank the weight to drop that set */
     wIn.concat(rIn).forEach(function(el){ el.addEventListener('input', commit); });
 
-    /* effort is one tap per set, and tapping the lit button clears it */
+    /* Effort is one tap per set, and tapping the lit button clears it.
+       Rating a set is also the last thing you do to it, so the rating ticks
+       it off: one tap logs the set and starts the rest. Clearing a rating
+       only clears the rating — the done button stays the way to take a
+       set back, so a mis-tapped letter never quietly unlogs a set. */
     panel.querySelectorAll('.wt-fxb').forEach(function(b){
       b.addEventListener('click', function(){
-        var was = b.classList.contains('on');
-        fxIn[+b.dataset.i].querySelectorAll('.wt-fxb').forEach(function(o){
+        var was = b.classList.contains('on'), i = +b.dataset.i;
+        fxIn[i].querySelectorAll('.wt-fxb').forEach(function(o){
           o.classList.remove('on');
           o.setAttribute('aria-pressed', 'false');
         });
@@ -2266,6 +2280,8 @@
           b.setAttribute('aria-pressed', 'true');
         }
         commit();
+        /* after commit, so the set is stored before the day can settle on it */
+        if (!was) markSet(i, true);
       });
     });
 

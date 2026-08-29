@@ -462,6 +462,36 @@ async function main() {
       ['0', '0', '1', '2']);
   });
 
+  await test('rating a set ticks it off', { date: '2026-07-23T09:00:00' }, async (page) => {
+    const pips = () => page.locator('[data-id="mon-1"] .pip').evaluateAll(
+      (els) => els.map((e) => (e.classList.contains('filled') ? 1 : 0)));
+
+    await openRow(page, 'mon-1');
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+    check('opening and loading it logs nothing', await pips(), [0, 0, 0, 0]);
+
+    await rate(page, 2, 1);
+    check('the rated set completes itself', await pips(), [0, 1, 0, 0]);
+    check('the done control shows it', await page.locator('.wt-panel .wt-sdone[data-i="1"].on').count(), 1);
+    check('the rest starts as if it were ticked', await page.locator('#rest-bar').isHidden(), false);
+    check('and it is stored like any tick', await page.evaluate(
+      () => JSON.parse(localStorage.getItem('sams-training-week')).sets['mon-1']), [0, 1, 0, 0]);
+
+    await rate(page, 2, 1);   // the lit button clears the rating
+    check('clearing the rating leaves the set done', await pips(), [0, 1, 0, 0]);
+    check('with the rating gone', await storedEfforts(page, 'mon-1'), [null, null, null, null]);
+
+    await tickSet(page, 'mon-1', 1);
+    await rate(page, 1, 2);
+    check('rating a set already ticked leaves it ticked', await pips(), [1, 1, 0, 0]);
+
+    await rate(page, 3, 0);
+    await rate(page, 4, 0);
+    check('the row completes on the last rating', await page.locator('[data-id="mon-1"].done').count(), 1);
+    check('and every rating is kept', await storedEfforts(page, 'mon-1'), [2, null, 0, 0]);
+  });
+
   await test('effort decides whether the load goes up', { date: '2026-07-23T09:00:00' }, async (page) => {
     await page.click('[data-id="mon-1"] .wt');
     await page.fill('.wt-panel .wt-top', '100');
