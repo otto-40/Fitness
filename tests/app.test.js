@@ -698,6 +698,76 @@ async function main() {
     check('day nav hidden here', await page.locator('.daynav').isHidden(), true);
   });
 
+  // Sessions land on whatever day they were done, so the colour has to come
+  // from the session stamped on a date — not from the date being a Wednesday.
+  await test('calendar colours a day by the session done on it', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const start = monday - 14;
+      const daysDone = {};
+      daysDone[start + 2] = 1;      // Monday's lift caught up on the Wednesday
+      daysDone[start + 4] = 1;      // the game itself moved to the Friday
+      daysDone[start + 9] = 1;      // a Wednesday inside tracked history, unstamped
+      const weeks = {};
+      weeks[ew - 2] = { start, done: { 'd-mon': start + 2, 'd-wed': start + 4 } };
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone,
+        backfilled: 1, perSet: 1, weeks, weekNo: ew,
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-history');
+    await page.waitForTimeout(300);
+    const d = await page.evaluate(() => {
+      const t = new Date();
+      const dn = Math.floor(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / 864e5);
+      return 7 * Math.floor((dn + 3) / 7) - 3 - 14;
+    });
+    const cls = (n) => page.getAttribute(`.cal-cell[data-dn="${n}"]`, 'class');
+
+    check('a lift done on a Wednesday is a lift', (await cls(d + 2)).includes('c-done'), true);
+    check('and not a game', (await cls(d + 2)).includes('c-ball'), false);
+    check('the game is on the day it was played', (await cls(d + 4)).includes('c-ball'), true);
+    check('a tracked day with no session stamp is a lift',
+      (await cls(d + 9)).includes('c-done'), true);
+    check('only one game night', await page.locator('.cal-cell.c-ball').count(), 1);
+  });
+
+  // The game card and the rest cards are read off the program, so emptying
+  // the game card in the editor stops it claiming a colour it no longer earns.
+  await test('an emptied game card is rest, not a game', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const start = monday - 14;
+      const daysDone = {};
+      daysDone[start] = 1;          // the Monday lift
+      daysDone[start + 9] = 1;      // a Wednesday, with no game in the program
+      const weeks = {};
+      weeks[ew - 2] = { start, done: { 'd-mon': start } };
+      const one = (id, name) => [{ id, rest: 0, name, rx: '3 x 8', sets: 1 }];
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone,
+        backfilled: 1, perSet: 1, weeks, weekNo: ew,
+        program: {
+          'd-mon': one('mon-1', 'Leg press'), 'd-wed': [],
+          'd-thu': one('thu-1', 'Trap bar DL'), 'd-sat': one('sat-1', 'Hip thrust'),
+          'd-sun': one('sun-1', 'Incline walk'),
+        },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-history');
+    await page.waitForTimeout(300);
+    const d = await page.evaluate(() => {
+      const t = new Date();
+      const dn = Math.floor(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / 864e5);
+      return 7 * Math.floor((dn + 3) / 7) - 3 - 14;
+    });
+    const cls = (n) => page.getAttribute(`.cal-cell[data-dn="${n}"]`, 'class');
+
+    check('no game night anywhere', await page.locator('.cal-cell.c-ball').count(), 0);
+    check('a logged Wednesday is a lift', (await cls(d + 9)).includes('c-done'), true);
+    check('the empty Wednesday reads as rest', (await cls(d + 2)).includes('c-rest'), true);
+    check('Tuesday still rest', (await cls(d + 1)).includes('c-rest'), true);
+    check('Friday still rest', (await cls(d + 4)).includes('c-rest'), true);
+  });
+
   await test('past days can be logged retroactively', { date: '2026-07-23T09:00:00',
     seed: new Function(seedHelpers + `
       const prev = monday - 7;
