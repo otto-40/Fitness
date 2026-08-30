@@ -2746,14 +2746,43 @@
 
   var calY = null, calM = null;
 
+  /* Which card is game night, and which cards are rest, comes from the
+     program — the same live reading of the day cards requiredCards() takes.
+     The calendar used to hard-code 'd-wed' for the game and Tue/Fri for rest,
+     so emptying the game card in the editor left Wednesdays still painted as
+     games and never dotted as rest. */
+  function ballCardId(){
+    var sec = days.filter(function(s){
+      return s.classList.contains('ball') && s.querySelectorAll('.row').length;
+    })[0];
+    return sec ? sec.id : null;
+  }
+  /* a rest card is one with nothing on it — the optional walk aside */
+  function restCardIds(){
+    return days.filter(function(s){
+      return !s.hasAttribute('data-optional') && !s.querySelectorAll('.row').length;
+    }).map(function(s){ return s.id; });
+  }
+  /* the first date any training week covers. Before it, sessions were pinned
+     to weekday slots and nothing recorded which card a logged day was; after
+     it, only a session stamp says. */
+  function trackedFromDn(){
+    var min = null;
+    Object.keys(wstore.weeks).forEach(function(k){
+      var s = wstore.weeks[k].start;
+      if (min === null || s < min) min = s;
+    });
+    return min;
+  }
   /* date -> the card that was ticked off on it, so the calendar can still
      tell game night from a lift now that sessions land on any weekday */
   function stampCards(){
-    var map = {};
+    var map = {}, ball = ballCardId();
     Object.keys(wstore.weeks).forEach(function(k){
       var done = wstore.weeks[k].done;
       Object.keys(done).forEach(function(id){
-        if (map[done[id]] == null || id === 'd-wed') map[done[id]] = id;
+        /* two sessions in one day share a square; the game takes it */
+        if (map[done[id]] == null || (ball && id === ball)) map[done[id]] = id;
       });
     });
     return map;
@@ -2769,14 +2798,24 @@
       Object.keys(rec.done).forEach(function(k){ if (rec.done[k] === dn) delete rec.done[k]; });
     }
   }
-  function stampCard(dn, stamps){
-    /* before training weeks were tracked every Wednesday was game night */
-    return stamps[dn] || ((dn + 3) % 7 === 2 ? 'd-wed' : null);
+  /* how a logged day should be painted. The session stamped on it decides,
+     so a game played on a Friday is a game and a lift caught up on a
+     Wednesday is a lift. Only dates that predate session tracking fall back
+     to the old rule that Wednesday meant game night — applying that fallback
+     to every unstamped day was what painted retroactively logged Wednesdays
+     as basketball. */
+  function dayKind(dn, stamps, from){
+    var ball = ballCardId();
+    var id = stamps[dn];
+    if (id != null) return ball && id === ball ? 'ball' : 'done';
+    return ball && (from === null || dn < from) && (dn + 3) % 7 === 2 ? 'ball' : 'done';
   }
 
   function calHtml(){
     var tdn = todayDn();
     var stamps = stampCards();
+    var trackedFrom = trackedFromDn();
+    var rests = restCardIds();
     var firstDn = Date.UTC(calY, calM, 1) / 864e5;
     var dow0 = (new Date(Date.UTC(calY, calM, 1)).getUTCDay() + 6) % 7;
     var nDays = new Date(Date.UTC(calY, calM + 1, 0)).getUTCDate();
@@ -2803,10 +2842,10 @@
       } else if (!v){
         /* a rest slot of a week that saw training */
         var rw = weekOfDn(dn);
-        if (weekActive(rw) && (slotDn(rw, 'd-tue') === dn || slotDn(rw, 'd-fri') === dn)) cls += ' c-rest';
+        if (weekActive(rw) && rests.some(function(id){ return slotDn(rw, id) === dn; })) cls += ' c-rest';
         if (dn < weekStart) editable = true;
       } else {
-        if (v === 1) cls += stampCard(dn, stamps) === 'd-wed' ? ' c-ball' : ' c-done';
+        if (v === 1) cls += dayKind(dn, stamps, trackedFrom) === 'ball' ? ' c-ball' : ' c-done';
         else if (v === 2) cls += ' c-assumed';
         /* days in weeks already put to bed are editable: their sets are gone,
            so the day card can no longer speak for them. The running week's
