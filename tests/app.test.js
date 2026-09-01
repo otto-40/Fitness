@@ -408,6 +408,12 @@ async function main() {
     for (const id of ['mon-1', 'thu-1', 'sat-1']) await tickSet(page, id, 1);
 
     check('the band completes', (await page.textContent('#wb-count')).trim(), '3/3 sessions');
+    // three of three is the whole week: the empty day is not a session to wait on
+    await page.waitForTimeout(250);
+    check('and the week finishes on them', await page.locator('#celebrate').isVisible(), true);
+    await page.click('#cel-next');
+    await page.waitForTimeout(200);
+
     await page.click('#tab-history');
     await page.waitForTimeout(350);
     check('history agrees', (await page.textContent('.wk-lines')).includes('3/3 sessions'), true);
@@ -666,6 +672,26 @@ async function main() {
     await page.waitForTimeout(350);
     check('still on the new week', await page.locator('.pip.filled').count(), 0);
     check('celebration does not repeat', await page.locator('#celebrate').isHidden(), true);
+  });
+
+  /* Rest days complete themselves when their date arrives, so counting them
+     towards the week held a session-complete week open until the calendar
+     caught up — the band reading 4/4 and History calling the week done while
+     the cards refused to turn over. Monday: Friday's rest slot is days away. */
+  await test('a week finishes on its sessions, not on the rest days',
+    { date: '2026-07-20T09:00:00' }, async (page) => {
+    for (const id of ['d-mon', 'd-wed', 'd-thu']) await completeDay(page, id);
+    check('three in, not done', await page.locator('#celebrate').isHidden(), true);
+
+    await completeDay(page, 'd-sat');
+    await page.waitForTimeout(300);
+    check('the band is full', (await page.textContent('#wb-count')).trim(), '4/4 sessions');
+    check('and the week finishes with it', await page.locator('#celebrate').isVisible(), true);
+
+    await page.click('#cel-next');
+    await page.waitForTimeout(250);
+    check('the next week starts today', (await page.textContent('#wb-when')).trim(), 'New week from today');
+    check('with nothing carried over', await page.locator('.pip.filled').count(), 0);
   });
 
   await test('logging Sunday adds it as a bonus', { date: '2026-08-02T09:00:00' }, async (page) => {
@@ -1020,6 +1046,31 @@ async function main() {
     check('and the default count', await page.locator('#d-mon .row').count(), 6);
   });
 
+  /* The editor shows name, sets and reps — not the prescribed rest. Anything
+     it cannot show it still has to carry, or renaming one lift quietly
+     retimes every rest in the program to the generic default. */
+  await test('editing the program keeps the rest each lift prescribes',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'mon-1');
+    check('heavy lift rests three minutes', (await page.textContent('.wt-panel .wt-rest')).trim(), 'rest 3:00');
+    await page.click('.wt-panel .wt-close');
+
+    await page.click('#pref-edit');
+    await page.waitForTimeout(200);
+    await page.locator('.ed-ex').first().locator('.ed-name').fill('Hack squat');
+    await page.click('#ed-save');
+    await page.waitForTimeout(700);
+
+    await openRow(page, 'mon-1');
+    check('and still does after an unrelated rename',
+      (await page.textContent('.wt-panel .wt-rest')).trim(), 'rest 3:00');
+    await page.click('.wt-panel .wt-close');
+
+    // the zone-2 walk prescribes no rest at all — it must not grow one
+    await openRow(page, 'mon-6');
+    check('the walk is still untimed', await page.locator('.wt-panel .wt-rest').count(), 0);
+  });
+
   // ------------------------------------------------------- history week detail
   await test('a week expands to show what was lifted', { date: '2026-07-23T09:00:00',
     seed: new Function(seedHelpers + `
@@ -1290,6 +1341,57 @@ async function main() {
       const w = JSON.parse(localStorage.getItem('sams-training-weights'));
       return Object.keys(w.daysDone).length;
     }), 1);
+  });
+
+  // -------------------------------------------------------------- keyboard/AT
+  /* Collapsing a day was a mouse-only gesture on a plain <header>, and the
+     rows it clipped stayed in the tab order, so a keyboard could land on
+     controls nothing on screen was showing. */
+  await test('a day collapses from the keyboard, and takes its rows with it',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    const head = page.locator('#d-mon .day-head');
+    check('the header announces itself open', await head.getAttribute('aria-expanded'), 'true');
+    check('and points at what it opens', await head.getAttribute('aria-controls'), 'd-mon-body');
+
+    await head.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(400);
+    check('Enter collapses it', await page.locator('#d-mon.closed').count(), 1);
+    check('and it says so', await head.getAttribute('aria-expanded'), 'false');
+    check('the rows it hid are unfocusable',
+      await page.locator('#d-mon .row').first().isVisible(), false);
+
+    await page.keyboard.press(' ');
+    await page.waitForTimeout(400);
+    check('Space opens it again', await page.locator('#d-mon.closed').count(), 0);
+    check('and says so', await head.getAttribute('aria-expanded'), 'true');
+    check('rows are back', await page.locator('#d-mon .row').first().isVisible(), true);
+
+    // completing the day collapses it too — the header has to keep up
+    await completeDay(page, 'd-mon');
+    await page.waitForTimeout(400);
+    check('a completed day reads as collapsed', await head.getAttribute('aria-expanded'), 'false');
+  });
+
+  /* Every overlay was a one-way door for a keyboard: the only way out was a
+     tap on a button inside it. */
+  await test('Escape backs out of whatever is covering the page',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    for (const [open, el] of [['#pref-edit', '#editor'], ['#backup-btn', '#backup']]) {
+      await page.click(open);
+      await page.waitForTimeout(200);
+      check(el + ' opens', await page.locator(el).isVisible(), true);
+      check(el + ' is a dialog', await page.getAttribute(el, 'role'), 'dialog');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(200);
+      check(el + ' closes on Escape', await page.locator(el).isHidden(), true);
+    }
+
+    await openRow(page, 'mon-1');
+    check('the exercise panel is open', await page.locator('.wt-panel').count(), 1);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    check('Escape closes it too', await page.locator('.wt-panel').count(), 0);
   });
 
   await browser.close();

@@ -260,10 +260,17 @@
     transition:grid-template-rows .25s ease;
   }
   .day.closed .day-body{grid-template-rows:0fr}
-  .day-body>.day-inner{overflow:hidden;min-height:0}
+  .day-body>.day-inner{overflow:hidden;min-height:0;visibility:visible}
+  /* A collapsed day is clipped to nothing, so its buttons and inputs must
+     leave the tab order with it — otherwise tabbing lands the focus ring
+     somewhere invisible. Held back until the collapse has finished so the
+     content is still there to animate away; reopening is immediate. */
+  .day.closed .day-body>.day-inner{visibility:hidden;transition:visibility 0s linear .25s}
   .day.closed .day-head{padding-bottom:10px}
+  .day-head:focus-visible{outline:2px solid var(--court);outline-offset:-2px}
   @media (prefers-reduced-motion:reduce){
     .day-body{transition:none}
+    .day.closed .day-body>.day-inner{transition:none}
   }
   .day-name{
     font-family:var(--display);font-weight:600;font-size:18px;
@@ -1118,39 +1125,39 @@
 
   <!-- MONDAY -->
   <section class="day" id="d-mon" data-day="1">
-    <header class="day-head">
+    <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-mon-body">
       <h2 class="day-name">Monday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Lower + Push<br><span class="day-count" data-count></span></span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
-    <div class="day-body"><div class="day-inner">
+    <div class="day-body" id="d-mon-body"><div class="day-inner">
     <div class="rows"></div>
     </div></div>
   </section>
 
   <!-- TUESDAY -->
   <section class="day rest" id="d-tue" data-day="2">
-    <header class="day-head">
+    <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-tue-body">
       <h2 class="day-name">Tuesday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Rest</span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
-    <div class="day-body"><div class="day-inner">
+    <div class="day-body" id="d-tue-body"><div class="day-inner">
     <div class="rest-note">Fresh legs for tomorrow night.</div>
     </div></div>
   </section>
 
   <!-- WEDNESDAY -->
   <section class="day ball" id="d-wed" data-day="3">
-    <header class="day-head">
+    <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-wed-body">
       <h2 class="day-name">Wednesday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">🏀 Game Night<br><span class="day-count" data-count></span></span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
-    <div class="day-body"><div class="day-inner">
+    <div class="day-body" id="d-wed-body"><div class="day-inner">
     <div class="rows"></div>
     </div></div>
     <!-- outside the collapsible body: still reachable once the game is ticked off -->
@@ -1164,52 +1171,52 @@
 
   <!-- THURSDAY -->
   <section class="day" id="d-thu" data-day="4">
-    <header class="day-head">
+    <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-thu-body">
       <h2 class="day-name">Thursday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Upper + Hinge<br><span class="day-count" data-count></span></span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
-    <div class="day-body"><div class="day-inner">
+    <div class="day-body" id="d-thu-body"><div class="day-inner">
     <div class="rows"></div>
     </div></div>
   </section>
 
   <!-- FRIDAY -->
   <section class="day rest" id="d-fri" data-day="5">
-    <header class="day-head">
+    <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-fri-body">
       <h2 class="day-name">Friday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Rest</span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
-    <div class="day-body"><div class="day-inner">
+    <div class="day-body" id="d-fri-body"><div class="day-inner">
     <div class="rest-note">Recover.</div>
     </div></div>
   </section>
 
   <!-- SATURDAY -->
   <section class="day" id="d-sat" data-day="6">
-    <header class="day-head">
+    <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-sat-body">
       <h2 class="day-name">Saturday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Full Body + Cardio<br><span class="day-count" data-count></span></span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
-    <div class="day-body"><div class="day-inner">
+    <div class="day-body" id="d-sat-body"><div class="day-inner">
     <div class="rows"></div>
     </div></div>
   </section>
 
   <!-- SUNDAY -->
   <section class="day optional" id="d-sun" data-day="0" data-optional>
-    <header class="day-head">
+    <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-sun-body">
       <h2 class="day-name">Sunday</h2>
       <span class="today-badge">Today</span>
       <span class="day-focus">Optional<br><span class="day-count" data-count></span></span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
-    <div class="day-body"><div class="day-inner">
+    <div class="day-body" id="d-sun-body"><div class="day-inner">
     <div class="rows"></div>
     </div></div>
   </section>
@@ -1249,9 +1256,9 @@
   <div id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden></div>
 
   <!-- PROGRAM EDITOR -->
-  <div class="editor" id="editor" hidden>
+  <div class="editor" id="editor" role="dialog" aria-modal="true" aria-labelledby="ed-title" hidden>
     <div class="ed-card">
-      <h3>Edit program</h3>
+      <h3 id="ed-title">Edit program</h3>
       <p class="ed-note">Changing sets or reps only affects future logging — everything you've already recorded stays put.</p>
       <div id="ed-body"></div>
       <div class="ed-actions">
@@ -1275,9 +1282,9 @@
   </div>
 
   <!-- BACKUP / RESTORE -->
-  <div class="backup" id="backup" hidden>
+  <div class="backup" id="backup" role="dialog" aria-modal="true" aria-labelledby="bk-title" hidden>
     <div class="bk-card">
-      <h3>Backup &amp; restore</h3>
+      <h3 id="bk-title">Backup &amp; restore</h3>
       <p class="bk-note">Copy this text somewhere safe (notes, email). To move to a new phone or recover, paste a saved backup below and tap Restore.</p>
       <textarea id="bk-text" rows="7" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
       <div class="bk-actions">
@@ -1289,11 +1296,11 @@
   </div>
 
   <!-- WEEK-COMPLETE CELEBRATION -->
-  <div class="celebrate" id="celebrate" hidden>
+  <div class="celebrate" id="celebrate" role="dialog" aria-modal="true" aria-labelledby="cel-title" hidden>
     <canvas aria-hidden="true"></canvas>
     <div class="cel-card">
       <div class="cel-eyebrow">Every session logged</div>
-      <h2>Week<br>Complete</h2>
+      <h2 id="cel-title">Week<br>Complete</h2>
       <p>3 lifts, 1 game, rest. That's how weeks compound.</p>
       <p class="cel-stats" id="cel-stats"></p>
       <div class="cel-actions">
@@ -1806,7 +1813,7 @@
        the panel lives among them. */
     if (dayIsDone(sec)){
       closePanel();
-      sec.classList.add('closed');
+      setDayClosed(sec, true);
       maybeCelebrate();
     }
   }
@@ -1855,6 +1862,15 @@
   }
   function dnClaimed(rec, dn){
     return Object.keys(rec.done).some(function(k){ return rec.done[k] === dn; });
+  }
+
+  /* Collapsing a day is a disclosure, so the header says whether it is open.
+     Every collapse goes through here rather than touching the class directly,
+     or the header and what a screen reader is told drift apart. */
+  function setDayClosed(sec, closed){
+    sec.classList.toggle('closed', closed);
+    var head = sec.querySelector('.day-head');
+    if (head) head.setAttribute('aria-expanded', closed ? 'false' : 'true');
   }
 
   function refreshDay(section){
@@ -1912,7 +1928,7 @@
     disarmAllDayChecks();
     rows.forEach(renderRow);
     days.forEach(refreshDay);
-    days.forEach(function(sec){ sec.classList.toggle('closed', dayIsDone(sec)); });
+    days.forEach(function(sec){ setDayClosed(sec, dayIsDone(sec)); });
     renderBand();
     renderChips();
     renderNotes();
@@ -2993,13 +3009,16 @@
   /* ---- week-complete celebration ---- */
   var cel = document.getElementById('celebrate');
 
-  /* Sunday's walk is labelled Optional in the routine, so it must not gate
-     the week: a week counts as done on the required days alone. */
+  /* A week is finished when its sessions are, and nothing else. Sunday's walk
+     is optional, and a rest day is not something you do — it completes itself
+     the day its slot arrives, so counting it here held a week that was
+     already session-complete open until a date rolled round, with the band
+     reading 4/4 and History calling the week done the whole time. This is
+     the same set of days requiredCards() and renderBand() judge a week on. */
   function allDaysDone(){
-    for (var i = 0; i < days.length; i++){
-      if (days[i].hasAttribute('data-optional')) continue;
-      if (!dayIsDone(days[i])) return false;
-    }
+    var req = requiredCards();
+    if (!req.length) return false;      /* an empty program has no week to finish */
+    for (var i = 0; i < req.length; i++) if (!dayIsDone(req[i])) return false;
     return true;
   }
   function maybeCelebrate(){
@@ -3032,8 +3051,15 @@
   cel.addEventListener('click', function(e){
     if (e.target === cel) startNextWeek();   /* tapping the backdrop counts */
   });
+  /* Escape backs out of whatever is covering the page. The editor and the
+     backup sheet used to trap a keyboard behind them — every other way out
+     of them is a tap on a button. Topmost first, so nesting can't matter. */
   document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape' && !cel.hidden) startNextWeek();
+    if (e.key !== 'Escape') return;
+    if (!cel.hidden){ startNextWeek(); return; }
+    if (!editorEl.hidden){ closeEditor(); return; }
+    if (!backupEl.hidden){ backupEl.hidden = true; return; }
+    if (openPanel) closePanel();
   });
 
   function confettiBurst(canvas, count, dur, onDone){
@@ -3327,6 +3353,10 @@
     DAY_IDS.forEach(function(d){
       out[d] = (draft[d] || []).filter(function(x){ return String(x.name).trim(); }).map(function(x){
         var y = { id: x.id, name: String(x.name).trim(), rx: String(x.rx).trim() || '—', sets: +x.sets || 1 };
+        /* the prescribed rest is not editable here, so it has to be carried
+           through: dropping it silently retimed every lift to the generic
+           default and put a rest clock on the walks, which prescribe none */
+        if (x.rest != null && isFinite(+x.rest)) y.rest = +x.rest;
         if (x.why && String(x.why).trim()) y.why = String(x.why).trim();
         if (x.wt) y.wt = true;
         if (x.wt && x.reps) y.reps = x.reps;
@@ -3609,7 +3639,7 @@
         refreshDay(sec);
         renderBand();
         var full = dayIsDone(sec);
-        sec.classList.toggle('closed', full);
+        setDayClosed(sec, full);
         stampWeek();
         if (full) maybeCelebrate();
       });
@@ -3618,8 +3648,17 @@
       check.setAttribute('aria-hidden', 'true');
       check.tabIndex = -1;
     }
-    sec.querySelector('.day-head').addEventListener('click', function(){
-      sec.classList.toggle('closed');
+    /* the header is the day's disclosure — a header element with role=button,
+       so Enter and Space need wiring by hand exactly as the rows do */
+    var head = sec.querySelector('.day-head');
+    head.addEventListener('click', function(){
+      setDayClosed(sec, !sec.classList.contains('closed'));
+    });
+    head.addEventListener('keydown', function(e){
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === head){
+        e.preventDefault();
+        head.click();
+      }
     });
   });
 
