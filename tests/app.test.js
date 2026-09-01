@@ -1343,6 +1343,87 @@ async function main() {
     }), 1);
   });
 
+  // -------------------------------------------------------------------- layout
+  /* The week list is what you read mid-set, so it is a list of what to do.
+     Why a lift is in the program is read once and lives behind the caret the
+     row already had; the note you wrote yourself stays on the row. */
+  await test('the coaching line rides in the exercise, the note rides on the row',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    const why = page.locator('[data-id="mon-1"] .why');
+    check('present but not shown', await why.count(), 1);
+    check('hidden while the row is shut', await why.isVisible(), false);
+
+    await openRow(page, 'mon-1');
+    check('and shown once it is open', await why.isVisible(), true);
+    check('reading the reason it is programmed',
+      (await why.textContent()).trim(), 'leg strength = longevity anchor');
+
+    await page.fill('.wt-panel .wt-notes', 'seat pin 4');
+    await page.waitForTimeout(150);
+    await page.click('.wt-panel .wt-close');
+    check('the note stays on the closed row',
+      await page.locator('[data-id="mon-1"] .row-note').isVisible(), true);
+
+    // finishing the lift strikes the name — and only the name
+    await tickAll(page, 'mon-1');
+    await page.click('#d-mon .day-head');       // the day collapsed itself
+    await page.waitForTimeout(400);
+    const deco = (sel) => page.locator(sel).evaluate((e) => getComputedStyle(e).textDecorationLine);
+    check('the name is struck through', await deco('[data-id="mon-1"] .ex-name'), 'line-through');
+    check('the note is not', await deco('[data-id="mon-1"] .row-note'), 'none');
+  });
+
+  /* The masthead is read once. Landing on it every time a tab is tapped put
+     the first chart most of a screen below the fold. */
+  await test('tabs land on the content, not on the masthead',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    const mastBottom = await page.locator('.masthead').evaluate(
+      (e) => e.getBoundingClientRect().bottom + scrollY);
+    /* as far as the title, or as far as the page goes — a view shorter than
+       the screen cannot scroll, and has nothing below the fold to rescue */
+    const scrolledPastTitle = () => page.evaluate((m) => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      return scrollY >= Math.min(m, max) - 2;
+    }, mastBottom);
+
+    await page.click('#tab-progress');
+    await page.waitForTimeout(400);
+    check('scrolled past the title', await scrolledPastTitle(), true);
+    check('the measure toggle is on screen', await page.locator('.metric-tabs').evaluate(
+      (e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }), true);
+
+    await page.click('#tab-history');
+    await page.waitForTimeout(400);
+    check('history too', await scrolledPastTitle(), true);
+    check('the calendar is on screen', await page.locator('.cal').evaluate(
+      (e) => e.getBoundingClientRect().top < innerHeight / 2), true);
+  });
+
+  /* Opening the last lift on a card used to build its panel below the fold,
+     so the tap looked like it had done nothing at all. */
+  await test('opening a lift brings its sets onto the screen',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.evaluate(() => document.querySelector('#d-thu').scrollIntoView());
+    await page.waitForTimeout(300);
+    const last = '[data-id="thu-4"]';
+    check('it starts low on the screen', await page.locator(last).evaluate(
+      (e) => e.getBoundingClientRect().top > innerHeight * 0.5), true);
+
+    await page.click(`${last} .ex`);
+    await page.waitForTimeout(900);
+    check('the whole panel is visible', await page.locator('.wt-panel').evaluate(
+      (e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }), true);
+  });
+
+  await test('the standing orders start out of the way', { date: '2026-07-23T09:00:00' },
+    async (page) => {
+    check('closed on load', await page.locator('.rules').evaluate((e) => e.open), false);
+    check('the list is not taking up room', await page.locator('.rules li').first().isVisible(), false);
+    await page.click('.rules summary');
+    await page.waitForTimeout(200);
+    check('and opens when asked', await page.locator('.rules li').first().isVisible(), true);
+  });
+
   // -------------------------------------------------------------- keyboard/AT
   /* Collapsing a day was a mouse-only gesture on a plain <header>, and the
      rows it clipped stayed in the tab order, so a keyboard could land on

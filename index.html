@@ -122,27 +122,32 @@
   .sheet{max-width:680px;margin:0 auto}
 
   /* ---------- header ---------- */
+  /* The masthead is read once and then scrolled past for the life of the
+     app. At its old size it cost a third of a phone screen — the screen you
+     are holding mid-set — so it is trimmed to the smallest that still reads
+     as a masthead, and the tabs land you below it rather than on it. */
   header.masthead{
     border-top:4px solid var(--ink);
     border-bottom:1px solid var(--ink);
-    padding:16px 0 14px;
-    margin-bottom:12px;
+    padding:11px 0 11px;
+    margin-bottom:10px;
   }
   .eyebrow{
     font-family:var(--mono);
-    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--court);font-weight:500;margin-bottom:6px;
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--court);font-weight:500;margin-bottom:3px;
   }
   h1{
     font-family:var(--display);
-    font-weight:600;font-size:clamp(28px,6.5vw,40px);
+    font-weight:600;font-size:clamp(22px,5.4vw,32px);
     text-transform:uppercase;letter-spacing:.01em;line-height:1.05;
     text-wrap:balance;
   }
-  .goals{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  /* the goals are a single scannable strip rather than a wrapped block */
+  .goals{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
   .goals span{
-    font-family:var(--mono);font-size:10.5px;font-weight:500;
-    border:1px solid var(--ink);padding:3px 8px;border-radius:2px;
+    font-family:var(--mono);font-size:9.5px;font-weight:500;
+    border:1px solid var(--ink);padding:2px 6px;border-radius:2px;
   }
 
   /* ---------- sticky top bar: view tabs + day nav ---------- */
@@ -300,10 +305,16 @@
   .day-count.done{color:var(--done)}
 
   /* ---------- exercise rows (tap to log a set) ---------- */
+  /* Two lines, not two columns. Stacking the prescription, the pips and the
+     weight chip down the right-hand side squeezed the name into half the
+     width — long ones wrapped early and left the caret stranded on a line of
+     its own — while the short stack left dead space under the name. The name
+     now gets the full width with its prescription beside it, and the things
+     you tap sit together on their own line underneath. */
   .row{
-    display:flex;align-items:flex-start;gap:12px;
+    display:flex;flex-direction:column;gap:5px;
     width:100%;text-align:left;
-    padding:11px 14px;
+    padding:10px 14px;
     min-height:52px;
     font:inherit;color:inherit;
     background:none;border:none;
@@ -315,23 +326,37 @@
   }
   .row:active{background:var(--tap-flash)}
   .row:focus-visible{outline:2px solid var(--court);outline-offset:-2px}
-  .ex{flex:1;min-width:0;font-size:15px}
-  .why{display:block;font-size:11.5px;color:var(--rest);margin-top:1px}
-  .meta{
-    display:flex;flex-direction:column;align-items:flex-end;gap:5px;
-    flex-shrink:0;
+  .ex{min-width:0;font-size:15px}
+  /* Why the lift is in the program is read once, when you set the program
+     up, and then costs a line on every row for the rest of the app's life.
+     It belongs behind the caret the row already has: open the exercise and
+     it is the first thing above the sets. The note stays put — a seat pin
+     is what you want to see without opening anything. */
+  .why{
+    display:none;font-size:11.5px;color:var(--rest);
+    margin-top:3px;
   }
+  .row[aria-expanded="true"] .why{display:block}
+  /* no minimum: a lift with nothing to load is just its pips, and should
+     take the height of its pips */
+  .meta{display:flex;align-items:center;gap:10px}
   .rx{
     font-family:var(--mono);font-size:13px;font-weight:500;
-    white-space:nowrap;color:var(--court-deep);
+    white-space:nowrap;color:var(--court-deep);flex-shrink:0;
   }
-  .pips{display:flex;gap:4px}
+  /* pips left, the weight chip pushed to the right edge */
+  .pips{display:flex;gap:4px;margin-right:auto}
   .pip{
     width:11px;height:11px;border-radius:2px;
     border:1.5px solid var(--court);
   }
   .pip.filled{background:var(--court)}
-  .row.done .ex{opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
+  /* A finished lift strikes its name through — but only its name. The
+     coaching line and the note under it ("seat pin 4") are the things you
+     come back to read next week, and a line through faded 11px text is
+     exactly what you cannot read. */
+  .row.done .ex{opacity:.55}
+  .row.done .ex-name{text-decoration:line-through;text-decoration-thickness:1px}
   .row.done .rx{opacity:.5}
   /* the row is a disclosure: it opens the exercise, it never logs anything */
   .row[aria-expanded="true"]{background:var(--finisher-bg)}
@@ -358,7 +383,9 @@
   .wt .wt-trend{font-size:9px;color:var(--court)}
   .wt .wt-trend.down{color:var(--warn)}
   .wt.is-prev{border-style:dashed;border-color:var(--rest);color:var(--rest)}
-  .wt.is-empty{border-style:dashed;border-color:var(--line);color:var(--rest)}
+  /* nothing logged yet is the one state that most needs tapping, so it reads
+     as an invitation rather than as a disabled control */
+  .wt.is-empty{border-style:dashed;border-color:var(--court);color:var(--court)}
   .wt:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   .row.done .wt{opacity:.6}
 
@@ -715,7 +742,12 @@
     font-family:var(--mono);font-size:12px;color:var(--rest);
     font-variant-numeric:tabular-nums;
   }
-  .wk-lines b{color:var(--ink);font-weight:500;text-align:right}
+  /* A week with a lot to say has to wrap, but it used to break inside a
+     phrase — "game" on one line, "high" alone on the next. Each fact is
+     unbreakable now, so a wrap lands on a separator. */
+  .wk-lines>div>span:first-child{flex-shrink:0}
+  .wk-lines b{color:var(--ink);font-weight:500;text-align:right;min-width:0}
+  .wk-bit{white-space:nowrap}
   .wk-lines b.wk-done{color:var(--done)}   /* a week that hit all its sessions */
   .wk-line.has-detail{
     cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
@@ -1222,7 +1254,9 @@
   </section>
 
   <!-- RULES -->
-  <details class="rules" open>
+  <!-- reference, not a checklist: open on demand rather than sitting open
+       between the last session and the footer controls -->
+  <details class="rules">
     <summary>Standing Orders</summary>
     <ul>
       <li>Progressive overload: add reps to top of range, then add load. Matching last week in a deficit still counts.</li>
@@ -1737,9 +1771,13 @@
     if (x.wt) a += ' data-wt';
     if (x.reps) a += ' data-reps="' + esc(x.reps) + '"';
     if (x.variants && x.variants.length === 2) a += ' data-variants="' + esc(x.variants.join('|')) + '"';
+    /* The name owns the first line outright; .meta is the line under it —
+       prescription, pips and the weight chip, the last two appended to it
+       at render time. */
     return '<div class="row' + (x.finisher ? ' finisher' : '') +
       '" role="button" tabindex="0" aria-expanded="false"' + a + '>' +
-      '<span class="ex">' + esc(x.name) +
+      '<span class="ex">' +
+        '<span class="ex-name">' + esc(x.name) + '</span>' +
         '<span class="row-caret" aria-hidden="true">▾</span>' +
         (x.why ? '<span class="why">' + esc(x.why) + '</span>' : '') +
       '</span>' +
@@ -2044,6 +2082,19 @@
     var chip = row.querySelector('.wt');
     if (chip) chip.setAttribute('aria-expanded', 'true');
     buildPanel(row, panel);
+    revealPanel(row, panel);
+  }
+
+  /* Tapping the last lift on a card opened its sets below the fold, so the
+     tap read as having done nothing. Bring the exercise up under the sticky
+     bar whenever its panel would not fit on the screen as it stands. */
+  function revealPanel(row, panel){
+    var restH = restBar && !restBar.hidden ? restBar.offsetHeight + 20 : 0;
+    var head = topbar ? topbar.offsetHeight : 0;
+    var top = row.getBoundingClientRect().top;
+    var bottom = panel.getBoundingClientRect().bottom;
+    if (top >= head && bottom <= window.innerHeight - restH) return;
+    window.scrollTo({ top: Math.max(0, window.scrollY + top - head - 8), behavior: 'smooth' });
   }
 
   function buildPanel(row, panel){
@@ -2966,7 +3017,8 @@
       lines += '<div class="wk-line' + (lifts.length ? ' has-detail' : '') + '"' +
         (lifts.length ? ' role="button" tabindex="0" aria-expanded="false" data-w="' + w + '"' : '') +
         '><span>' + (w === ew ? 'this week' : 'wk of ' + dayLabel(m)) + '</span><b' +
-        (full ? ' class="wk-done"' : '') + '>' + bits.join(' · ') +
+        (full ? ' class="wk-done"' : '') + '>' +
+        bits.map(function(t){ return '<span class="wk-bit">' + t + '</span>'; }).join(' · ') +
         (lifts.length ? '<span class="wk-caret">▾</span>' : '') + '</b></div>';
     }
     var list = document.createElement('div');
@@ -3703,7 +3755,12 @@
       var t = document.querySelector('.day.today');
       if (t) t.scrollIntoView({ block: 'start', behavior: 'instant' });
     } else {
-      window.scrollTo(0, 0);
+      /* Land on the content, not on the masthead. Scrolling to the very top
+         opened Progress and History on a title and four goal chips, with the
+         first chart most of a screen further down. The title is still there
+         for anyone who scrolls up for it. */
+      var y = views[name].getBoundingClientRect().top + window.scrollY - topbar.offsetHeight;
+      window.scrollTo(0, Math.max(0, Math.round(y)));
     }
   }
   Object.keys(tabBtns).forEach(function(k){

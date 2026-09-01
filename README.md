@@ -9,8 +9,10 @@ accounts, no network needed once installed.
 
 Three tabs:
 
-- **This Week** — the routine. Tap an exercise to open it. Everything for
-  that lift is inside: a row per set with a **done** button, and next to it
+- **This Week** — the routine. Each line is one lift: its name, then what it
+  asks for, how much of it you have done, and the weight to beat. Tap an
+  exercise to open it. Everything for that lift is inside, starting with why
+  it is in the program: a row per set with a **done** button, and next to it
   the weight, reps and effort for that set. Tick a set as you finish it, or
   rate how it felt and it ticks itself. Nothing else logs a set, so none can
   be started or scrapped by a stray tap, and sets can be ticked in any order
