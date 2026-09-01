@@ -1228,11 +1228,11 @@
   </section>
 
   <!-- SATURDAY -->
-  <section class="day" id="d-sat" data-day="6">
+  <section class="day optional" id="d-sat" data-day="6" data-optional>
     <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-sat-body">
       <h2 class="day-name">Saturday</h2>
       <span class="today-badge">Today</span>
-      <span class="day-focus">Full Body + Cardio<br><span class="day-count" data-count></span></span>
+      <span class="day-focus">Optional — Full Body<br><span class="day-count" data-count></span></span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
     <div class="day-body" id="d-sat-body"><div class="day-inner">
@@ -1726,7 +1726,8 @@
       { id: 'mon-3', rest: 180, name: 'DB bench press — neutral grip', why: 'press strength, low wrist torque', rx: '4 × 6–8', sets: 4, wt: true, reps: '6-8' },
       { id: 'mon-4', rest: 60, name: 'Seated calf ⇄ tibialis raise', why: 'ankle armour — hoops injury #1', rx: '3 × 15 ea', sets: 3, wt: true, reps: '15' },
       { id: 'mon-5', rest: 60, name: 'Copenhagen adductor plank', why: '~40% groin-injury cut in RCTs', rx: '3 × 20s /side', sets: 3 },
-      { id: 'mon-6', rest: 0, name: 'Incline walk — zone 2', rx: '15 min', sets: 1, finisher: true }
+      { id: 'sat-5', rest: 60, name: 'Pallof press + side plank', why: 'anti-rotation trunk for contact & cuts', rx: '2 rounds', sets: 2 },
+      { id: 'mon-6', rest: 0, name: 'Incline walk — zone 2', rx: '20 min', sets: 1, finisher: true }
     ],
     'd-wed': [
       { id: 'wed-1', rest: 0, name: 'Basketball', why: 'covers plyometrics + high-intensity intervals', rx: 'evening', sets: 1 }
@@ -1735,16 +1736,15 @@
       { id: 'thu-1', rest: 180, name: 'Trap bar / RDL — use straps', why: 'posterior chain; straps spare the elbow', rx: '4 × 5–6', sets: 4, wt: true, reps: '5-6', variants: ['Trap bar DL', 'RDL'] },
       { id: 'thu-2', rest: 120, name: 'Chest-supported row — neutral grip', why: 'strict pulling, no momentum on the tendon', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
       { id: 'thu-3', rest: 120, name: 'Lat pulldown — neutral grip', why: 'vertical pull minus pull-up hang', rx: '3 × 10', sets: 3, wt: true, reps: '10' },
-      { id: 'thu-4', rest: 120, name: 'Overhead DB press — neutral grip', why: 'shoulder strength for rebounds/contests', rx: '3 × 8', sets: 3, wt: true, reps: '8' },
+      { id: 'thu-4', rest: 120, name: 'Overhead DB press — neutral grip', why: 'shoulder strength for rebounds/contests', rx: '3 × 6–8', sets: 3, wt: true, reps: '6-8' },
       { id: 'thu-5', rest: 120, name: 'Nordic / slider leg curl', why: '~50% hamstring-injury cut in meta-analyses', rx: '3 × 5', sets: 3 },
-      { id: 'thu-6', rest: 0, name: 'Incline walk — zone 2', rx: '15 min', sets: 1, finisher: true }
+      { id: 'sat-4', rest: 60, name: 'Single-leg calf raise', why: 'Achilles capacity, side-to-side balance', rx: '3 × 12 /leg', sets: 3, wt: true, reps: '12' },
+      { id: 'thu-6', rest: 0, name: 'Incline walk — zone 2', rx: '20 min', sets: 1, finisher: true }
     ],
     'd-sat': [
       { id: 'sat-1', rest: 150, name: 'Hip thrust or 45° back extension', why: 'glute drive → jump & sprint, spares knees', rx: '3 × 8', sets: 3, wt: true, reps: '8', variants: ['Hip thrust', '45° back extension'] },
-      { id: 'sat-2', rest: 150, name: 'Incline DB press', why: '2×/week pressing beats 1× for muscle', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
+      { id: 'sat-2', rest: 150, name: 'Incline DB press', why: 'incline angle the flat press misses', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
       { id: 'sat-3', rest: 120, name: 'Cable row', why: 'pulling volume, elbow-friendly', rx: '3 × 10', sets: 3, wt: true, reps: '10' },
-      { id: 'sat-4', rest: 60, name: 'Single-leg calf raise', why: 'Achilles capacity, side-to-side balance', rx: '3 × 12 /leg', sets: 3, wt: true, reps: '12' },
-      { id: 'sat-5', rest: 60, name: 'Pallof press + side plank', why: 'anti-rotation trunk for contact & cuts', rx: '2 rounds', sets: 2 },
       { id: 'sat-6', rest: 0, name: 'Incline walk — zone 2', rx: '45 min', sets: 1, finisher: true }
     ],
     'd-sun': [
@@ -2714,12 +2714,13 @@
   function ewOf(dn){ return Math.floor((dn + 3) / 7); }
   function mondayDnOf(w){ return 7 * w - 3; }
   /* Day offsets from Monday for weeks that predate session tracking, when
-     the routine was fixed at Mon lift, Wed game, Thu lift, Sat lift. Only the
-     backward-looking count uses these. */
-  var LEGACY_REQ = [0, 2, 3, 5];
+     the routine was fixed at Mon lift, Wed game, Thu lift, Sat lift. Saturday
+     is a bonus card now, so it is not one of the sessions a week is counted
+     against here either. Only the backward-looking count uses these. */
+  var LEGACY_REQ = [0, 2, 3];
   var SUN = 6;
   /* What a week is judged on now comes from the program: the days that
-     actually hold exercises, Sunday's optional walk aside. Emptying a day in
+     actually hold exercises, the optional weekend cards aside. Emptying a day in
      the editor used to leave a requirement nothing could satisfy, so the week
      stuck one session short for good — the rule and the exercises are one
      thing now. This is the same test renderBand() applies. */
