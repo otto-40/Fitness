@@ -2221,6 +2221,8 @@
       save();
       if (on) startRest(restFor(id), exName(row), doneCount(id, +row.dataset.sets), +row.dataset.sets);
       else stopRest();     /* the rest it started was for a set you took back */
+      if (on) maybePR();   /* the last set can be what completes a PR — and it runs
+                              before the row settles, while the panel is still open */
       settleRow(row);
     }
     doneBtns.forEach(function(b){
@@ -2312,19 +2314,35 @@
         topInput.value = t == null ? '' : fmtW(t);
       }
     }
-    function commit(){
-      var sets = shown();
-      var best = -Infinity, ew = curWeek();
+    /* A PR is worth confetti only once the lift has actually been done: every
+       prescribed set ticked off AND a top load above the best of any earlier
+       week. A weight typed into the panel is a plan, not a session, so the
+       burst waits for the sets to back it up — which means the tick that
+       finishes the lift fires it just as readily as the load that beats the
+       record, whichever of the two lands last. */
+    function rowDone(){
+      var total = +row.dataset.sets;
+      for (var i = 0; i < total; i++) if (!flags[i]) return false;
+      return true;
+    }
+    function maybePR(){
+      if (!weighted || !rowDone()) return;
+      var ew = curWeek(), prKey = key + ':' + ew;
+      if (wstore.prSeen[prKey]) return;
+      var logged = currentEntry(key), top = logged ? logged.w : null;
+      if (top == null) return;
+      var best = -Infinity;
       entriesFor(key).forEach(function(e){
         if (e.ew < ew && e.w != null && e.w > best) best = e.w;
       });
-      writeSets(key, sets);
-      var top = topOf(sets), prKey = key + ':' + ew;
-      if (top != null && isFinite(best) && top > best && !wstore.prSeen[prKey]){
-        wstore.prSeen[prKey] = 1;
-        saveW();
-        prFlash(panel);
-      }
+      if (!isFinite(best) || top <= best) return;   /* a first session sets the bar, it doesn't beat it */
+      wstore.prSeen[prKey] = 1;
+      saveW();
+      prFlash(panel);
+    }
+    function commit(){
+      writeSets(key, shown());
+      maybePR();
       refresh();
     }
     /* set rows commit as you type; blank the weight to drop that set */

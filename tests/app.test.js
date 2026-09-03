@@ -367,7 +367,7 @@ async function main() {
     check('kg is fixed', await page.textContent('.wt-panel .wt-field span'), 'kg');
   });
 
-  await test('PR flash fires once, and not again after reload', { date: '2026-07-23T09:00:00',
+  await test('PR flash waits for the sets, then fires once', { date: '2026-07-23T09:00:00',
     seed: new Function(seedHelpers + `
       localStorage.setItem('sams-training-weights', JSON.stringify({
         unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {},
@@ -378,8 +378,16 @@ async function main() {
     check('last week is the target', (await page.textContent('.wt-panel [data-hint]')).trim(), '');
     await page.click('.wt-panel .wt-step[data-step="2.5"]'); // 102.5 beats the 100 best
     await page.waitForTimeout(250);
-    check('PR tag shown', await page.locator('.wt-panel .wt-pr').count(), 1);
+    check('a typed weight alone is not a PR', await page.locator('.wt-panel .wt-pr').count(), 0);
     check('chip trend up', (await page.textContent('[data-id="mon-1"] .wt .wt-trend')).trim(), '▲');
+
+    await tickSet(page, 'mon-1', 1);
+    await tickSet(page, 'mon-1', 2);
+    await tickSet(page, 'mon-1', 3);
+    check('still short of the last set', await page.locator('.wt-panel .wt-pr').count(), 0);
+    await tickSet(page, 'mon-1', 4);
+    await page.waitForTimeout(250);
+    check('PR tag shown once the lift is done', await page.locator('.wt-panel .wt-pr').count(), 1);
 
     await page.reload();
     await page.waitForTimeout(350);
@@ -387,6 +395,28 @@ async function main() {
     await page.fill('.wt-panel .wt-top', '102.5');
     await page.waitForTimeout(250);
     check('PR does not re-fire', await page.locator('.wt-panel .wt-pr').count(), 0);
+  });
+
+  await test('finishing every set at last week\'s weight is no PR', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {},
+        wt: { 'mon-1': [{ ew: ew - 1, w: 100 }] },
+      }));
+    `) }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    check('repeating last week', await page.inputValue('.wt-panel .wt-top'), '100');
+    await page.fill('.wt-panel .wt-top', '100');   // logged, same load as last week
+    await page.waitForTimeout(200);
+    check('session logged at 100', await page.evaluate(() => {
+      const es = JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'];
+      return es[es.length - 1].w;
+    }), 100);
+    await tickAll(page, 'mon-1');
+    await page.waitForTimeout(250);
+    check('no PR for holding the load', await page.locator('.wt-panel .wt-pr').count(), 0);
+    check('and none stored', await page.evaluate(() =>
+      Object.keys(JSON.parse(localStorage.getItem('sams-training-weights')).prSeen || {})), []);
   });
 
   await test('an exercise name is text, never markup', { date: '2026-07-23T09:00:00',
