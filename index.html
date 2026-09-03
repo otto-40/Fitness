@@ -1228,11 +1228,11 @@
   </section>
 
   <!-- SATURDAY -->
-  <section class="day optional" id="d-sat" data-day="6" data-optional>
+  <section class="day" id="d-sat" data-day="6">
     <header class="day-head" role="button" tabindex="0" aria-expanded="true" aria-controls="d-sat-body">
       <h2 class="day-name">Saturday</h2>
       <span class="today-badge">Today</span>
-      <span class="day-focus">Optional — Full Body<br><span class="day-count" data-count></span></span>
+      <span class="day-focus">Full Body + Cardio<br><span class="day-count" data-count></span></span>
       <button type="button" class="day-check" aria-pressed="false" aria-label="Mark day complete">✓</button>
     </header>
     <div class="day-body" id="d-sat-body"><div class="day-inner">
@@ -2714,13 +2714,12 @@
   function ewOf(dn){ return Math.floor((dn + 3) / 7); }
   function mondayDnOf(w){ return 7 * w - 3; }
   /* Day offsets from Monday for weeks that predate session tracking, when
-     the routine was fixed at Mon lift, Wed game, Thu lift, Sat lift. Saturday
-     is a bonus card now, so it is not one of the sessions a week is counted
-     against here either. Only the backward-looking count uses these. */
-  var LEGACY_REQ = [0, 2, 3];
+     the routine was fixed at Mon lift, Wed game, Thu lift, Sat lift. Only the
+     backward-looking count uses these. */
+  var LEGACY_REQ = [0, 2, 3, 5];
   var SUN = 6;
   /* What a week is judged on now comes from the program: the days that
-     actually hold exercises, the optional weekend cards aside. Emptying a day in
+     actually hold exercises, Sunday's optional walk aside. Emptying a day in
      the editor used to leave a requirement nothing could satisfy, so the week
      stuck one session short for good — the rule and the exercises are one
      thing now. This is the same test renderBand() applies. */

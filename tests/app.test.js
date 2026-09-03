@@ -417,37 +417,35 @@ async function main() {
                    'd-sat': [one('sat-1','D')], 'd-sun': [] },
       }));
     `) }, async (page) => {
-    check('the week asks for two, not three', (await page.textContent('#wb-count')).trim(), '0/2 sessions');
-    for (const id of ['mon-1', 'thu-1']) await tickSet(page, id, 1);
+    check('the week asks for three, not four', (await page.textContent('#wb-count')).trim(), '0/3 sessions');
+    for (const id of ['mon-1', 'thu-1', 'sat-1']) await tickSet(page, id, 1);
 
-    check('the band completes', (await page.textContent('#wb-count')).trim(), '2/2 sessions');
-    // two of two is the whole week: neither the emptied day nor the optional
-    // Saturday is a session to wait on
+    check('the band completes', (await page.textContent('#wb-count')).trim(), '3/3 sessions');
+    // three of three is the whole week: the empty day is not a session to wait on
     await page.waitForTimeout(250);
     check('and the week finishes on them', await page.locator('#celebrate').isVisible(), true);
-    check('Saturday was never needed', await page.locator('#d-sat .pip.filled').count(), 0);
     await page.click('#cel-next');
     await page.waitForTimeout(200);
 
     await page.click('#tab-history');
     await page.waitForTimeout(350);
-    check('history agrees', (await page.textContent('.wk-lines')).includes('2/2 sessions'), true);
+    check('history agrees', (await page.textContent('.wk-lines')).includes('3/3 sessions'), true);
     check('and the streak counts it', await page.locator('.hist-streak').count(), 1);
   });
 
   await test('the week band tracks progress as you go', { date: '2026-07-23T09:00:00' },
     async (page) => {
     const band = () => page.textContent('#wb-count').then((t) => t.trim());
-    check('starts empty', await band(), '0/3 sessions');
+    check('starts empty', await band(), '0/4 sessions');
 
     await completeDay(page, 'd-mon');
-    check('the day circle moves it', await band(), '1/3 sessions');
+    check('the day circle moves it', await band(), '1/4 sessions');
 
     await completeDayBySet(page, 'd-thu');
-    check('ticking sets moves it too', await band(), '2/3 sessions');
+    check('ticking sets moves it too', await band(), '2/4 sessions');
 
     await clearDay(page, 'd-mon');
-    check('and it goes back down', await band(), '1/3 sessions');
+    check('and it goes back down', await band(), '1/4 sessions');
   });
 
   // ------------------------------------------------------------------- effort
@@ -639,15 +637,14 @@ async function main() {
   });
 
   // ------------------------------------------------------- week completion
-  await test('week completes without the optional weekend cards', { date: '2026-08-01T09:00:00' }, async (page) => {
-    // Saturday: Tue and Fri already auto-complete, so the three sessions are all that remain
-    for (const id of ['d-mon', 'd-wed']) await completeDay(page, id);
+  await test('week completes without the optional Sunday walk', { date: '2026-08-01T09:00:00' }, async (page) => {
+    // Saturday: Tue and Fri already auto-complete, so the four sessions are all that remain
+    for (const id of ['d-mon', 'd-wed', 'd-thu']) await completeDay(page, id);
     check('not done yet', await page.locator('#celebrate').isHidden(), true);
 
-    await completeDay(page, 'd-thu');
+    await completeDay(page, 'd-sat');
     await page.waitForTimeout(300);
     check('celebrates on the last session', await page.locator('#celebrate').isVisible(), true);
-    check('Saturday still untouched', await page.locator('#d-sat .pip.filled').count(), 0);
     check('Sunday still untouched', await page.locator('#d-sun .pip.filled').count(), 0);
 
     await page.click('#cel-next');
@@ -655,7 +652,7 @@ async function main() {
     await page.click('#tab-history');
     await page.waitForTimeout(300);
     check('streak counts the week', (await page.textContent('.hist-streak')).trim(), 'streak · 1 wk');
-    check('roll-up counts sessions', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('3/3 sessions'), true);
+    check('roll-up counts sessions', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('4/4 sessions'), true);
   });
 
   // Finishing the week is the only thing that ends it: the celebration hands
@@ -665,7 +662,7 @@ async function main() {
     await page.fill('.wt-panel .wt-top', '90');
     await page.waitForTimeout(120);
     await page.click('.wt-panel .wt-close');
-    for (const id of ['d-mon', 'd-wed', 'd-thu']) await completeDay(page, id);
+    for (const id of ['d-mon', 'd-wed', 'd-thu', 'd-sat']) await completeDay(page, id);
     await page.waitForTimeout(300);
     check('celebration shown', await page.locator('#celebrate').isVisible(), true);
 
@@ -673,14 +670,14 @@ async function main() {
     await page.waitForTimeout(250);
     check('next week starts clean', await page.locator('.pip.filled').count(), 0);
     check('band names the new week', (await page.textContent('#wb-when')).trim(), 'New week from today');
-    check('no sessions yet', (await page.textContent('#wb-count')).trim(), '0/3 sessions');
+    check('no sessions yet', (await page.textContent('#wb-count')).trim(), '0/4 sessions');
     check('last week is the weight to beat', await page.locator('[data-id="mon-1"] .wt.is-prev').count(), 1);
     check('target value', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '90');
 
     // the finished week is in the log, dated the day it was actually done
     await page.click('#tab-history');
     await page.waitForTimeout(300);
-    check('finished week logged', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('3/3 sessions'), true);
+    check('finished week logged', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('4/4 sessions'), true);
     check('trained today', await page.locator('.cal-cell.c-today.c-ball, .cal-cell.c-today.c-done').count(), 1);
 
     // and it stays put across a reload — no second celebration, no going back
@@ -696,12 +693,12 @@ async function main() {
      the cards refused to turn over. Monday: Friday's rest slot is days away. */
   await test('a week finishes on its sessions, not on the rest days',
     { date: '2026-07-20T09:00:00' }, async (page) => {
-    for (const id of ['d-mon', 'd-wed']) await completeDay(page, id);
-    check('two in, not done', await page.locator('#celebrate').isHidden(), true);
+    for (const id of ['d-mon', 'd-wed', 'd-thu']) await completeDay(page, id);
+    check('three in, not done', await page.locator('#celebrate').isHidden(), true);
 
-    await completeDay(page, 'd-thu');
+    await completeDay(page, 'd-sat');
     await page.waitForTimeout(300);
-    check('the band is full', (await page.textContent('#wb-count')).trim(), '3/3 sessions');
+    check('the band is full', (await page.textContent('#wb-count')).trim(), '4/4 sessions');
     check('and the week finishes with it', await page.locator('#celebrate').isVisible(), true);
 
     await page.click('#cel-next');
@@ -711,7 +708,7 @@ async function main() {
   });
 
   await test('logging Sunday adds it as a bonus', { date: '2026-08-02T09:00:00' }, async (page) => {
-    for (const id of ['d-mon', 'd-wed', 'd-thu']) await completeDay(page, id);
+    for (const id of ['d-mon', 'd-wed', 'd-thu', 'd-sat']) await completeDay(page, id);
     await page.waitForTimeout(250);
     await page.click('#cel-next');
     await completeDay(page, 'd-sun');
@@ -814,7 +811,7 @@ async function main() {
     seed: new Function(seedHelpers + `
       const prev = monday - 7;
       const daysDone = {};
-      [0, 2].forEach(o => daysDone[prev + o] = 1);      // Thursday missing
+      [0, 2, 3].forEach(o => daysDone[prev + o] = 1);   // Saturday missing
       localStorage.setItem('sams-training-weights', JSON.stringify({
         unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone, backfilled: 1,
       }));
@@ -822,25 +819,24 @@ async function main() {
     await page.click('#tab-history');
     await page.waitForTimeout(300);
     check('incomplete week, no streak', await page.locator('.hist-streak').count(), 0);
-    check('roll-up shows the gap', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('2/3 sessions'), true);
+    check('roll-up shows the gap', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('3/4 sessions'), true);
 
-    // the missed Thursday is editable; this week's days are not
+    // the missed Saturday is editable; this week's days are not
     const missing = await page.evaluate(() => {
       const d = new Date();
       const dn = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
       const ew = Math.floor((dn + 3) / 7);
-      return 7 * ew - 3 - 7 + 3;
+      return 7 * ew - 3 - 7 + 5;
     });
     check('past day is tappable', await page.locator(`.c-edit[data-dn="${missing}"]`).count(), 1);
-    // missing is that week's Thursday, so +3 is the Sunday it ended on
     check('this week is not tappable', await page.locator('.c-edit').evaluateAll(
-      (els, m) => els.every((e) => +e.dataset.dn <= m), missing + 3), true);
+      (els, m) => els.every((e) => +e.dataset.dn <= m), missing + 1), true);
 
     await page.click(`.c-edit[data-dn="${missing}"]`);
     await page.waitForTimeout(250);
     check('day now counted', await page.locator(`.c-edit[data-dn="${missing}"][aria-pressed="true"]`).count(), 1);
     check('streak repaired', (await page.textContent('.hist-streak')).trim(), 'streak · 1 wk');
-    check('roll-up updated', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('3/3 sessions'), true);
+    check('roll-up updated', (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('4/4 sessions'), true);
 
     // removing it again needs a confirm
     await page.click(`.c-edit[data-dn="${missing}"]`);
@@ -1292,7 +1288,7 @@ async function main() {
 
   await test('a week finished last session moves on when you come back',
     { date: '2026-08-01T09:00:00' }, async (page) => {
-    for (const id of ['d-mon', 'd-wed', 'd-thu']) await completeDay(page, id);
+    for (const id of ['d-mon', 'd-wed', 'd-thu', 'd-sat']) await completeDay(page, id);
     await page.waitForTimeout(300);
     check('celebrating', await page.locator('#celebrate').isVisible(), true);
 
@@ -1320,7 +1316,7 @@ async function main() {
     `) }, async (page) => {
     check('Monday still complete', await page.locator('#d-mon.closed').count(), 1);
     check('its sets are intact', await page.locator('#d-mon .pip.filled').count(), 20);
-    check('band counts them', (await page.textContent('#wb-count')).trim(), '2/3 sessions');
+    check('band counts them', (await page.textContent('#wb-count')).trim(), '2/4 sessions');
     check('the old stamps are kept', await page.evaluate(() => {
       const w = JSON.parse(localStorage.getItem('sams-training-weights'));
       return Object.keys(w.daysDone).length;

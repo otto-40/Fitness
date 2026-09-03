@@ -58,9 +58,9 @@ ticked off; finish the last one, take the celebration, and the app hands you
 a clean set of cards there and then — the next week starts that day. A week
 nobody finishes gives way on its own seven days after it started.
 
-The required sessions are Monday, Wednesday and Thursday. Saturday and Sunday
-are bonus cards, drawn with a dashed edge: they count when you do them, but
-they never hold a week open. Three sessions is a finished week.
+The required sessions are Monday, Wednesday, Thursday and Saturday. Sunday's
+walk is a bonus card, drawn with a dashed edge: it counts when you do it, but
+it never holds a week open.
 
 Each session is logged against the day you actually did it, not the day the
 card is named after: catch Monday's lift up on Wednesday and Wednesday is
