@@ -51,12 +51,16 @@ async function withPage(opts, fn) {
 }
 
 async function test(name, opts, fn) {
+  if (process.env.TEST_FILTER && !name.includes(process.env.TEST_FILTER)) return;
   current = name;
+  const before = failures.length;
   try {
     await withPage(opts, fn);
   } catch (e) {
     failures.push(`${name} → threw\n      ${e.message.split('\n')[0]}`);
   }
+  console.log(`${failures.length === before ? 'PASS' : 'FAIL'} ${name}`);
+  failures.slice(before).forEach((f) => console.log(f));
 }
 
 /* Seeds run in the page before reload; they recompute day/week numbers the
@@ -305,6 +309,9 @@ async function main() {
     check('all sets take the weight',
       await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
       ['100', '100', '100', '100']);
+    check('a plan has no progression advice', await page.locator('.wt-panel [data-hint]').isHidden(), true);
+    check('a plan is not history', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,8'), false);
+    await tickAll(page, 'mon-1');
     check('progression hint', (await page.textContent('.wt-panel [data-hint]')).trim(),
       'All sets at 8 — load 102.5 kg next week.');
     check('reps recorded', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,8'), true);
@@ -332,6 +339,7 @@ async function main() {
     await page.fill('.wt-panel .wt-sw[data-i="3"]', '90');
     await page.fill('.wt-panel .wt-sr[data-i="3"]', '6');
     await page.waitForTimeout(150);
+    await tickAll(page, 'mon-1');
     check('history shows the spread', (await page.textContent('.wt-panel .wt-hist')).includes('100–90'), true);
     check('history shows per-set reps', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,6'), true);
     check('hint retracts below the range', await page.locator('.wt-panel [data-hint]').isHidden(), true);
@@ -486,7 +494,7 @@ async function main() {
         (els) => els.map((e) => e.textContent).filter(Boolean)),
       ['done', 'kg', 'reps', 'effort']);
     check('three choices per set',
-      await page.locator('.wt-panel .wt-set:nth-child(1) .wt-fxb').allTextContents(), ['E', 'M', 'H']);
+      await page.locator('.wt-panel .wt-set:nth-child(1) .wt-fxb').allTextContents(), ['Easy', 'Moderate', 'Hard']);
     check('nothing rated to start', await page.locator('.wt-panel .wt-fxb.on').count(), 0);
 
     await page.fill('.wt-panel .wt-top', '100');
@@ -545,8 +553,7 @@ async function main() {
     await page.click('[data-id="mon-1"] .wt');
     await page.fill('.wt-panel .wt-top', '100');
     await page.waitForTimeout(150);
-    check('reps alone still say add load', (await page.textContent('.wt-panel [data-hint]')).trim(),
-      'All sets at 8 — load 102.5 kg next week.');
+    check('planned reps do not recommend adding load', await page.locator('.wt-panel [data-hint]').isHidden(), true);
 
     for (const n of [1, 2, 3, 4]) await rate(page, n, 2);
     check('a grind at the top of the range holds it', (await page.textContent('.wt-panel [data-hint]')).trim(),
@@ -607,7 +614,7 @@ async function main() {
 
   await test('chart dots carry the week\u2019s effort', { date: '2026-07-23T09:00:00',
     seed: new Function(seedHelpers + `
-      const wk = (w, r, e) => ({ ew: w, w: 100, s: [{w:100,r,e},{w:100,r,e},{w:100,r,e},{w:100,r,e}] });
+      const wk = (w, r, e) => ({ ew: w, w: 100, s: [{w:100,r,e,done:true},{w:100,r,e,done:true},{w:100,r,e,done:true},{w:100,r,e,done:true}] });
       localStorage.setItem('sams-training-weights', JSON.stringify({
         unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
         wt: { 'mon-1': [wk(ew - 2, 6, 2), wk(ew - 1, 7, 1), wk(ew, 8, 0)] },
@@ -895,7 +902,7 @@ async function main() {
   // ------------------------------------------------------------ chart metrics
   await test('adding reps at the same load shows as progress', { date: '2026-07-23T09:00:00',
     seed: new Function(seedHelpers + `
-      const wk = (w, r) => ({ ew: w, w: 100, s: [{w:100,r},{w:100,r},{w:100,r},{w:100,r}] });
+      const wk = (w, r) => ({ ew: w, w: 100, s: [{w:100,r,done:true},{w:100,r,done:true},{w:100,r,done:true},{w:100,r,done:true}] });
       localStorage.setItem('sams-training-weights', JSON.stringify({
         unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
         wt: { 'mon-1': [wk(ew - 2, 6), wk(ew - 1, 7), wk(ew, 8)] },
@@ -945,7 +952,7 @@ async function main() {
     await page.fill('.wt-panel .wt-sw[data-i="4"]', '80');
     await page.fill('.wt-panel .wt-sr[data-i="4"]', '12');
     await page.waitForTimeout(200);
-    check('the extra set is stored', (await page.textContent('.wt-panel .wt-hist')).includes('8,8,8,8,12'), true);
+    check('the extra set is saved as a plan', await page.evaluate(() => JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'].at(-1).s.map(x => x.r)), [8,8,8,8,12]);
 
     await page.click('.wt-panel .wt-nset[data-d="-1"]');
     await page.waitForTimeout(200);
@@ -1242,6 +1249,7 @@ async function main() {
         wt: { 'mon-1': [{ ew: ew, w: 100, s: [{w:100,r:8}] }] },
       }));
     `) }, async (page) => {
+    await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable:true, value:{writeText:async()=>{}} }));
     check('never-backed-up warning', (await page.textContent('#bk-age')).includes('Never backed up'), true);
     await page.click('#backup-btn');
     await page.click('#bk-copy');
@@ -1454,7 +1462,7 @@ async function main() {
 
     await page.click(`${last} .ex`);
     await page.waitForTimeout(900);
-    check('the whole panel is visible', await page.locator('.wt-panel').evaluate(
+    check('the next set controls are visible', await page.locator('.wt-panel .next-set').evaluate(
       (e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }), true);
   });
 
@@ -1517,6 +1525,167 @@ async function main() {
     await page.waitForTimeout(150);
     check('Escape closes it too', await page.locator('.wt-panel').count(), 0);
   });
+
+  // P1/P2 regressions: use disposable browser contexts, never the live app.
+  await test('P1 plans stay out of progress; completed sets survive rollover', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'mon-1');
+    await page.fill('.wt-top', '50');
+    await page.click('.wt-close');
+    await page.click('#tab-progress');
+    check('one useful empty state', await page.locator('.pg-empty').count(), 1);
+    check('only the body section remains, no empty lift groups', await page.locator('.pg-day').count(), 1);
+    await page.click('#tab-week');
+    await tickSet(page, 'mon-1', 1);
+    await page.fill('.wt-sw[data-i="1"]', '200');
+    await page.click('.wt-close');
+    await page.click('#tab-progress');
+    await page.click('.mt[data-m="vol"]');
+    const volume = () => page.locator('.chart-card', {hasText:'Leg press'}).locator('.cc-now').textContent();
+    check('only one actual set counted', (await volume()).trim(), '400 kg');
+    await page.reload();
+    await page.click('#tab-progress');
+    check('completion persists on reload', (await volume()).trim(), '400 kg');
+    await page.click('#tab-week');
+    await tickSet(page, 'mon-1', 1);
+    await page.click('#tab-progress');
+    check('unticking removes it from progress', await page.locator('.pg-empty').count(), 1);
+    await page.click('#tab-week');
+    await tickSet(page, 'mon-1', 1);
+    await page.clock.fastForward(8 * 86400000);
+    await page.reload();
+    await page.click('#tab-progress');
+    check('past partial session counts only completed work', (await volume()).trim(), '400 kg');
+  });
+
+  await test('P1 lift history retains more than thirty entries', { date:'2026-07-23T09:00:00', seed:new Function(seedHelpers + `
+    localStorage.setItem('sams-training-weights', JSON.stringify({ perSet:1,
+      wt:{'mon-1':Array.from({length:35}, (_,i)=>({ew:ew-35+i,w:50,s:[{w:50,r:8}]}))}
+    }));
+  `)}, async(page)=>{
+    await openRow(page,'mon-1');
+    await page.fill('.wt-top','55');
+    await tickSet(page,'mon-1',1);
+    const entries=await page.evaluate(()=>JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1']);
+    check('all old entries plus current plan retained',entries.length,36);
+    check('oldest unchanged',entries[0].s,[{w:50,r:8}]);
+    await page.reload();
+    check('retention survives reload',await page.evaluate(()=>JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'].length),36);
+  });
+
+  await test('P1 removing a completed set supports undo after reload', {date:'2026-07-23T09:00:00'}, async(page)=>{
+    await openRow(page,'mon-1');
+    await page.fill('.wt-top','50');
+    await page.fill('.wt-sr[data-i="3"]','6');
+    await rate(page,4,2);
+    await page.click('.wt-nset[data-d="-1"]');
+    check('three sets remain',await page.locator('.wt-set').count(),3);
+    check('pips follow session count',await page.locator('[data-id="mon-1"] .pip').count(),3);
+    await page.fill('.wt-sw[data-i="0"]','60');
+    await page.reload();
+    await openRow(page,'mon-1');
+    check('removal persisted below prescribed count',await page.locator('.wt-set').count(),3);
+    check('undo survives',await page.locator('[data-undo]').isVisible(),true);
+    await page.click('[data-undo]');
+    check('four sets restored',await page.locator('.wt-set').count(),4);
+    check('later edit preserved',await page.inputValue('.wt-sw[data-i="0"]'),'60');
+    check('removed reps restored',await page.inputValue('.wt-sr[data-i="3"]'),'6');
+    check('removed effort restored',await page.locator('.wt-set:nth-child(4) .wt-fxb.on').textContent(),'Hard');
+    check('removed completion restored',await page.getAttribute('.wt-sdone[data-i="3"]','aria-pressed'),'true');
+    await page.click('.wt-nset[data-d="1"]');
+    check('extra set counted in progress pips',await page.locator('[data-id="mon-1"] .pip').count(),5);
+    check('new set is unfinished',await page.getAttribute('.wt-sdone[data-i="4"]','aria-pressed'),'false');
+  });
+
+  await test('P1 numbered completion saves prefilled weights', {date:'2026-07-23T09:00:00',seed:new Function(seedHelpers+`
+    localStorage.setItem('sams-training-weights',JSON.stringify({perSet:1,wt:{'mon-2':[{ew:ew-1,w:40,s:[{w:40,r:8},{w:40,r:8},{w:40,r:8}]}]}}));
+  `)},async(page)=>{
+    await tickSet(page,'mon-2',1);
+    await page.reload();
+    const ss=await page.evaluate(()=>JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-2'].at(-1).s);
+    check('tick stores actual weight',ss[0].w,40);
+    check('only ticked set complete',ss.map(x=>x.done),[true,false,false]);
+  });
+
+  await test('P2 backup copy failure does not reset reminder', {date:'2026-07-23T09:00:00'},async(page)=>{
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:()=>Promise.reject(Error('denied'))}}));
+    await page.click('#backup-btn');
+    await page.click('#bk-copy');
+    await page.waitForTimeout(100);
+    check('failed copy date remains unset',await page.evaluate(()=>JSON.parse(localStorage.getItem('sams-training-weights')).lastBackup || null),null);
+    check('failure provides recovery',(await page.textContent('.bk-note')).includes('Copy failed'),true);
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));
+    await page.click('#bk-copy');
+    await page.waitForTimeout(100);
+    check('successful copy is dated',await page.evaluate(()=>typeof JSON.parse(localStorage.getItem('sams-training-weights')).lastBackup),'number');
+  });
+
+  await test('P2 downloadable backup round trips through file import', {date:'2026-07-23T09:00:00'},async(page)=>{
+    await openRow(page,'mon-1');
+    await page.fill('.wt-top','65');
+    await tickSet(page,'mon-1',1);
+    await page.click('#backup-btn');
+    const downloading=page.waitForEvent('download');
+    await page.click('#bk-download');
+    const download=await downloading;
+    const data=fs.readFileSync(await download.path());
+    check('download contains own data',JSON.parse(data).history.wt['mon-1'][0].s[0].w,65);
+    check('initiating a download is not confirmation',await page.evaluate(()=>JSON.parse(localStorage.getItem('sams-training-weights')).lastBackup || null),null);
+    await page.click('#bk-confirm');
+    check('confirmed file has date',await page.evaluate(()=>typeof JSON.parse(localStorage.getItem('sams-training-weights')).lastBackup),'number');
+    await page.setInputFiles('#bk-file',{name:'backup.json',mimeType:'application/json',buffer:data});
+    await page.waitForTimeout(100);
+    check('import is staged, not applied',await page.evaluate(()=>JSON.parse(localStorage.getItem('sams-training-weights')).lastBackupMethod),'file');
+    await page.click('#bk-restore');
+    check('first click asks to replace',await page.textContent('#bk-restore'),'Replace all data?');
+    await page.click('#bk-restore');
+    check('restored completion intact',await page.evaluate(()=>JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'][0].s[0].done),true);
+    check('restore closes stale panel',await page.locator('.wt-panel').count(),0);
+    await page.click('#backup-btn');
+    await page.setInputFiles('#bk-file',{name:'broken.json',mimeType:'application/json',buffer:Buffer.from('{no')});
+    await page.waitForTimeout(100);
+    check('bad file explained', (await page.textContent('.bk-note')).includes('Nothing has been changed'),true);
+  });
+
+  await test('P2 modals contain focus and return it', {date:'2026-07-23T09:00:00'},async(page)=>{
+    for(const [opener,modal] of [['#backup-btn','#backup'],['#pref-edit','#editor']]){
+      await page.click(opener);
+      check('focus starts inside '+modal,await page.locator(modal).evaluate(e=>e.contains(document.activeElement)),true);
+      await page.keyboard.press('Shift+Tab');
+      check('backwards tab wraps inside '+modal,await page.locator(modal).evaluate(e=>e.contains(document.activeElement)),true);
+      await page.keyboard.press('Tab');
+      check('forward tab wraps inside '+modal,await page.locator(modal).evaluate(e=>e.contains(document.activeElement)),true);
+      check('background is inert',await page.locator('#view-week').evaluate(e=>e.inert),true);
+      await page.keyboard.press('Escape');
+      check('focus returns to opener',await page.locator(opener).evaluate(e=>e===document.activeElement),true);
+      check('background is active again',await page.locator('#view-week').evaluate(e=>e.inert),false);
+    }
+  });
+
+  await test('P2 rest timer resumes after reload and stays dismissed', {date:'2026-07-23T09:00:00'},async(page)=>{
+    await tickSet(page,'mon-1',1);
+    await page.clock.fastForward(60000);
+    await page.reload();
+    check('timer comes back',await page.locator('#rest-bar').isVisible(),true);
+    check('correct time remaining',await page.textContent('#rb-time'),'2:00');
+    check('set context comes back',await page.textContent('#rb-set'),'set 1 of 4');
+    await page.click('#rb-stop');
+    await page.reload();
+    check('skip persists',await page.locator('#rest-bar').isHidden(),true);
+    await tickSet(page,'mon-1',2);
+    await page.clock.fastForward(310000);
+    await page.reload();
+    check('old timer stays expired',await page.locator('#rest-bar').isHidden(),true);
+  });
+
+  await test('P2 phone targets fit without horizontal scrolling', {date:'2026-07-23T09:00:00'},async(page)=>{
+    for(const width of [320,390,768]){
+      await page.setViewportSize({width,height:844});
+      await openRow(page,'mon-1');
+      check('no horizontal overflow at '+width,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      check('comfortable done and effort targets at '+width,await page.locator('.wt-sdone,.wt-fxb').evaluateAll(els=>els.every(e=>{const r=e.getBoundingClientRect();return r.width>=44 && r.height>=44;})),true);
+    }
+  });
+
 
   await browser.close();
 

@@ -408,11 +408,18 @@
   .wt-var button.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
   .wt-var button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   .wt-sets{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-  .wt-set{display:flex;align-items:center;gap:7px}
+  .wt-guide{font-size:14px;line-height:1.5;color:var(--ink);margin:0 0 16px}
+  .wt-set{display:grid;grid-template-columns:48px minmax(0,1.35fr) 12px minmax(0,1fr);align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  .wt-set.next-set{background:var(--panel);outline:2px solid var(--court);outline-offset:2px;border-radius:4px}
+  .wt-next{font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--ink)}
+  .wt-undo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;margin:12px 0}
+  .wt-undo[hidden]{display:none}
+  .wt-undo button{min-height:48px;padding:8px 12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;cursor:pointer}
+  .wt-undo button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   /* the set number doubles as the done control — completing a set happens
      here, next to the set it belongs to, and nowhere else */
   .wt-sdone{
-    width:32px;height:42px;flex-shrink:0;padding:0;
+    width:48px;height:48px;flex-shrink:0;padding:0;
     display:flex;align-items:center;justify-content:center;
     font-family:var(--mono);font-size:13px;font-weight:500;
     font-variant-numeric:tabular-nums;
@@ -427,8 +434,8 @@
   .wt-ticks{display:flex;flex-wrap:wrap;gap:6px}
   .wt-ticks .wt-sdone{flex:1;min-width:52px;max-width:96px;height:46px;width:auto}
   .wt-set input{
-    min-width:0;min-height:42px;
-    font-family:var(--mono);font-size:15px;font-weight:500;
+    min-width:0;min-height:48px;width:100%;box-sizing:border-box;
+    font-family:var(--mono);font-size:16px;font-weight:500;
     font-variant-numeric:tabular-nums;text-align:center;
     color:var(--ink);background:var(--panel);
     border:1px solid var(--line);border-radius:4px;
@@ -444,23 +451,22 @@
   }
   .wt-x{width:9px;text-align:center}
 
-  /* per-set effort — how the set actually felt. The column headings carry
-     the labels so each row can stay a single line on a phone. */
+  /* Put named effort choices below each set so they stay easy to tap. */
   .wt-shead{
     display:flex;align-items:center;gap:7px;margin-top:10px;
-    font-family:var(--mono);font-size:9.5px;color:var(--rest);
+    font-family:var(--mono);font-size:12px;color:var(--ink);
     text-transform:uppercase;letter-spacing:.07em;
   }
   .wt-shead span{text-align:center}
-  .wt-shead .h-n{width:32px;flex-shrink:0}
+  .wt-shead .h-n{width:48px;flex-shrink:0}
   .wt-shead .h-w{flex:1.35}
   .wt-shead .h-x{width:9px;flex-shrink:0}
   .wt-shead .h-r{flex:1}
-  .wt-shead .h-e{width:100px;flex-shrink:0}
-  .wt-fx{display:flex;gap:2px;width:100px;flex-shrink:0}
+  .wt-shead .h-e{display:none}
+  .wt-fx{grid-column:1 / -1;display:flex;gap:8px;width:100%}
   .wt-fxb{
-    flex:1;min-width:0;min-height:42px;padding:0;
-    font-family:var(--mono);font-size:11.5px;font-weight:500;
+    flex:1;min-width:0;min-height:48px;padding:0 4px;
+    font-family:var(--mono);font-size:14px;font-weight:500;
     color:var(--rest);background:var(--panel);
     border:1px solid var(--line);border-radius:4px;
     cursor:pointer;touch-action:manipulation;
@@ -909,13 +915,14 @@
   .backup[hidden]{display:none}
   .bk-card{
     background:var(--panel);border:1px solid var(--line);border-radius:6px;
-    padding:18px 16px;max-width:520px;width:100%;
+    padding:18px 16px;max-width:520px;width:100%;max-height:calc(100dvh - 40px);overflow:auto;
   }
   .bk-card h3{
     font-family:var(--display);font-size:16px;font-weight:600;
     text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
   }
-  .bk-note{font-size:12.5px;color:var(--rest);margin-bottom:10px}
+  .bk-label{display:block;font-size:14px;margin:12px 0 6px}
+  .bk-note{font-size:14px;color:var(--rest);margin-bottom:10px}
   #bk-text{
     width:100%;resize:vertical;
     font-family:var(--mono);font-size:11px;line-height:1.5;
@@ -924,7 +931,7 @@
     padding:8px;outline:none;
   }
   #bk-text:focus-visible{outline:2px solid var(--court);outline-offset:1px}
-  .bk-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+  .bk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:flex-end}
   .bk-actions button{
     font-family:var(--mono);font-size:12px;font-weight:500;
     letter-spacing:.06em;text-transform:uppercase;
@@ -1319,10 +1326,15 @@
   <div class="backup" id="backup" role="dialog" aria-modal="true" aria-labelledby="bk-title" hidden>
     <div class="bk-card">
       <h3 id="bk-title">Backup &amp; restore</h3>
-      <p class="bk-note">Copy this text somewhere safe (notes, email). To move to a new phone or recover, paste a saved backup below and tap Restore.</p>
+      <p class="bk-note" role="status">Download a backup file or copy the text somewhere safe. Import a file or paste saved text, then tap Restore to replace this device’s data.</p>
+      <label for="bk-text" class="bk-label">Backup text</label>
       <textarea id="bk-text" rows="7" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
       <div class="bk-actions">
-        <button type="button" id="bk-copy">Copy</button>
+        <button type="button" id="bk-download">Download backup</button>
+        <button type="button" id="bk-import">Import file</button>
+        <input type="file" id="bk-file" accept=".json,application/json" hidden>
+        <button type="button" id="bk-copy">Copy text</button>
+        <button type="button" id="bk-confirm" hidden>I’ve saved my backup</button>
         <button type="button" id="bk-restore">Restore</button>
         <button type="button" id="bk-close">Close</button>
       </div>
@@ -1383,6 +1395,7 @@
      included, is left unbound */
   function bootRender(){
     try {
+      migrateCompletion();
       syncToday();
     } catch (e) {
       setAsideStore();
@@ -1409,6 +1422,7 @@
     if (wstore.prefs.wake == null) wstore.prefs.wake = false;
     if (!wstore.prefs.metric) wstore.prefs.metric = 'e1rm';
     if (!wstore.rest) wstore.rest = {};      /* exercise id -> rest seconds */
+    if (!wstore.setUndo) wstore.setUndo = {};
     if (!wstore.notes) wstore.notes = {};    /* exercise id -> free text */
     /* training weeks: w -> { start: dn, done: { cardId -> dn it was finished } }.
        Weeks used to be calendar weeks that wiped themselves every Monday; now
@@ -1516,6 +1530,7 @@
     return best === null ? ewOf(dn) : best;
   }
   function beginWeek(start){
+    if (restBar) stopRest();
     var w = curWeek() + 1;
     wstore.weekNo = w;
     wstore.weeks[w] = { start: start, done: {} };
@@ -1561,13 +1576,38 @@
     /* latest prior week WITH a weight — reps-only entries don't count */
     var es = entriesFor(id), ew = curWeek();
     for (var i = es.length - 1; i >= 0; i--)
-      if (es[i].ew < ew && es[i].w != null) return es[i];
+      if (es[i].ew < ew && recordedEntry(es[i])) return recordedEntry(es[i]);
     return null;
   }
   /* An entry holds one row per set — sets can carry different loads, e.g. a
      back-off set. e.w stays the top set's weight, which is what the chip,
      charts, PR test and hints all compare week to week. */
   function setsOf(e){ return (e && e.s) || []; }
+  /* Old historical entries have no completion flag: preserve those records.
+     New entries explicitly distinguish a saved plan from completed work. */
+  function recordedEntry(e){
+    if (!e) return null;
+    var ss = setsOf(e).filter(function(s){ return s && s.done !== false; });
+    var w = topOf(ss);
+    return w == null ? null : { ew: e.ew, w: w, s: ss };
+  }
+  function completedSession(e){
+    return e && setsOf(e).length && setsOf(e).every(function(s){ return s && s.done !== false; });
+  }
+  function migrateCompletion(){
+    if (wstore.completionVersion) return;
+    Object.keys(wstore.wt).forEach(function(key){
+      var e = currentEntry(key);
+      if (!e) return;
+      var id = key.split('~')[0], flags = setFlags(id, setsOf(e).length);
+      e.s.forEach(function(s, i){ if (s && s.done == null) s.done = !!flags[i]; });
+    });
+    wstore.completionVersion = 1;
+    saveW();
+  }
+  function totalFor(row){
+    return (store.counts && store.counts[row.dataset.id]) || +row.dataset.sets;
+  }
   function hasReps(e){
     return setsOf(e).some(function(s){ return s && s.r != null; });
   }
@@ -1592,7 +1632,7 @@
     { e: 2, mark: 'H', label: 'hard' }
   ];
   function loadedSets(e){
-    return setsOf(e).filter(function(s){ return s && s.w != null; });
+    return setsOf(e).filter(function(s){ return s && s.w != null && s.done !== false; });
   }
   function hasEffort(e){
     return loadedSets(e).some(function(s){ return s.e != null; });
@@ -1624,8 +1664,8 @@
   /* how many sessions in a row have ended on this same top weight — the
      length of a plateau, counted back from the entry given */
   function sameLoadRun(key, e){
-    var es = entriesFor(key).filter(function(x){ return x.w != null; });
-    var i = es.indexOf(e);
+    var es = entriesFor(key).filter(completedSession).map(recordedEntry).filter(Boolean);
+    var i = es.findIndex(function(x){ return x.ew === e.ew; });
     if (i < 0) return 0;
     var n = 1;
     while (i - n >= 0 && es[i - n].w === e.w) n++;
@@ -1641,12 +1681,12 @@
       if (!live) return;
       last = { ew: ew, w: null, s: [] };
       es.push(last);
-      if (es.length > 30) es.shift();
+      // Keep the complete training record; charts choose their own display window.
     }
     if (!live){
       es.pop();
     } else {
-      last.s = sets.map(function(s){ return { w: s.w, r: s.r, e: s.e }; });
+      last.s = sets.map(function(s){ return { w: s.w, r: s.r, e: s.e, done: s.done === true }; });
       last.w = topOf(last.s);
     }
     wstore.wt[key] = es;
@@ -1670,9 +1710,9 @@
     { k: 'vol',  label: 'Volume' }
   ];
   function metricOf(e, m){
-    var ss = setsOf(e).filter(function(s){ return s && s.w != null; });
+    var ss = loadedSets(e);
     if (!ss.length) return null;
-    if (m === 'top') return e.w;
+    if (m === 'top') return topOf(ss);
     if (m === 'vol'){
       var t = 0, any = false;
       ss.forEach(function(s){ if (s.r != null){ t += s.w * s.r; any = true; } });
@@ -1812,12 +1852,21 @@
   function writeFlags(id, flags){
     if (flags.some(Boolean)) store.sets[id] = flags.map(function(f){ return f ? 1 : 0; });
     else delete store.sets[id];
+    var row = rows.find(function(r){ return r.dataset.id === id; });
+    if (row && row.hasAttribute('data-wt')){
+      var e = currentEntry(keyFor(row));
+      if (e){
+        e.s.forEach(function(s, i){ if (s) s.done = !!flags[i]; });
+        saveW();
+      }
+    }
   }
 
   function renderRow(row){
-    var id = row.dataset.id, total = +row.dataset.sets;
+    var id = row.dataset.id, total = totalFor(row);
     var flags = setFlags(id, total), count = doneCount(id, total);
     var pips = row.querySelector('.pips');
+    if (pips && pips.children.length !== total){ pips.remove(); pips = null; }
     if (!pips){
       pips = document.createElement('span');
       pips.className = 'pips';
@@ -1869,7 +1918,7 @@
     /* rest days complete themselves once their slot's date arrives */
     if (!dayRows.length) return cardDn(section) <= todayDn();
     for (var i = 0; i < dayRows.length; i++){
-      if (doneCount(dayRows[i].dataset.id, +dayRows[i].dataset.sets) < +dayRows[i].dataset.sets) return false;
+      if (doneCount(dayRows[i].dataset.id, totalFor(dayRows[i])) < totalFor(dayRows[i])) return false;
     }
     return true;
   }
@@ -2015,7 +2064,7 @@
   function renderChips(){ wtRows.forEach(renderChip); }
 
   function histLines(key){
-    var es = entriesFor(key).slice(-5).reverse(), ew = curWeek(), out = [];
+    var es = entriesFor(key).map(recordedEntry).filter(Boolean).slice(-5).reverse(), ew = curWeek(), out = [];
     es.forEach(function(e, i){
       var ago = ew - e.ew;
       var label = ago === 0 ? 'this week' : ago === 1 ? 'last week' : ago + ' wks ago';
@@ -2042,7 +2091,7 @@
       out.push('<div><span>' + label + '</span><b>' + load + d + reps + fx + '</b></div>');
     });
     return out.length ? out.join('')
-                      : '<div class="wt-none">First time — log it now, beat it next week.</div>';
+                      : '<div class="wt-none">Completed sets will appear here.</div>';
   }
 
   function closePanel(){
@@ -2105,9 +2154,11 @@
     /* the prescription sets the default row count; a session can add to or
        drop from it without changing the program */
     var nSets = weighted
-      ? (+(panel.dataset.nsets || 0) || Math.max(+row.dataset.sets, setsOf(cur).length, 1))
+      ? (+(panel.dataset.nsets || 0) || (store.counts && store.counts[id]) || Math.max(+row.dataset.sets, setsOf(cur).length, 1))
       : Math.max(+row.dataset.sets, 1);
-    var flags = setFlags(id, Math.max(nSets, +row.dataset.sets));
+    var flags = setFlags(id, nSets);
+    var undoKey = curWeek() + ":" + key;
+    var removed = wstore.setUndo[undoKey] || [];
     var prevSets = setsOf(prev);
     /* reps start at the prescribed number — the top of a range is the target
        you're chasing — so a normal session needs no rep editing at all */
@@ -2140,7 +2191,9 @@
              '" aria-label="Set ' + (i + 1) + ' done">' + (flags[i] ? '✓' : (i + 1)) + '</button>';
     }
 
-    var html = '';
+    var html = '<p class="wt-guide">' + (weighted
+      ? 'Check your weight and reps, then tap an effort to complete the set and start rest. Or use the numbered done button.'
+      : 'Tap each numbered button as you finish a set.') + '</p>';
     if (names){
       html += '<div class="wt-var">' + names.map(function(n, i){
         return '<button type="button"' + (i === variantIdx(id) ? ' class="on"' : '') +
@@ -2158,10 +2211,10 @@
           '<span class="h-n">done</span><span class="h-w">kg</span><span class="h-x"></span>' +
           '<span class="h-r">reps</span><span class="h-e">effort</span>' +
         '</div>';
-      html += '<div class="wt-sets">';
+      html += '<p class="wt-next" role="status"></p><div class="wt-sets">';
       for (var i = 0; i < nSets; i++){
         var se = seedE(i);
-        html += '<div class="wt-set">' +
+        html += '<div class="wt-set" data-set="' + i + '">' +
           doneBtn(i) +
           '<input class="wt-sw" data-i="' + i + '" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(i) + '" aria-label="Set ' + (i + 1) + ' weight in kg">' +
           '<span class="wt-x">×</span>' +
@@ -2170,7 +2223,7 @@
             EFFORTS.map(function(f){
               return '<button type="button" class="wt-fxb fx' + f.e + (se === f.e ? ' on' : '') +
                      '" data-i="' + i + '" data-e="' + f.e + '" aria-pressed="' + (se === f.e) +
-                     '" aria-label="Set ' + (i + 1) + ' felt ' + f.label + '">' + f.mark + '</button>';
+                     '" aria-label="Set ' + (i + 1) + ' felt ' + f.label + '">' + (f.e === 0 ? 'Easy' : f.e === 1 ? 'Moderate' : 'Hard') + '</button>';
             }).join('') +
           '</span>' +
         '</div>';
@@ -2181,6 +2234,7 @@
         '<button type="button" class="wt-nset" data-d="1">+ set</button>' +
         '<button type="button" class="wt-rest" data-rest>rest ' + restLabel(restFor(id)) + '</button>' +
       '</div>';
+      html += '<div class="wt-undo"' + (removed.length ? '' : ' hidden') + '><span>Set removed. Its values are kept until you undo.</span><button type="button" data-undo>Undo removal</button></div>';
       html += '<div class="wt-hint" data-hint hidden></div>';
     } else {
       /* nothing to load or count — just the sets, tapped off as you do them */
@@ -2198,8 +2252,8 @@
         esc(wstore.notes[key] || '') + '" aria-label="Note for this exercise">' +
       (weighted ? '<div class="wt-hist">' + histLines(key) + '</div>' : '') +
       '<div class="wt-foot">' +
-        '<span class="wt-note">' + (weighted ? 'Saves what you see' : 'Tap a set as you finish it') + '</span>' +
-        '<button type="button" class="wt-close">' + (weighted ? 'Save' : 'Done') + '</button>' +
+        '<span class="wt-note" role="status">' + (writeFailed ? 'Not saved — use Backup to keep a copy' : 'Saved on this device') + '</span>' +
+        '<button type="button" class="wt-close">' + (weighted ? 'Done editing' : 'Done') + '</button>' +
       '</div>';
     panel.innerHTML = html;
 
@@ -2218,8 +2272,10 @@
         b.textContent = on ? '✓' : (i + 1);
       }
       writeFlags(id, flags);
+      if (weighted) commit();
       save();
-      if (on) startRest(restFor(id), exName(row), doneCount(id, +row.dataset.sets), +row.dataset.sets);
+      updateNextSet();
+      if (on) startRest(restFor(id), exName(row), i + 1, nSets);
       else stopRest();     /* the rest it started was for a set you took back */
       if (on) maybePR();   /* the last set can be what completes a PR — and it runs
                               before the row settles, while the panel is still open */
@@ -2252,6 +2308,7 @@
         return {
           w: w == null || w <= 0 ? null : Math.round(w * 4) / 4,
           r: r == null ? null : Math.round(r),
+          done: !!flags[i],
           e: e == null ? undefined : e
         };
       });
@@ -2271,13 +2328,18 @@
     function updateHint(){
       var el = panel.querySelector('[data-hint]');
       if (!el) return;                 /* nothing to advise on an unloaded lift */
-      var c2 = currentEntry(key), p2 = previousEntry(key);
+      var raw = currentEntry(key);
+      var c2 = completedSession(raw) ? recordedEntry(raw) : null, p2 = previousEntry(key);
+      if (p2 && setsOf(p2).length < nSets) p2 = null;
       var logged = c2 && c2.w != null;
       /* the session the advice is about: today's if there is one, else last */
       var ref = logged ? c2 : p2;
       var fx = ref ? effortRead(ref) : null;
       var run = ref ? sameLoadRun(key, ref) : 0;
       var msg = '';
+      if (raw && !completedSession(raw)){
+        el.hidden = true; el.textContent = ''; return;
+      }
       /* holding or backing off is a caution, not a green light */
       var hold = fx === 'hard';
       if (logged && repsAtTop(c2)){
@@ -2309,6 +2371,8 @@
       var hist = panel.querySelector('.wt-hist');
       if (hist) hist.innerHTML = histLines(key);
       updateHint();
+      var status = panel.querySelector(".wt-note");
+      if (status) status.textContent = writeFailed ? "Not saved — use Backup to keep a copy" : "Saved on this device";
       if (topInput){
         var t = topOf(shown());
         topInput.value = t == null ? '' : fmtW(t);
@@ -2321,7 +2385,7 @@
        finishes the lift fires it just as readily as the load that beats the
        record, whichever of the two lands last. */
     function rowDone(){
-      var total = +row.dataset.sets;
+      var total = nSets;
       for (var i = 0; i < total; i++) if (!flags[i]) return false;
       return true;
     }
@@ -2329,11 +2393,12 @@
       if (!weighted || !rowDone()) return;
       var ew = curWeek(), prKey = key + ':' + ew;
       if (wstore.prSeen[prKey]) return;
-      var logged = currentEntry(key), top = logged ? logged.w : null;
+      var logged = recordedEntry(currentEntry(key)), top = logged ? logged.w : null;
       if (top == null) return;
       var best = -Infinity;
       entriesFor(key).forEach(function(e){
-        if (e.ew < ew && e.w != null && e.w > best) best = e.w;
+        var recorded = recordedEntry(e);
+        if (recorded && e.ew < ew && recorded.w > best) best = recorded.w;
       });
       if (!isFinite(best) || top <= best) return;   /* a first session sets the bar, it doesn't beat it */
       wstore.prSeen[prKey] = 1;
@@ -2398,21 +2463,66 @@
       panel.querySelectorAll('.wt-var button').forEach(function(b){
         b.addEventListener('click', function(){
           wstore.variants[id] = +b.dataset.v;
+          var selected = currentEntry(keyFor(row));
+          writeFlags(id, selected ? setsOf(selected).map(function(s){ return s && s.done !== false; }) : []);
+          save();
           saveW();
+          delete panel.dataset.nsets;
+          renderRow(row);
+          refreshDay(row.closest('.day'));
           renderChip(row);
           buildPanel(row, panel); /* rebuild on the other variant's history */
         });
       });
     }
-    /* add or drop a set for this session only — the program is untouched */
+    function changeSets(next, nextFlags){
+      if (!store.counts) store.counts = {};
+      store.counts[id] = next.length;
+      panel.dataset.nsets = next.length;
+      writeSets(key, next);
+      writeFlags(id, nextFlags);
+      save();
+      buildPanel(row, panel);
+      renderRow(row);
+      refreshDay(row.closest('.day'));
+      renderBand();
+      stampWeek();
+    }
+    /* Store only the removed row, so undo does not replace later edits. */
     panel.querySelectorAll('.wt-nset').forEach(function(b){
       b.addEventListener('click', function(){
-        panel.dataset.nsets = Math.max(1, nSets + (+b.dataset.d));
-        buildPanel(row, panel);
-        /* persist the new length straight away, including a truncation */
-        panel.querySelector('.wt-sw').dispatchEvent(new Event('input'));
+        var next = shown(), nextFlags = flags.slice();
+        if (+b.dataset.d < 0){
+          if (next.length <= 1) return;
+          removed.push({ index: next.length - 1, set: next.pop(), done: !!nextFlags.pop() });
+          wstore.setUndo[undoKey] = removed;
+        } else {
+          next.push({ w: next.length ? next[next.length - 1].w : null, r: repDefault, done: false });
+          nextFlags.push(false);
+        }
+        changeSets(next, nextFlags);
+        var focus = panel.querySelector(+b.dataset.d < 0 ? '[data-undo]' : '.wt-nset[data-d="1"]');
+        if (focus) focus.focus({ preventScroll: true });
       });
     });
+    var undo = panel.querySelector('[data-undo]');
+    if (undo) undo.addEventListener('click', function(){
+      var item = removed.pop();
+      if (!item) return;
+      var next = shown(), nextFlags = flags.slice();
+      var at = Math.min(item.index, next.length);
+      next.splice(at, 0, item.set);
+      nextFlags.splice(at, 0, item.done);
+      changeSets(next, nextFlags);
+      panel.querySelector('.wt-sdone[data-i="' + at + '"]').focus({ preventScroll: true });
+    });
+    function updateNextSet(){
+      var next = flags.indexOf(false);
+      panel.querySelectorAll('.wt-set').forEach(function(el, i){ el.classList.toggle('next-set', i === next); });
+      var line = panel.querySelector('.wt-next');
+      if (line) line.textContent = next < 0 ? 'All ' + nSets + ' sets complete' : 'Next: set ' + (next + 1) + ' of ' + nSets;
+    }
+    updateNextSet();
     /* rest length is per exercise: tap to cycle through the usual spans */
     var restEl = panel.querySelector('[data-rest]');
     if (restEl){
@@ -2423,7 +2533,7 @@
         saveW();
         restEl.textContent = 'rest ' + restLabel(next);
         /* retime a countdown already running for this exercise */
-        if (restEnd) startRest(next, exName(row));
+        if (restEnd && restName === exName(row)) startRest(next, exName(row));
       });
     }
     var noteEl = panel.querySelector('.wt-notes');
@@ -2434,7 +2544,7 @@
       renderNote(row);
     });
 
-    /* Save records the panel as shown, so "same as last week" is one tap */
+    /* Closing preserves the displayed plan without marking sets complete. */
     panel.querySelector('.wt-close').addEventListener('click', function(){
       commit();
       closePanel();
@@ -2577,7 +2687,7 @@
   function liftCard(name, es){
     var m = wstore.prefs.metric;
     var pts = [];
-    es.forEach(function(e){
+    es.map(recordedEntry).filter(Boolean).slice(-52).forEach(function(e){
       var v = metricOf(e, m);
       if (v == null) return;
       var band = effortBand(e);
@@ -2603,7 +2713,7 @@
     if (!names) return [liftCard(exName(row), entriesFor(id))];
     var keys = [id, id + '~1'];
     var withData = keys.filter(function(k){
-      return entriesFor(k).some(function(e){ return e.w != null; });
+      return entriesFor(k).some(function(e){ return !!recordedEntry(e); });
     });
     if (!withData.length) return [liftCard(activeName(row), [])];
     return withData.map(function(k){
@@ -2644,7 +2754,7 @@
       var prev = wstore.bw[wstore.bw.length - 1];
       if (prev && prev.dn === e.dn) wstore.bw[wstore.bw.length - 1] = e;
       else wstore.bw.push(e);
-      if (wstore.bw.length > 400) wstore.bw.shift();
+      // Body measurements are a permanent record.
       saveW();
       buildProgress();
     });
@@ -2697,8 +2807,9 @@
     }
 
     viewProg.appendChild(bodySection());
-    var any = false;
+    var any = Object.keys(wstore.wt).some(function(k){ return entriesFor(k).some(function(e){ return !!recordedEntry(e); }); });
     days.forEach(function(sec){
+      if (!any) return;
       var wtIn = Array.prototype.slice.call(sec.querySelectorAll('.row[data-wt]'));
       if (!wtIn.length) return;
       var group = document.createElement('section');
@@ -2715,7 +2826,12 @@
     if (!any){
       var em = document.createElement('div');
       em.className = 'pg-empty';
-      em.textContent = 'No weights logged yet. On the This Week tab, tap the small weight chip beside a lift to record what you used — every week you log builds these charts.';
+      em.innerHTML = '<p>Complete your first set to start your progress history. Saved weights are a plan until you tick the set or rate its effort.</p><button type="button" class="mt">Go to today’s workout</button>';
+      em.querySelector('button').addEventListener('click', function(){
+        selectTab('week');
+        var today = document.querySelector('.day.today');
+        if (today) today.scrollIntoView({ block: 'start' });
+      });
       viewProg.insertBefore(em, viewProg.children[1] || null);
     }
     var note = document.createElement('p');
@@ -2723,7 +2839,7 @@
     note.textContent = wstore.prefs.metric === 'e1rm'
       ? 'Tap a point to see that entry. Est. 1RM combines load and reps, so a week you added reps still shows as progress.'
       : wstore.prefs.metric === 'vol'
-        ? 'Tap a point to see that entry. Volume is every set multiplied out — the best read on how hard a week was.'
+        ? 'Tap a point to see that entry. Volume totals completed sets: weight × reps.'
         : 'Tap a point to see that entry. Top set is the heaviest weight you logged that week.';
     viewProg.appendChild(note);
   }
@@ -2800,7 +2916,7 @@
       (program()[d] || []).forEach(function(x){
         if (!x.wt) return;
         [x.id, x.id + '~1'].forEach(function(k){
-          var hit = entriesFor(k).filter(function(e){ return e.ew === w && e.w != null; })[0];
+          var hit = entriesFor(k).map(recordedEntry).filter(function(e){ return e && e.ew === w; })[0];
           if (!hit) return;
           var label = x.variants && x.variants.length === 2
             ? x.variants[k === x.id ? 0 : 1] : x.name;
@@ -2814,7 +2930,7 @@
     var up = 0;
     Object.keys(wstore.wt).forEach(function(k){
       var cur = null, prev = null;
-      entriesFor(k).forEach(function(e){
+      entriesFor(k).map(recordedEntry).filter(Boolean).forEach(function(e){
         if (e.w == null) return;
         if (e.ew === w) cur = e;
         else if (e.ew < w && (!prev || e.ew > prev.ew)) prev = e;
@@ -3103,15 +3219,13 @@
     if (streak > 1) bits.push(streak + ' weeks in a row');
     if (up > 0) bits.push(up + (up === 1 ? ' lift' : ' lifts') + ' moved up');
     document.getElementById('cel-stats').textContent = bits.join(' · ');
-    cel.hidden = false;
-    document.body.style.overflow = 'hidden';
+    openModal(cel);
     confettiBurst(cel.querySelector('canvas'), 140, 7000);
   }
   /* dismissing the celebration is what moves the routine on: the finished
      week is already in the log, so the app opens the next one there and then */
   function startNextWeek(){
-    cel.hidden = true;
-    document.body.style.overflow = '';
+    closeModal(cel);
     advanceWeek();
     renderAll();
     flashWeekBand();
@@ -3126,9 +3240,9 @@
      of them is a tap on a button. Topmost first, so nesting can't matter. */
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
-    if (!cel.hidden){ startNextWeek(); return; }
-    if (!editorEl.hidden){ closeEditor(); return; }
-    if (!backupEl.hidden){ backupEl.hidden = true; return; }
+    if (currentModal() === backupEl){ closeModal(backupEl); return; }
+    if (currentModal() === editorEl){ closeEditor(); return; }
+    if (currentModal() === cel){ startNextWeek(); return; }
     if (openPanel) closePanel();
   });
 
@@ -3217,6 +3331,56 @@
     });
   });
 
+  /* A modal owns focus while open, and returns it to its opener on close. */
+  var modalStack = [], modalInert = [], modalOverflow = '';
+  function currentModal(){ return modalStack.length ? modalStack[modalStack.length - 1].el : null; }
+  function modalFocusables(el){
+    return Array.prototype.slice.call(el.querySelectorAll('button,input,textarea,select,a[href],[tabindex]')).filter(function(x){
+      return !x.disabled && x.tabIndex >= 0 && x.getClientRects().length;
+    });
+  }
+  function syncModalBackground(){
+    modalInert.forEach(function(x){ x.el.inert = x.was; });
+    modalInert = [];
+    var top = currentModal();
+    if (!top) return;
+    for (var node = top; node && node !== document.body; node = node.parentElement){
+      Array.prototype.forEach.call(node.parentElement.children, function(sibling){
+        if (sibling === node || sibling.tagName === 'SCRIPT' || sibling.tagName === 'STYLE') return;
+        modalInert.push({ el: sibling, was: sibling.inert });
+        sibling.inert = true;
+      });
+    }
+  }
+  function openModal(el){
+    if (modalStack.some(function(x){ return x.el === el; })) return;
+    if (!modalStack.length) modalOverflow = document.body.style.overflow;
+    modalStack.push({ el: el, opener: document.activeElement });
+    el.hidden = false;
+    document.body.style.overflow = 'hidden';
+    syncModalBackground();
+    (modalFocusables(el)[0] || el).focus({ preventScroll: true });
+  }
+  function closeModal(el){
+    var i = modalStack.findIndex(function(x){ return x.el === el; });
+    var item = i >= 0 ? modalStack.splice(i, 1)[0] : null;
+    el.hidden = true;
+    syncModalBackground();
+    if (!modalStack.length) document.body.style.overflow = modalOverflow;
+    var top = currentModal();
+    var target = top ? modalFocusables(top)[0] : item && item.opener;
+    if (!target || !target.isConnected || !target.getClientRects().length) target = document.getElementById('tab-week');
+    if (target) target.focus({ preventScroll: true });
+  }
+  document.addEventListener('keydown', function(e){
+    var top = currentModal();
+    if (!top || e.key !== 'Tab') return;
+    var items = modalFocusables(top), first = items[0], last = items[items.length - 1];
+    if (!first){ e.preventDefault(); return; }
+    if (e.shiftKey && (document.activeElement === first || !top.contains(document.activeElement))){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && (document.activeElement === last || !top.contains(document.activeElement))){ e.preventDefault(); first.focus(); }
+  });
+
   /* ---- rest timer ----
      Counts down from a wall-clock deadline rather than ticking a counter, so
      backgrounding the app and coming back shows the true remaining time.
@@ -3247,6 +3411,7 @@
     clearInterval(restInt);
     clearTimeout(restClear);
     restInt = restClear = restEnd = restSpan = 0;
+    if (wstore.activeRest){ delete wstore.activeRest; saveW(); }
     restBar.hidden = true;
     restBar.classList.remove('done');
     document.body.classList.remove('resting');
@@ -3282,6 +3447,7 @@
     restName = name || '';
     rbSet.textContent = setNo ? 'set ' + setNo + ' of ' + setTotal : '';
     restEnd = Date.now() + secs * 1000;
+    persistRest();
     runRest();
   }
   function nudgeRest(ms){
@@ -3291,6 +3457,21 @@
     var base = Math.max(Date.now(), restEnd);
     restEnd = Math.max(Date.now() + 1000, base + ms);
     restSpan = Math.max(restSpan + ms / 1000, 5);
+    persistRest();
+    runRest();
+  }
+  function persistRest(){
+    wstore.activeRest = { end: restEnd, span: restSpan, name: restName, setLabel: rbSet.textContent, week: curWeek() };
+    saveW();
+  }
+  function resumeRest(){
+    var active = wstore.activeRest;
+    if (!active) return;
+    if (!wstore.prefs.rest || active.week !== curWeek() || !Number.isFinite(active.end) || !Number.isFinite(active.span) || active.span <= 0 || active.end + 120000 < Date.now()){
+      stopRest(); return;
+    }
+    restEnd = active.end; restSpan = active.span; restName = String(active.name || '');
+    rbSet.textContent = String(active.setLabel || '');
     runRest();
   }
   document.getElementById('rb-plus').addEventListener('click', function(){ nudgeRest(30000); });
@@ -3410,12 +3591,10 @@
     draft = JSON.parse(JSON.stringify(program()));
     DAY_IDS.forEach(function(d){ if (!draft[d]) draft[d] = []; });
     edRender();
-    editorEl.hidden = false;
-    document.body.style.overflow = 'hidden';
+    openModal(editorEl);
   });
   function closeEditor(){
-    editorEl.hidden = true;
-    document.body.style.overflow = '';
+    closeModal(editorEl);
   }
   document.getElementById('ed-cancel').addEventListener('click', closeEditor);
   document.getElementById('ed-save').addEventListener('click', function(){
@@ -3459,7 +3638,7 @@
     wstore.game = wstore.game.filter(function(g){ return g.ew !== w; });
     if (e != null){
       wstore.game.push({ ew: w, e: e });
-      if (wstore.game.length > 60) wstore.game.shift();
+      // Keep every game rating.
     }
     saveW();
   }
@@ -3520,23 +3699,83 @@
     bkText.value = exportBlob();
     bkNote.textContent = BK_NOTE;
     bkNote.classList.remove('err');
-    backupEl.hidden = false;
+    document.getElementById('bk-confirm').hidden = true;
+    bkText.dispatchEvent(new Event('input'));
+    openModal(backupEl);
   });
-  document.getElementById('bk-close').addEventListener('click', function(){ backupEl.hidden = true; });
-  document.getElementById('bk-copy').addEventListener('click', function(){
-    var btn = this;
+  document.getElementById('bk-close').addEventListener('click', function(){ closeModal(backupEl); });
+  function backupSucceeded(method){
     wstore.lastBackup = todayDn();
+    wstore.lastBackupMethod = method;
     saveW();
     renderBackupAge();
-    var done = function(){
-      btn.textContent = 'Copied ✓';
-      setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(bkText.value).then(done, function(){ bkText.select(); });
-    } else {
-      bkText.select();
+  }
+  document.getElementById('bk-copy').addEventListener('click', function(){
+    var btn = this;
+    if (btn.disabled) return;
+    var text = exportBlob();
+    bkText.value = text;
+    bkText.dispatchEvent(new Event('input'));
+    if (!navigator.clipboard || !navigator.clipboard.writeText){
+      bkText.focus(); bkText.select();
+      restoreFailed('Automatic copying is unavailable. Copy the selected text yourself, or download a backup file.');
+      return;
     }
+    btn.disabled = true;
+    navigator.clipboard.writeText(text).then(function(){
+      backupSucceeded('copy');
+      bkNote.classList.remove('err');
+      bkNote.textContent = 'Copied. Save this text somewhere safe outside this app.';
+    }, function(){
+      bkText.focus(); bkText.select();
+      restoreFailed('Copy failed. Copy the selected text yourself, or download a backup file. Your backup date has not changed.');
+    }).finally(function(){ btn.disabled = false; });
+  });
+  document.getElementById('bk-download').addEventListener('click', function(){
+    var url;
+    try {
+      var text = exportBlob();
+      bkText.value = text;
+      bkText.dispatchEvent(new Event('input'));
+      url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'training-backup-' + new Date(todayDn() * 864e5).toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      bkNote.classList.remove('err');
+      bkNote.textContent = 'Download started. Check the file is saved, then confirm below to update your backup date.';
+      document.getElementById('bk-confirm').hidden = false;
+    } catch (e){ restoreFailed('Download failed. Try Copy text instead.'); }
+    if (url) setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  });
+  document.getElementById('bk-confirm').addEventListener('click', function(){
+    backupSucceeded('file');
+    this.hidden = true;
+    bkNote.textContent = 'Backup saved. Keep the file somewhere safe outside this device.';
+    document.getElementById('bk-close').focus();
+  });
+  document.getElementById('bk-import').addEventListener('click', function(){ document.getElementById('bk-file').click(); });
+  document.getElementById('bk-file').addEventListener('change', async function(){
+    var file = this.files[0];
+    this.value = '';
+    if (!file) return;
+    try {
+      if (file.size > 10 * 1024 * 1024) throw Error('This file is larger than 10 MB.');
+      var text = await file.text(), data;
+      try { data = JSON.parse(text); } catch (e){ throw Error('This file is not valid backup text.'); }
+      var fault = backupFault(data);
+      if (fault) throw Error('This backup could not be read: ' + fault + '.');
+      bkText.value = text;
+      bkText.dispatchEvent(new Event('input'));
+      bkNote.classList.remove('err');
+      bkNote.textContent = 'File loaded. Review it, then tap Restore twice to replace this device’s data.';
+      document.getElementById('bk-restore').focus();
+    } catch (e){ restoreFailed(e.message + ' Nothing has been changed.'); }
+  });
+  bkText.addEventListener('input', function(){
+    var btn = document.getElementById('bk-restore');
+    delete btn.dataset.armed;
+    btn.textContent = 'Restore';
   });
   /* ---- restoring is the one input that comes from outside the app ----
      A blob that parses as JSON but holds the wrong shapes used to be written
@@ -3544,7 +3783,7 @@
      leaving nothing to go back to. Every key the app will later assume is
      checked first, and the write is undone in full if anything still throws. */
   function isObj(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
-  var BK_OBJECTS = ['wt', 'variants', 'daysDone', 'prSeen', 'prefs', 'rest', 'notes', 'weeks', 'program'];
+  var BK_OBJECTS = ['wt', 'variants', 'daysDone', 'prSeen', 'prefs', 'rest', 'notes', 'weeks', 'program', 'setUndo', 'activeRest'];
   var BK_ARRAYS = ['bw', 'weeksDone', 'game'];
   function backupFault(data){
     if (!isObj(data) || data.app !== 'sams-training-week') return 'not a backup';
@@ -3557,6 +3796,15 @@
     BK_OBJECTS.forEach(function(k){ if (!bad && h[k] != null && !isObj(h[k])) bad = k; });
     BK_ARRAYS.forEach(function(k){ if (!bad && h[k] != null && !Array.isArray(h[k])) bad = k; });
     if (bad) return '“' + bad + '” is the wrong shape';
+    if (isObj(h.setUndo)){
+      var undoOK = Object.keys(h.setUndo).every(function(k){
+        return Array.isArray(h.setUndo[k]) && h.setUndo[k].every(function(x){
+          return isObj(x) && Number.isInteger(x.index) && x.index >= 0 && isObj(x.set) && typeof x.done === 'boolean';
+        });
+      });
+      if (!undoOK) return 'removed sets are the wrong shape';
+    }
+    if (data.week && data.week.counts != null && (!isObj(data.week.counts) || !Object.keys(data.week.counts).every(function(k){ return Number.isInteger(data.week.counts[k]) && data.week.counts[k] > 0; }))) return 'set counts are the wrong shape';
     if (h.weekNo != null && typeof h.weekNo !== 'number') return '“weekNo” is the wrong shape';
     if (isObj(h.wt)){
       var lift = null;
@@ -3567,7 +3815,7 @@
           /* s is the per-set list and r the pre-migration rep list; both are
              walked without checking, so both are checked here */
           return isObj(e) &&
-                 (e.s == null || Array.isArray(e.s)) &&
+                 (e.s == null || (Array.isArray(e.s) && e.s.every(function(x){ return isObj(x) && (x.done == null || typeof x.done === "boolean"); }))) &&
                  (e.r == null || Array.isArray(e.r));
         });
         if (!ok) lift = k;
@@ -3605,6 +3853,7 @@
         if (isObj(data.history)){
           wstore = data.history;
           migrateW();
+          migrateCompletion();
         }
         save();
         saveW();
@@ -3624,7 +3873,13 @@
         restoreFailed('That backup could not be read — nothing has been changed.');
         return;
       }
-      backupEl.hidden = true;
+      closePanel();
+      closeModal(backupEl);
+      clearInterval(restInt);
+      restBar.hidden = true;
+      document.body.classList.remove("resting");
+      restEnd = 0;
+      resumeRest();
     });
   });
 
@@ -3636,6 +3891,7 @@
   });
 
   bootRender();
+  resumeRest();
 
   /* chips are added after the first render so they land after the pips */
   wtRows.forEach(function(row){
@@ -3700,7 +3956,7 @@
         }
         disarmDayCheck(check);
         Array.prototype.forEach.call(dayRows, function(r){
-          var n = +r.dataset.sets, flags = [];
+          var n = totalFor(r), flags = [];
           for (var i = 0; i < n; i++) flags.push(!was);
           writeFlags(r.dataset.id, flags);
         });

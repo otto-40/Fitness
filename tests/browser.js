@@ -4,6 +4,7 @@
    playwright-core can find on its own. */
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 function findChromium() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
@@ -26,4 +27,4 @@ function findChromium() {
   return undefined;
 }
 
-module.exports = { findChromium, APP_URL: 'file://' + path.resolve(__dirname, '..', 'index.html') };
+module.exports = { findChromium, APP_URL: pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href };
