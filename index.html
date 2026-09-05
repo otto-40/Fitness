@@ -2142,9 +2142,12 @@
 
     var html = '';
     if (names){
+      /* the name is program text, and a restored backup is the one place
+         program text comes from outside the app — escape it like every other
+         name the app prints */
       html += '<div class="wt-var">' + names.map(function(n, i){
         return '<button type="button"' + (i === variantIdx(id) ? ' class="on"' : '') +
-               ' data-v="' + i + '">' + n + '</button>';
+               ' data-v="' + i + '">' + esc(n) + '</button>';
       }).join('') + '</div>';
     }
     if (weighted){
@@ -2407,7 +2410,22 @@
     /* add or drop a set for this session only — the program is untouched */
     panel.querySelectorAll('.wt-nset').forEach(function(b){
       b.addEventListener('click', function(){
-        panel.dataset.nsets = Math.max(1, nSets + (+b.dataset.d));
+        var n = Math.max(1, nSets + (+b.dataset.d));
+        /* dropping a set drops its load and reps, so it has to drop its tick
+           too — a tick left behind counted a set that no longer exists, and
+           read the lift, the day and the week as complete on it. The row is
+           redrawn rather than settled: shrinking a lift can only ever make it
+           less complete, so there is nothing here to collapse or celebrate. */
+        if (n < flags.length){
+          flags.length = n;
+          writeFlags(id, flags);
+          save();
+          renderRow(row);
+          refreshDay(row.closest('.day'));
+          renderBand();
+          stampWeek();
+        }
+        panel.dataset.nsets = n;
         buildPanel(row, panel);
         /* persist the new length straight away, including a truncation */
         panel.querySelector('.wt-sw').dispatchEvent(new Event('input'));
@@ -2422,8 +2440,12 @@
         wstore.rest[id] = next;
         saveW();
         restEl.textContent = 'rest ' + restLabel(next);
-        /* retime a countdown already running for this exercise */
-        if (restEnd) startRest(next, exName(row));
+        /* retime a countdown already running for this exercise — and turning
+           rest off stops it, rather than leaving the old length ticking down
+           under a control that now reads "off" */
+        if (restEnd){
+          if (next > 0) startRest(next, exName(row)); else stopRest();
+        }
       });
     }
     var noteEl = panel.querySelector('.wt-notes');
@@ -2456,7 +2478,11 @@
     }
     el.textContent = '✎ ' + txt;
   }
-  function renderNotes(){ wtRows.forEach(renderNote); }
+  /* every exercise takes a note, loaded or not — the panel offers the field
+     on all of them, so the row has to show it back on all of them. Rendering
+     only the weighted rows left a note on a bodyweight lift saved but
+     invisible from the next reload on. */
+  function renderNotes(){ rows.forEach(renderNote); }
 
   /* ---- progress tab: one week-on-week chart per weighted lift ---- */
   var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2823,9 +2849,16 @@
     });
     return up;
   }
+  /* how far back the calendar will page. Training days are the obvious floor,
+     but a weigh-in is history too, and so is the date a training week began —
+     reading only the day log stranded anyone whose earliest record was a
+     weigh-in on the current month, with the back arrow dead. */
   function firstDataDn(){
     var min = todayDn();
-    Object.keys(wstore.daysDone).forEach(function(k){ if (+k < min) min = +k; });
+    function low(dn){ if (dn != null && dn < min) min = dn; }
+    Object.keys(wstore.daysDone).forEach(function(k){ low(+k); });
+    Object.keys(wstore.weeks).forEach(function(k){ low(wstore.weeks[k].start); });
+    wstore.bw.forEach(function(e){ low(e.dn); });
     return min;
   }
 
