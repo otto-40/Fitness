@@ -30,8 +30,8 @@ Three tabs:
 
 ## Effort
 
-Every set takes an **E / M / H** rating — easy, moderate, hard — beside its
-weight and reps. It is optional, and one tap; tapping the lit letter takes it
+Every set takes an **Easy / Moderate / Hard** rating below its
+weight and reps. It is optional, and one tap; tapping the selected rating takes it
 back. Load and reps say what you did, effort says what it cost, and the two
 together are what tell a week you should add weight apart from a week you
 should hold it.
@@ -53,6 +53,25 @@ this existed simply have no rating, and nothing about them changes.
 
 ## How weeks flow
 
+Weights and reps save as you edit. **Done editing** closes the panel; it does
+not complete the sets. Tick the numbered done button or choose an effort to
+complete each set. Progress charts, lift history and personal records use
+completed sets only; suggestions for next time wait until the exercise is
+complete. The next unfinished set is highlighted with larger controls.
+
+**− set** removes the last row for this session, with **Undo removal** keeping
+its weight, reps, effort and completion flag. Undo survives closing the panel
+or reloading during that training week, and preserves edits to other rows.
+Added or removed sets update the session's progress count without changing
+the program. Active rest timers also survive reloads, including their set
+context; skipping a timer keeps it dismissed.
+
+Lift, body and basketball records are retained without the old 30/400/60-entry
+limits. Lift charts display the latest 52 entries. Existing historical records
+remain available; on upgrade, the current week's existing ticks determine
+which sets were completed. Records already removed by older versions cannot
+be recovered without an older backup.
+
 There is nothing to reset. A week runs until every required session is
 ticked off; finish the last one, take the celebration, and the app hands you
 a clean set of cards there and then — the next week starts that day. A week
@@ -72,10 +91,16 @@ Exercise IDs are permanent, so renaming a lift keeps its history.
 ## Backing up
 
 Everything is stored in this browser on this device — there is no server and
-no sync. **Backup** in the footer produces a block of text: keep a copy
-somewhere safe. Pasting it back under **Restore** rebuilds everything, which
-is also how you move to a new phone. The app nags if the last backup is over
-a month old.
+no sync. **Backup** offers **Download backup** and **Copy text**. Keep the file
+or copied text somewhere safe outside this device. After downloading, check
+the file is saved and tap **I’ve saved my backup**. A successful copy updates
+the reminder; a failed copy leaves the backup date unchanged. The app reminds
+you when the last backup is over a month old.
+
+To recover or move phones, choose **Import file** or paste saved text, then
+tap **Restore** twice. Importing only stages the file; it never replaces your
+records until you confirm Restore. Backup, program editing and celebration
+dialogs keep keyboard focus inside and return it when closed.
 
 Restore checks a pasted backup before it trusts it, and says what is wrong
 rather than half-applying it; if anything still fails, the write is undone and
