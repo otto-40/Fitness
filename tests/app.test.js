@@ -1687,6 +1687,142 @@ async function main() {
   });
 
 
+  /* Every exercise takes a note, loaded or not, but only the weighted rows
+     were redrawn with one — so a note on a bodyweight lift saved fine and
+     then vanished from the row at the next reload. */
+  await test('a note on an unloaded lift survives a reload',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'mon-5');            // Copenhagen plank — no weights
+    await page.fill('.wt-panel .wt-notes', 'left side first');
+    await page.waitForTimeout(150);
+    check('the note shows on the row', await page.textContent('[data-id="mon-5"] .row-note'),
+      '✎ left side first');
+
+    await page.reload();
+    await page.waitForTimeout(350);
+    check('and is still there after a reload',
+      await page.textContent('[data-id="mon-5"] .row-note'), '✎ left side first');
+    check('a weighted lift is unaffected',
+      await page.locator('[data-id="mon-1"] .row-note').count(), 0);
+  });
+
+  /* Cycling an exercise's rest round to "off" while its countdown was running
+     left the old length ticking down under a control reading "off". */
+  await test('turning rest off stops the countdown it was running',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await tickSet(page, 'mon-2', 1);         // starts the rest clock
+    check('the rest bar is up', await page.locator('#rest-bar').isVisible(), true);
+
+    await openRow(page, 'mon-2');
+    for (let i = 0; i < 8; i++) {
+      if ((await page.textContent('.wt-panel [data-rest]')).trim() === 'rest off') break;
+      await page.click('.wt-panel [data-rest]');
+      await page.waitForTimeout(60);
+    }
+    check('rest now reads off', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest off');
+    await page.waitForTimeout(150);
+    check('and the countdown has stopped', await page.locator('#rest-bar').isHidden(), true);
+
+    /* the set stays logged — turning the clock off is not taking it back */
+    check('the set is still ticked',
+      await page.getAttribute('.wt-panel .wt-sdone[data-i="0"]', 'aria-pressed'), 'true');
+  });
+
+  /* Program text is escaped everywhere it is printed except here, and a
+     restored backup is the one place program text arrives from outside. */
+  await test('a variant name is printed, never executed',
+    { date: '2026-07-23T09:00:00',
+      seed: `
+        ${seedHelpers}
+        const w = JSON.parse(localStorage.getItem('sams-training-weights')) || {};
+        w.program = {
+          'd-mon': [{ id: 'mon-1', name: 'Leg press', rx: '4 × 6–8', sets: 4, wt: true, reps: '6-8',
+                      variants: ['<img src=x onerror="window.__pwned=1">A', 'B'] }],
+          'd-wed': [], 'd-thu': [], 'd-sat': [], 'd-sun': []
+        };
+        localStorage.setItem('sams-training-weights', JSON.stringify(w));
+      ` }, async (page) => {
+    await openRow(page, 'mon-1');
+    await page.waitForTimeout(200);
+    check('nothing was executed', await page.evaluate(() => !!window.__pwned), false);
+    check('the name reads back as text',
+      await page.textContent('.wt-panel .wt-var button'), '<img src=x onerror="window.__pwned=1">A');
+    check('and no element was built from it',
+      await page.locator('.wt-panel .wt-var img').count(), 0);
+  });
+
+  /* "− set" drops that set's load and reps, so it has to drop its tick too —
+     a tick left behind counted a set that no longer existed. */
+  await test('dropping a set drops its tick with it',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'mon-2');            // prescribes 3 sets
+    await page.fill('.wt-panel .wt-top', '40');
+    await page.waitForTimeout(120);
+    await tickAll(page, 'mon-2');
+    await openRow(page, 'mon-2');
+    check('the lift reads complete', await page.locator('[data-id="mon-2"].done').count(), 1);
+
+    await page.click('.wt-panel .wt-nset[data-d="-1"]');
+    await page.waitForTimeout(200);
+    check('two sets are left in the panel', await page.locator('.wt-panel .wt-sdone').count(), 2);
+    check('two ticks are stored',
+      await page.evaluate(() => JSON.parse(localStorage.getItem('sams-training-week')).sets['mon-2']),
+      [1, 1]);
+    check('both remaining pips are filled',
+      await page.locator('[data-id="mon-2"] .pip.filled').count(), 2);
+    check('the session now has only two pips', await page.locator('[data-id="mon-2"] .pip').count(), 2);
+    check('the adjusted two-set session reads complete',
+      await page.locator('[data-id="mon-2"].done').count(), 1);
+    check('the other unfinished exercises keep the day open', await page.locator('#d-mon .day-check.on').count(), 0);
+  });
+
+  /* The calendar's back arrow read only the training-day log, so a weigh-in
+     history with no logged sessions behind it — a restored backup, a cut
+     tracked before the lifting started — was unreachable. */
+  await test('the calendar pages back to months holding only weigh-ins',
+    { date: '2026-07-23T09:00:00',
+      seed: `
+        ${seedHelpers}
+        const w = JSON.parse(localStorage.getItem('sams-training-weights')) || {};
+        w.bw = [{ dn: dn - 70, w: 96 }, { dn: dn - 35, w: 93 }, { dn: dn, w: 90 }];
+        localStorage.setItem('sams-training-weights', JSON.stringify(w));
+      ` }, async (page) => {
+    await page.click('#tab-history');
+    await page.waitForTimeout(300);
+    check('the calendar opens on this month', await page.textContent('.cal-title'), 'Jul 2026');
+    check('the back arrow is live', await page.locator('#cal-prev').isDisabled(), false);
+
+    await page.click('#cal-prev');
+    await page.waitForTimeout(200);
+    check('it walks back a month', await page.textContent('.cal-title'), 'Jun 2026');
+    await page.click('#cal-prev');
+    await page.waitForTimeout(200);
+    check('and back to the oldest weigh-in', await page.textContent('.cal-title'), 'May 2026');
+    check('where it stops', await page.locator('#cal-prev').isDisabled(), true);
+  });
+
+  await test('rest settings only affect their own countdown and off persists',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+    await tickSet(page, 'mon-2', 1);
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('sams-training-weights')).activeRest);
+    await openRow(page, 'mon-1');
+    await page.click('.wt-panel [data-rest]');
+    const after = await page.evaluate(() => JSON.parse(localStorage.getItem('sams-training-weights')).activeRest);
+    check('another exercise does not restart or rename the timer', after, before);
+    await openRow(page, 'mon-2');
+    for (let i = 0; i < 8; i++) {
+      if ((await page.textContent('.wt-panel [data-rest]')).trim() === 'rest off') break;
+      await page.click('.wt-panel [data-rest]');
+    }
+    check('off clears the saved timer', await page.evaluate(
+      () => JSON.parse(localStorage.getItem('sams-training-weights')).activeRest || null), null);
+    await page.reload();
+    check('the old timer does not return after reload', await page.locator('#rest-bar').isHidden(), true);
+    await openRow(page, 'mon-2');
+    check('rest off remains selected', (await page.textContent('.wt-panel [data-rest]')).trim(), 'rest off');
+    check('completion remains intact', await page.getAttribute('.wt-sdone[data-i="0"]', 'aria-pressed'), 'true');
+  });
+
   await browser.close();
 
   console.log(`\n${pass} passed, ${failures.length} failed`);

@@ -2195,9 +2195,12 @@
       ? 'Check your weight and reps, then tap an effort to complete the set and start rest. Or use the numbered done button.'
       : 'Tap each numbered button as you finish a set.') + '</p>';
     if (names){
+      /* the name is program text, and a restored backup is the one place
+         program text comes from outside the app — escape it like every other
+         name the app prints */
       html += '<div class="wt-var">' + names.map(function(n, i){
         return '<button type="button"' + (i === variantIdx(id) ? ' class="on"' : '') +
-               ' data-v="' + i + '">' + n + '</button>';
+               ' data-v="' + i + '">' + esc(n) + '</button>';
       }).join('') + '</div>';
     }
     if (weighted){
@@ -2532,8 +2535,11 @@
         wstore.rest[id] = next;
         saveW();
         restEl.textContent = 'rest ' + restLabel(next);
-        /* retime a countdown already running for this exercise */
-        if (restEnd && restName === exName(row)) startRest(next, exName(row));
+        /* Only retime this exercise's countdown; choosing off also clears
+           its persisted deadline so it stays off after a reload. */
+        if (restEnd && restName === exName(row)){
+          if (next > 0) startRest(next, exName(row)); else stopRest();
+        }
       });
     }
     var noteEl = panel.querySelector('.wt-notes');
@@ -2566,7 +2572,11 @@
     }
     el.textContent = '✎ ' + txt;
   }
-  function renderNotes(){ wtRows.forEach(renderNote); }
+  /* every exercise takes a note, loaded or not — the panel offers the field
+     on all of them, so the row has to show it back on all of them. Rendering
+     only the weighted rows left a note on a bodyweight lift saved but
+     invisible from the next reload on. */
+  function renderNotes(){ rows.forEach(renderNote); }
 
   /* ---- progress tab: one week-on-week chart per weighted lift ---- */
   var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2939,9 +2949,16 @@
     });
     return up;
   }
+  /* how far back the calendar will page. Training days are the obvious floor,
+     but a weigh-in is history too, and so is the date a training week began —
+     reading only the day log stranded anyone whose earliest record was a
+     weigh-in on the current month, with the back arrow dead. */
   function firstDataDn(){
     var min = todayDn();
-    Object.keys(wstore.daysDone).forEach(function(k){ if (+k < min) min = +k; });
+    function low(dn){ if (dn != null && dn < min) min = dn; }
+    Object.keys(wstore.daysDone).forEach(function(k){ low(+k); });
+    Object.keys(wstore.weeks).forEach(function(k){ low(wstore.weeks[k].start); });
+    wstore.bw.forEach(function(e){ low(e.dn); });
     return min;
   }
 
