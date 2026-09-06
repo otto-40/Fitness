@@ -1018,7 +1018,8 @@
   .ed-rx{flex:2;min-width:0}
   .ed-sets{flex:.7;min-width:0;text-align:center;font-family:var(--mono)}
   .ed-reps{flex:1;min-width:0;text-align:center;font-family:var(--mono)}
-  .ed-line2{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .ed-line2{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+  .ed-increment{width:64px}
   .ed-line2 label{
     display:flex;align-items:center;gap:6px;white-space:nowrap;
     font-family:var(--mono);font-size:11px;color:var(--rest);
@@ -1370,8 +1371,12 @@
   /* ---- history store: weights, reps, variants, body weight, completed
      weeks — all under one key starting a new week never touches ---- */
   var WT_KEY = 'sams-training-weights';
-  var wstore;
-  try { wstore = JSON.parse(localStorage.getItem(WT_KEY)) || {}; } catch (e) { wstore = {}; }
+  var wstore, startupHistory = null, historyParseFailed = false;
+  try { startupHistory = localStorage.getItem(WT_KEY); } catch (e) {}
+  try { wstore = JSON.parse(startupHistory) || {}; }
+  catch (e) { wstore = {}; historyParseFailed = true; }
+  var historyWriteBlocked = false;
+  var deferStoreWrites = true; /* Boot and Restore validate before touching disk. */
   /* A store the app can no longer read used to take the whole app down with
      it: migrateW() throws, the script dies, nothing binds, and Restore — the
      one way back — is as dead as everything else. Boot from empty instead,
@@ -1380,13 +1385,17 @@
   /* set the unreadable store aside and carry on from empty, so the way back
      in — Restore — is still wired up. Nothing is thrown away. */
   function setAsideStore(){
-    try { localStorage.setItem(BROKEN_KEY, localStorage.getItem(WT_KEY) || ''); } catch (e) {}
+    /* Keep the bytes read at startup, before a migration can alter them.
+       If preserving them fails, leave the original history key untouched. */
+    try { localStorage.setItem(BROKEN_KEY, startupHistory || ''); }
+    catch (e) { historyWriteBlocked = true; noteWriteFailure(); }
     wstore = {};
     storeWasUnreadable = true;
     migrateW();            /* seeds weekNo, which freshStore() reads */
     store = freshStore();
   }
   function bootMigrate(){
+    if (historyParseFailed){ setAsideStore(); return; }
     try { migrateW(); }
     catch (e) { setAsideStore(); }
   }
@@ -1403,6 +1412,9 @@
       save();
       syncToday();
     }
+    deferStoreWrites = false;
+    saveW();
+    save();
   }
   var storeWasUnreadable = false;
 
@@ -1495,6 +1507,7 @@
 
   bootMigrate();
   function saveW(){
+    if (deferStoreWrites || historyWriteBlocked) return;
     try { localStorage.setItem(WT_KEY, JSON.stringify(wstore)); }
     catch (e) { noteWriteFailure(); }
   }
@@ -1564,6 +1577,7 @@
   if (typeof store.week === 'string') store.week = store.week === isoWeek() ? curWeek() : -1;
   if (store.week !== curWeek()) store = freshStore();
   function save(){
+    if (deferStoreWrites) return;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
     catch (e) { noteWriteFailure(); }
   }
@@ -1806,6 +1820,12 @@
     });
     return found;
   }
+  function incrementOf(x){
+    var n = x && x.increment;
+    return typeof n === 'number' && isFinite(n) && n >= 0.25 && n <= 100 && Number.isInteger(n * 4) ? n : 2.5;
+  }
+  function loadIncrement(row){ return incrementOf(exById(row.dataset.id)); }
+
   function rowHtml(x){
     var a = ' data-id="' + esc(x.id) + '" data-sets="' + (+x.sets || 1) + '"';
     if (x.wt) a += ' data-wt';
@@ -2149,6 +2169,7 @@
   function buildPanel(row, panel){
     var id = row.dataset.id, key = keyFor(row);
     var weighted = row.hasAttribute('data-wt');
+    var increment = loadIncrement(row);
     var names = variantNames(row), range = repRange(row);
     var cur = currentEntry(key), prev = previousEntry(key);
     /* the prescription sets the default row count; a session can add to or
@@ -2206,9 +2227,9 @@
     if (weighted){
       html +=
         '<div class="wt-adjust">' +
-          '<button type="button" class="wt-step" data-step="-2.5" aria-label="2.5 kg off every set">−2.5</button>' +
+          '<button type="button" class="wt-step" data-step="-' + increment + '" aria-label="' + increment + ' kg off every set">−' + increment + '</button>' +
           '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for every set"><span>kg</span></label>' +
-          '<button type="button" class="wt-step" data-step="2.5" aria-label="2.5 kg on every set">+2.5</button>' +
+          '<button type="button" class="wt-step" data-step="' + increment + '" aria-label="' + increment + ' kg on every set">+' + increment + '</button>' +
         '</div>';
       html += '<div class="wt-shead" aria-hidden="true">' +
           '<span class="h-n">done</span><span class="h-w">kg</span><span class="h-x"></span>' +
@@ -2348,18 +2369,20 @@
       if (logged && repsAtTop(c2)){
         msg = fx === 'hard'
           ? 'All sets at ' + range.hi + ', but every one was a grind — repeat ' + fmtW(c2.w) + ' kg before adding.'
-          : 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + 2.5) + ' kg next week.';
+          : 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + increment) + ' kg next week.';
       } else if (fx === 'easy'){
         msg = logged
-          ? 'Every set easy — ' + fmtW(c2.w + 2.5) + ' kg is there next week.'
-          : 'Last week felt easy — start at ' + fmtW(p2.w + 2.5) + ' kg.';
+          ? 'Every set easy — ' + fmtW(c2.w + increment) + ' kg is there next week.'
+          : 'Last week felt easy — start at ' + fmtW(p2.w + increment) + ' kg.';
       } else if (fx === 'hard' && run >= 3){
         msg = run + ' sessions at ' + fmtW(ref.w) + ' kg and still hard — hold the load and chase reps, or drop to ' +
               fmtW(Math.max(0, ref.w - 5)) + ' kg and build back.';
       } else if (fx === 'hard' && logged){
         msg = 'Every set hard — stay at ' + fmtW(c2.w) + ' kg next week and add reps.';
-      } else if (p2 && repsAtTop(p2) && !(logged && c2.w > p2.w)){
-        msg = 'Top of range last week — try ' + fmtW(p2.w + 2.5) + ' kg.';
+      } else if (fx === 'hard'){
+        msg = 'Last session felt hard — repeat ' + fmtW(ref.w) + ' kg before adding.';
+      } else if (p2 && effortRead(p2) !== 'hard' && repsAtTop(p2) && !(logged && c2.w > p2.w)){
+        msg = 'Top of range last week — try ' + fmtW(p2.w + increment) + ' kg.';
       } else if (run >= 3){
         msg = fmtW(ref.w) + ' kg for ' + run + ' sessions running — ' + (fx == null
           ? 'rate the sets and the next step picks itself.'
@@ -2439,7 +2462,7 @@
     });
 
     /* the top field drives every set at once: typing levels them, the
-       steppers shift them all by 2.5 and keep any differences intact */
+       steppers shift them all by the exercise's increment and keep any differences intact */
     if (topInput){
       topInput.addEventListener('input', function(){
         wIn.forEach(function(el){ el.value = topInput.value; });
@@ -3561,6 +3584,7 @@
             '</div>' +
             '<div class="ed-line2">' +
               '<label><input type="checkbox" class="ed-f ed-wt" data-k="wt"' + (x.wt ? ' checked' : '') + '> weights</label>' +
+              '<label>Step (kg) <input class="ed-f ed-increment" data-k="increment" type="number" inputmode="decimal" min="0.25" max="100" step="0.25" value="' + incrementOf(x) + '" aria-label="Weight increment in kg"></label>' +
               '<span class="ed-btns">' +
                 '<button type="button" data-a="up" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
                 '<button type="button" data-a="down" aria-label="Move down"' + (i === draft[d].length - 1 ? ' disabled' : '') + '>↓</button>' +
@@ -3581,6 +3605,7 @@
     var x = draft[host.dataset.d][+host.dataset.i], k = f.dataset.k;
     if (k === 'wt') x.wt = f.checked;
     else if (k === 'sets') x.sets = Math.min(12, Math.max(1, parseInt(f.value, 10) || 1));
+    else if (k === 'increment') x.increment = Math.round(Math.min(100, Math.max(0.25, parseFloat(f.value) || 2.5)) * 4) / 4;
     else if (k === 'reps') x.reps = /^\d+(-\d+)?$/.test(f.value.trim()) ? f.value.trim() : '';
     else x[k] = f.value;
   });
@@ -3624,7 +3649,7 @@
            default and put a rest clock on the walks, which prescribe none */
         if (x.rest != null && isFinite(+x.rest)) y.rest = +x.rest;
         if (x.why && String(x.why).trim()) y.why = String(x.why).trim();
-        if (x.wt) y.wt = true;
+        if (x.wt){ y.wt = true; y.increment = incrementOf(x); }
         if (x.wt && x.reps) y.reps = x.reps;
         if (x.finisher) y.finisher = true;
         if (x.variants && x.variants.length === 2) y.variants = x.variants;
@@ -3858,38 +3883,61 @@
       return;
     }
     armButton(btn, 'Replace all data?', function(){
-      /* exactly what is on disk now, so a failure can put it all back */
-      var wasW = null, wasS = null, keepW = wstore, keepS = store;
-      try { wasW = localStorage.getItem(WT_KEY); wasS = localStorage.getItem(STORE_KEY); } catch (e) {}
+      /* Stage migration and rendering without writes. Only commit once the
+         imported data is usable, and keep the exact previous disk values. */
+      var wasW, wasS, keepW = wstore, keepS = store;
+      try { wasW = localStorage.getItem(WT_KEY); wasS = localStorage.getItem(STORE_KEY); }
+      catch (e) {
+        restoreFailed('Cannot read this device’s saved data. Restore has not started.');
+        return;
+      }
+      var written = [], saving = false;
+      deferStoreWrites = true;
       try {
-        if (isObj(data.week)){
-          store = data.week;
-          if (!store.week) store.week = '';
-          if (!store.sets) store.sets = {};
-        }
-        if (isObj(data.history)){
-          wstore = data.history;
-          migrateW();
-          migrateCompletion();
-        }
-        save();
-        saveW();
-        /* the redraw is inside the guard on purpose: a blob can migrate
-           cleanly and only break when something tries to read it back, and
-           by then the write has already landed */
-        syncToday(); /* also applies the weekly reset if the backup is from an older week */
+        wstore = isObj(data.history) ? data.history : JSON.parse(JSON.stringify(keepW));
+        store = isObj(data.week) ? data.week : JSON.parse(JSON.stringify(keepS));
+        if (!store.week) store.week = '';
+        if (!store.sets) store.sets = {};
+        migrateW();
+        migrateCompletion();
+        syncToday();
         if (!viewProg.hidden) buildProgress();
+        /* Serialize both before either write. setItem must throw here so a
+           failed write cannot be mistaken for a successful restore. */
+        var nextW = JSON.stringify(wstore), nextS = JSON.stringify(store);
+        saving = true;
+        localStorage.setItem(WT_KEY, nextW);
+        written.push([WT_KEY, wasW]);
+        localStorage.setItem(STORE_KEY, nextS);
+        written.push([STORE_KEY, wasS]);
       } catch (e) {
         wstore = keepW;
         store = keepS;
+        var rollbackFailed = false;
+        written.reverse().forEach(function(item){
+          try {
+            if (item[1] == null) localStorage.removeItem(item[0]);
+            else localStorage.setItem(item[0], item[1]);
+          } catch (err) { rollbackFailed = true; }
+        });
         try {
-          if (wasW == null) localStorage.removeItem(WT_KEY); else localStorage.setItem(WT_KEY, wasW);
-          if (wasS == null) localStorage.removeItem(STORE_KEY); else localStorage.setItem(STORE_KEY, wasS);
-        } catch (e2) {}
-        try { syncToday(); } catch (e3) {}   /* put the screen back too */
-        restoreFailed('That backup could not be read — nothing has been changed.');
+          syncToday();
+          if (!viewProg.hidden) buildProgress();
+        } catch (err) {}
+        deferStoreWrites = false;
+        if (saving) noteWriteFailure();
+        restoreFailed(rollbackFailed
+          ? 'Restore failed and the previous saved data could not be fully recovered. Close this dialog and use Backup to keep a copy of the original data still open in the app before reloading.'
+          : saving
+            ? 'Restore could not be saved on this device — nothing has been changed. Free up storage and try again.'
+            : 'That backup could not be read — nothing has been changed.');
         return;
       }
+      deferStoreWrites = false;
+      historyWriteBlocked = false;
+      storeWasUnreadable = false;
+      writeFailed = false;
+      renderStoreWarning();
       closePanel();
       closeModal(backupEl);
       clearInterval(restInt);
