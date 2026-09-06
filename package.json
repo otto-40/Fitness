@@ -4,7 +4,7 @@
   "private": true,
   "description": "Weekly training routine as an installable offline web app.",
   "scripts": {
-    "test": "node tests/app.test.js"
+    "test": "node --test tests/sw.test.js && node tests/app.test.js"
   },
   "devDependencies": {
     "playwright-core": "^1.49.0"

@@ -1823,6 +1823,131 @@ async function main() {
     check('completion remains intact', await page.getAttribute('.wt-sdone[data-i="0"]', 'aria-pressed'), 'true');
   });
 
+
+  await test('reliability: invalid JSON is preserved before boot writes',
+    { date: '2026-07-23T09:00:00', seed: () => {
+      localStorage.setItem('sams-training-weights', '{broken history');
+    } }, async (page) => {
+      check('original bytes recoverable', await page.evaluate(() =>
+        localStorage.getItem('sams-training-weights-unreadable')), '{broken history');
+      check('recovery warning visible', await page.locator('#broken-warn').isVisible(), true);
+      await page.click('#backup-btn');
+      check('backup controls still work', await page.locator('#backup').isVisible(), true);
+      await page.reload();
+      check('recovery copy survives a second boot', await page.evaluate(() =>
+        localStorage.getItem('sams-training-weights-unreadable')), '{broken history');
+    });
+
+  await test('reliability: failed preservation leaves the original history untouched',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+      await page.evaluate(() => localStorage.setItem('sams-training-weights', '{keep me'));
+      await page.addInitScript(() => {
+        const put = Storage.prototype.setItem;
+        Storage.prototype.setItem = function(k, v) {
+          if (k === 'sams-training-weights-unreadable') throw Error('quota');
+          return put.call(this, k, v);
+        };
+      });
+      await page.reload();
+      await tickSet(page, 'mon-1', 1);
+      check('original stays on disk', await page.evaluate(() =>
+        localStorage.getItem('sams-training-weights')), '{keep me');
+      check('save failure visible', await page.locator('#store-warn').isVisible(), true);
+      check('backup remains available', await page.locator('#backup-btn').isEnabled(), true);
+    });
+
+  for (const failureKey of ['sams-training-weights', 'sams-training-week']) {
+    await test('reliability: restore rolls back a failed write to ' + failureKey,
+      { date: '2026-07-23T09:00:00' }, async (page) => {
+        await openRow(page, 'mon-1');
+        await page.fill('.wt-top', '65');
+        await tickSet(page, 'mon-1', 1);
+        await page.click('.wt-close');
+        await page.click('#backup-btn');
+        const original = await page.inputValue('#bk-text');
+        const imported = JSON.parse(original);
+        imported.history.wt['mon-1'][0].w = 95;
+        imported.history.wt['mon-1'][0].s.forEach(s => s.w = 95);
+        await page.fill('#bk-text', JSON.stringify(imported));
+        const disk = () => page.evaluate(() => [
+          localStorage.getItem('sams-training-weights'),
+          localStorage.getItem('sams-training-week')
+        ]);
+        const before = await disk();
+        await page.evaluate((key) => {
+          const put = Storage.prototype.setItem;
+          window.restoreWrites = [];
+          window.restorePut = put;
+          Storage.prototype.setItem = function(k, v) {
+            window.restoreWrites.push(k);
+            if (k === key) throw Error('quota');
+            return put.call(this, k, v);
+          };
+        }, failureKey);
+        await page.click('#bk-restore');
+        await page.click('#bk-restore');
+        check('restore stays open', await page.locator('#backup').isVisible(), true);
+        check('failure explained', (await page.textContent('.bk-note')).includes('could not be saved'), true);
+        check('both disk values preserved exactly', await disk(), before);
+        check('writes staged until validation', await page.evaluate(() => window.restoreWrites),
+          failureKey === 'sams-training-weights'
+            ? ['sams-training-weights']
+            : ['sams-training-weights', 'sams-training-week', 'sams-training-weights']);
+        await page.evaluate(() => { Storage.prototype.setItem = window.restorePut; });
+        await page.click('#bk-close');
+        await page.click('#backup-btn');
+        check('memory restored too', await page.inputValue('#bk-text'), original);
+        // Retrying a valid restore after storage recovers must work.
+        await page.fill('#bk-text', JSON.stringify(imported));
+        await page.click('#bk-restore');
+        await page.click('#bk-restore');
+        check('retry closes on success', await page.locator('#backup').isHidden(), true);
+        check('retry clears storage warning', await page.locator('#store-warn').isHidden(), true);
+        await page.reload();
+        check('restored data survives reload', (await page.textContent('[data-id="mon-1"] .wt-val')).trim(), '95');
+      });
+  }
+
+  await test('reliability: hard prior sessions never suggest an increase',
+    { date: '2026-07-23T09:00:00', seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({ perSet: 1,
+        wt: { 'mon-1': [{ew: ew - 1, w: 100,
+          s: Array.from({length:4}, () => ({w:100,r:8,e:2,done:true}))}] }
+      }));
+    `) }, async (page) => {
+      await openRow(page, 'mon-1');
+      check('hard prior session holds weight', (await page.textContent('[data-hint]')).trim(),
+        'Last session felt hard — repeat 100 kg before adding.');
+      check('advice is a caution', await page.locator('[data-hint].caution').count(), 1);
+      // Finishing a lower-rep session today must not resurrect last week's increase.
+      for (let i = 0; i < 4; i++) await page.fill(`.wt-sr[data-i="${i}"]`, '6');
+      await tickAll(page, 'mon-1');
+      check('hard prior effort still blocks fallback increase', await page.locator('[data-hint]').isHidden(), true);
+    });
+
+  await test('reliability: exercise increments persist and drive controls and advice',
+    { date: '2026-07-23T09:00:00' }, async (page) => {
+      await page.click('#pref-edit');
+      const exercise = page.locator('.ed-ex').first();
+      await exercise.locator('[data-k="increment"]').fill('1.25');
+      await page.click('#ed-save');
+      await page.waitForLoadState('load');
+      await openRow(page, 'mon-1');
+      check('configured step displayed', await page.locator('.wt-step').allTextContents(), ['−1.25', '+1.25']);
+      await page.fill('.wt-top', '40');
+      await page.click('.wt-step[data-step="1.25"]');
+      check('step applies to all sets', await page.locator('.wt-sw').evaluateAll(es => es.map(e => e.value)),
+        ['41.25', '41.25', '41.25', '41.25']);
+      await tickAll(page, 'mon-1');
+      check('advice uses configured increment', (await page.textContent('[data-hint]')).trim(),
+        'All sets at 8 — load 42.5 kg next week.');
+      await page.click('#backup-btn');
+      check('increment included in backup', JSON.parse(await page.inputValue('#bk-text')).history.program['d-mon'][0].increment, 1.25);
+      await page.click('#bk-close');
+      await openRow(page, 'mon-2');
+      check('another exercise keeps default', await page.locator('.wt-step').allTextContents(), ['−2.5', '+2.5']);
+    });
+
   await browser.close();
 
   console.log(`\n${pass} passed, ${failures.length} failed`);

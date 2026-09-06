@@ -3,15 +3,15 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [claude/workout-routine-ui-gmzbvt]
+  pull_request:
+    branches: [claude/workout-routine-ui-gmzbvt]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,7 +29,12 @@ jobs:
       - run: npm test
 
   deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/workout-routine-ui-gmzbvt'
     needs: test
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     runs-on: ubuntu-latest
     environment:
       name: github-pages

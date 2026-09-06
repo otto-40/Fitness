@@ -87,6 +87,9 @@ what the calendar shows. Weights, reps, notes and history are never cleared.
 
 **Edit program** in the footer changes exercises, sets and rep targets.
 Exercise IDs are permanent, so renaming a lift keeps its history.
+**Step (kg)** sets each exercise’s weight-button and progression increment;
+existing exercises default to 2.5 kg. Hard sessions recommend holding the
+load, including when you open the lift the following week.
 
 ## Backing up
 
@@ -102,13 +105,15 @@ tap **Restore** twice. Importing only stages the file; it never replaces your
 records until you confirm Restore. Backup, program editing and celebration
 dialogs keep keyboard focus inside and return it when closed.
 
-Restore checks a pasted backup before it trusts it, and says what is wrong
-rather than half-applying it; if anything still fails, the write is undone and
-your data is left as it was. If a save ever fails — a full device, private
+Restore checks and migrates a pasted backup in memory before saving it.
+If a write fails, the dialog stays open and the previous data is restored.
+If storage also prevents recovery, the dialog says so and directs you to
+back up the original data still open in the app before reloading. If a save ever fails — a full device, private
 browsing — the footer says so instead of letting a logged set look safe. And
 if the stored data is ever unreadable, the app starts empty rather than
-refusing to start, keeping the unreadable copy aside so a backup can be pasted
-back in.
+refusing to start, keeping the exact unreadable copy aside so a backup can be pasted
+back in. If that recovery copy cannot be saved, the original history stays
+untouched on disk.
 
 ## Installing on a phone
 
@@ -130,10 +135,12 @@ npm install     # playwright-core, for the tests only
 npm test        # drives the real page in Chromium
 ```
 
-`npm test` runs the suite in `tests/app.test.js`, which exercises the app
+`npm test` first checks HTTP and cache failures in `tests/sw.test.js`, then
+runs the suite in `tests/app.test.js`, which exercises the app
 end to end — logging, weights, per-set entry, the history calendar, backup
-and restore, the program editor. CI runs it on every push and **only deploys
-if it passes** (`.github/workflows/pages.yml`).
+and restore, the program editor. CI runs it on pull requests and pushes to the app branch. It **only deploys
+that branch if tests pass** (`.github/workflows/pages.yml`); pull requests
+never deploy.
 
 Other files: `sw.js` (offline cache — bump `CACHE` when assets change),
 `manifest.webmanifest` and `icons/` (home-screen install).
