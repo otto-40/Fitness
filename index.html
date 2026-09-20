@@ -537,6 +537,10 @@
     padding:2px 6px;border-radius:2px;
   }
   .wt-adjust{display:flex;align-items:stretch;gap:8px}
+  /* these plan the sets still to come, so they retire once every set is
+     ticked — a logged set is corrected in its own field, never in bulk */
+  .wt-adjust.spent{opacity:.45}
+  .wt-adjust.spent .wt-step,.wt-adjust.spent .wt-field input{cursor:default}
   .wt-step{
     flex:1;min-height:46px;
     font-family:var(--mono);font-size:14px;font-weight:500;
@@ -609,6 +613,34 @@
   .cc-delta{font-family:var(--mono);font-size:11px;color:var(--chart);white-space:nowrap}
   .cc-delta.down{color:var(--warn)}
   .cc-note{font-size:12.5px;color:var(--rest);margin-top:6px}
+  /* ---- "what to work on next" ---- */
+  .fn-list{display:flex;flex-direction:column;margin-top:4px}
+  .fn-row{
+    display:flex;align-items:flex-start;gap:10px;width:100%;
+    padding:10px 0;border:none;border-top:1px solid var(--row-line);
+    background:none;text-align:left;color:inherit;font:inherit;
+    cursor:pointer;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .fn-row:first-child{border-top:none}
+  .fn-row:active{background:var(--tap-flash)}
+  .fn-row:focus-visible{outline:2px solid var(--court);outline-offset:-2px}
+  .fn-tag{
+    flex:none;min-width:62px;margin-top:1px;
+    font-family:var(--mono);font-size:9.5px;font-weight:500;
+    letter-spacing:.08em;text-transform:uppercase;text-align:center;
+    padding:3px 5px;border-radius:2px;
+    color:var(--on-done);background:var(--done);
+  }
+  /* holding, backing off and a stall read as cautions, the way the
+     exercise panel's own hint does */
+  .fn-hold .fn-tag,.fn-stall .fn-tag{background:var(--warn);color:var(--on-warn)}
+  .fn-rate .fn-tag,.fn-cold .fn-tag{background:var(--rest);color:var(--on-court)}
+  .fn-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .fn-body b{font-size:13.5px;font-weight:600}
+  .fn-body span{font-size:12px;color:var(--rest);line-height:1.4}
+  .fn-row.fn-group{cursor:default}
+  .fn-names{font-family:var(--mono);font-size:11px;color:var(--court-deep)}
   .cc-plot{position:relative;margin-top:8px}
   .cc-plot svg{
     display:block;width:100%;height:auto;
@@ -1685,6 +1717,92 @@
     while (i - n >= 0 && es[i - n].w === e.w) n++;
     return n;
   }
+  /* every prescribed set at the top of the rep range — the condition double
+     progression treats as "the range is finished, now add load" */
+  function repsAtTop(e, range, nSets){
+    if (!range || !e) return false;
+    var ss = setsOf(e);
+    if (ss.length < nSets) return false;
+    for (var i = 0; i < nSets; i++) if (!ss[i] || ss[i].r == null || ss[i].r < range.hi) return false;
+    return true;
+  }
+  /* Backing off a stalled lift used to be a flat 5 kg, which is a different
+     thing on every bar: 4% off a 130 kg trap bar is not a back-off at all,
+     while 5 kg off an 18 kg overhead press is a 28% cut. Take roughly a
+     tenth instead — the usual reset for a lift that has stopped moving —
+     and land it on the exercise's own increment so the number is loadable. */
+  function deloadFrom(w, increment){
+    var cut = Math.max(increment, Math.round(w * 0.1 / increment) * increment);
+    return Math.max(increment, Math.round((w - cut) / increment) * increment);
+  }
+
+  /* ---- one reading of a lift ----
+     Reads the latest session back as a single instruction: reps say whether
+     the rep range is finished, effort says whether the load was what held
+     you up, and a run of sessions at one weight says whether you have
+     stopped moving. Effort only ever speaks when every loaded set of that
+     session was rated, so a half-rated session stays quiet rather than
+     saying something misleading.
+
+     The exercise panel prints this as its hint and the Progress summary
+     buckets it, so the two can never tell you different things. Returns
+     null when there is nothing honest to say. */
+  function liftRead(key, range, nSets, increment){
+    var raw = currentEntry(key);
+    if (raw && !completedSession(raw)) return null;   /* a session still in progress */
+    var c2 = completedSession(raw) ? recordedEntry(raw) : null;
+    var p2 = previousEntry(key);
+    if (p2 && setsOf(p2).length < nSets) p2 = null;
+    var logged = !!(c2 && c2.w != null);
+    /* the session the advice is about: today's if there is one, else last */
+    var ref = logged ? c2 : p2;
+    if (!ref) return null;
+    var fx = effortRead(ref);
+    var run = sameLoadRun(key, ref);
+    var kind = null, msg = '';
+    /* How long ago the session being read actually was. Calling a session
+       from six weeks back "last week" is simply false, and it is the lifts
+       that have slipped out of the rotation where it happens most. */
+    var ago = curWeek() - ref.ew;
+    var when = ago <= 1 ? 'last week' : ago + ' weeks ago';
+    if (logged && repsAtTop(c2, range, nSets)){
+      kind = fx === 'hard' ? 'hold' : 'add';
+      msg = fx === 'hard'
+        ? 'All sets at ' + range.hi + ', but the session felt hard — repeat ' + fmtW(c2.w) + ' kg before adding.'
+        : 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + increment) + ' kg next week.';
+    } else if (fx === 'easy'){
+      kind = 'add';
+      msg = logged
+        ? 'Every set easy — ' + fmtW(c2.w + increment) + ' kg is there next week.'
+        : (ago <= 1 ? 'Last week felt easy — start at ' : 'Felt easy ' + when + ' — start at ') +
+          fmtW(p2.w + increment) + ' kg.';
+    } else if (fx === 'hard' && run >= 3){
+      kind = 'stall';
+      msg = run + ' sessions at ' + fmtW(ref.w) + ' kg and still hard — hold the load and chase reps, or drop to ' +
+            fmtW(deloadFrom(ref.w, increment)) + ' kg and build back.';
+    } else if (fx === 'hard' && logged){
+      /* effortRead() calls a session hard at half its sets, so the line
+         says the session felt hard rather than claiming every set did */
+      kind = 'hold';
+      msg = 'This session felt hard — stay at ' + fmtW(c2.w) + ' kg next week and add reps.';
+    } else if (fx === 'hard'){
+      kind = 'hold';
+      msg = (ago <= 1 ? 'Last session felt hard — repeat ' : 'Felt hard ' + when + ' — repeat ') +
+            fmtW(ref.w) + ' kg before adding.';
+    } else if (p2 && effortRead(p2) !== 'hard' && repsAtTop(p2, range, nSets) && !(logged && c2.w > p2.w)){
+      kind = 'add';
+      msg = 'Top of range ' + when + ' — try ' + fmtW(p2.w + increment) + ' kg.';
+    } else if (run >= 3){
+      kind = fx == null ? 'rate' : 'stall';
+      msg = fmtW(ref.w) + ' kg for ' + run + ' sessions running — ' + (fx == null
+        ? 'rate the sets and the next step picks itself.'
+        : 'a plateau unless the reps are climbing.');
+    }
+    if (!kind) return null;
+    /* holding or backing off is a caution, not a green light */
+    return { kind: kind, msg: msg, caution: fx === 'hard', w: ref.w, ew: ref.ew };
+  }
+
   /* Writes this week's sets, dropping the entry when nothing is left in it. */
   function writeSets(key, sets){
     var es = entriesFor(key), ew = curWeek(), last = es[es.length - 1];
@@ -2031,11 +2149,17 @@
     setTimeout(function(){ band.classList.remove('fresh'); }, 1800);
   }
 
-  function renderAll(){
+  /* keepOpen leaves each day's collapsed state alone. Coming back to the app
+     re-renders, and re-deriving collapse from completion there undid whatever
+     you had open: a finished day you reopened to fix a rep count snapped shut
+     the moment you glanced at another app and came back, and a day you had
+     folded away sprang open again. Boot and a new week still set it, because
+     then there is no state of yours to keep. */
+  function renderAll(keepOpen){
     disarmAllDayChecks();
     rows.forEach(renderRow);
     days.forEach(refreshDay);
-    days.forEach(function(sec){ setDayClosed(sec, dayIsDone(sec)); });
+    if (!keepOpen) days.forEach(function(sec){ setDayClosed(sec, dayIsDone(sec)); });
     renderBand();
     renderChips();
     renderNotes();
@@ -2192,9 +2316,18 @@
       if (p && p.w != null) return fmtW(p.w);
       return prev && prev.w != null ? fmtW(prev.w) : '';
     }
+    /* Reps seed the way weights do: what you actually did last time, and only
+       the prescription when there is no last time. Seeding the top of the
+       range instead meant a session you ticked off without editing recorded
+       reps you never performed — 100 kg × 6,6,5 came back as 100 kg × 8,8,8,
+       which inflated volume and est. 1RM and turned a hard session into
+       "all sets at 8, add load". The number you are chasing is on the card
+       as the prescription; the panel holds the number you hit. */
     function seedR(i){
       var c = setsOf(cur)[i];
       if (c && c.r != null) return String(c.r);
+      var p = prevSets[i];
+      if (p && p.r != null) return String(p.r);
       return repDefault != null ? String(repDefault) : '';
     }
     /* effort is never pre-filled from another session — how last week felt
@@ -2227,9 +2360,9 @@
     if (weighted){
       html +=
         '<div class="wt-adjust">' +
-          '<button type="button" class="wt-step" data-step="-' + increment + '" aria-label="' + increment + ' kg off every set">−' + increment + '</button>' +
-          '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for every set"><span>kg</span></label>' +
-          '<button type="button" class="wt-step" data-step="' + increment + '" aria-label="' + increment + ' kg on every set">+' + increment + '</button>' +
+          '<button type="button" class="wt-step" data-step="-' + increment + '" aria-label="' + increment + ' kg off the sets still to do">−' + increment + '</button>' +
+          '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for the sets still to do"><span>kg</span></label>' +
+          '<button type="button" class="wt-step" data-step="' + increment + '" aria-label="' + increment + ' kg on the sets still to do">+' + increment + '</button>' +
         '</div>';
       html += '<div class="wt-shead" aria-hidden="true">' +
           '<span class="h-n">done</span><span class="h-w">kg</span><span class="h-x"></span>' +
@@ -2337,60 +2470,16 @@
         };
       });
     }
-    function repsAtTop(e){
-      if (!range || !e) return false;
-      var ss = setsOf(e);
-      if (ss.length < nSets) return false;
-      for (var i = 0; i < nSets; i++) if (!ss[i] || ss[i].r == null || ss[i].r < range.hi) return false;
-      return true;
-    }
-    /* The hint is the whole point of logging: it reads the session back as
-       one instruction. Reps say whether the range is finished, effort says
-       whether the load was the thing holding you up, and a run of sessions
-       at one weight says whether you have stopped moving. Effort only ever
-       speaks when every loaded set of that session was rated. */
+    /* the hint is the whole point of logging — the session read back as one
+       instruction. liftRead() is the same reading the Progress summary
+       buckets, so the panel and the summary can never disagree. */
     function updateHint(){
       var el = panel.querySelector('[data-hint]');
       if (!el) return;                 /* nothing to advise on an unloaded lift */
-      var raw = currentEntry(key);
-      var c2 = completedSession(raw) ? recordedEntry(raw) : null, p2 = previousEntry(key);
-      if (p2 && setsOf(p2).length < nSets) p2 = null;
-      var logged = c2 && c2.w != null;
-      /* the session the advice is about: today's if there is one, else last */
-      var ref = logged ? c2 : p2;
-      var fx = ref ? effortRead(ref) : null;
-      var run = ref ? sameLoadRun(key, ref) : 0;
-      var msg = '';
-      if (raw && !completedSession(raw)){
-        el.hidden = true; el.textContent = ''; return;
-      }
-      /* holding or backing off is a caution, not a green light */
-      var hold = fx === 'hard';
-      if (logged && repsAtTop(c2)){
-        msg = fx === 'hard'
-          ? 'All sets at ' + range.hi + ', but every one was a grind — repeat ' + fmtW(c2.w) + ' kg before adding.'
-          : 'All sets at ' + range.hi + ' — load ' + fmtW(c2.w + increment) + ' kg next week.';
-      } else if (fx === 'easy'){
-        msg = logged
-          ? 'Every set easy — ' + fmtW(c2.w + increment) + ' kg is there next week.'
-          : 'Last week felt easy — start at ' + fmtW(p2.w + increment) + ' kg.';
-      } else if (fx === 'hard' && run >= 3){
-        msg = run + ' sessions at ' + fmtW(ref.w) + ' kg and still hard — hold the load and chase reps, or drop to ' +
-              fmtW(Math.max(0, ref.w - 5)) + ' kg and build back.';
-      } else if (fx === 'hard' && logged){
-        msg = 'Every set hard — stay at ' + fmtW(c2.w) + ' kg next week and add reps.';
-      } else if (fx === 'hard'){
-        msg = 'Last session felt hard — repeat ' + fmtW(ref.w) + ' kg before adding.';
-      } else if (p2 && effortRead(p2) !== 'hard' && repsAtTop(p2) && !(logged && c2.w > p2.w)){
-        msg = 'Top of range last week — try ' + fmtW(p2.w + increment) + ' kg.';
-      } else if (run >= 3){
-        msg = fmtW(ref.w) + ' kg for ' + run + ' sessions running — ' + (fx == null
-          ? 'rate the sets and the next step picks itself.'
-          : 'a plateau unless the reps are climbing.');
-      }
-      el.textContent = msg;
-      el.classList.toggle('caution', !!msg && hold);
-      el.hidden = !msg;
+      var read = liftRead(key, range, nSets, increment);
+      el.textContent = read ? read.msg : '';
+      el.classList.toggle('caution', !!(read && read.caution));
+      el.hidden = !read;
     }
     function refresh(){
       renderChip(row);
@@ -2400,7 +2489,12 @@
       var status = panel.querySelector(".wt-note");
       if (status) status.textContent = writeFailed ? "Not saved — use Backup to keep a copy" : "Saved on this device";
       if (topInput){
-        var t = topOf(shown());
+        /* the field drives the sets still to come, so it shows the heaviest
+           of those; once they are all done it falls back to the session's
+           top set rather than emptying itself */
+        var all = shown();
+        var live = all.filter(function(s, i){ return bulkEditable(i); });
+        var t = topOf(live.length ? live : all);
         topInput.value = t == null ? '' : fmtW(t);
       }
     }
@@ -2461,30 +2555,65 @@
       });
     });
 
-    /* the top field drives every set at once: typing levels them, the
-       steppers shift them all by the exercise's increment and keep any differences intact */
+    /* ---- the bulk load controls only touch sets you have not done yet ----
+       A ticked set is a record of what you lifted, and these controls used to
+       rewrite it: log set 1 at 100 kg, tap +2.5 to load up for set 2, and the
+       stored set 1 became 102.5 kg — a weight that was never on the bar. The
+       same went for typing in the "every set" field. They now level and shift
+       the sets still to come, which is what they are for mid-session; a set
+       already logged is corrected in its own field, or by un-ticking it. */
+    /* What the bulk controls may touch: any set still to do, plus a set
+       ticked off that carries no load yet — completing a day from its circle
+       and then recording what was on the bar is a normal way to log, and
+       there is no number there to protect. A ticked set that already holds a
+       weight is a record, and only its own field changes it.
+
+       The lock is taken when the panel is built and whenever a set is ticked
+       or taken back, never while you are typing: recomputing it per keystroke
+       would let the field lock itself under its own first digit. */
+    var bulkLocked = [];
+    function bulkEditable(i){ return !bulkLocked[i]; }
+    function pendingInputs(){
+      return wIn.filter(function(el, i){ return bulkEditable(i); });
+    }
+    /* nothing left to plan once every set is logged, so the bulk controls
+       retire rather than sitting there doing nothing */
+    function syncBulkControls(){
+      bulkLocked = wIn.map(function(el, i){ return !!flags[i] && num(el) != null; });
+      var live = pendingInputs().length > 0;
+      if (topInput) topInput.disabled = !live;
+      panel.querySelectorAll('.wt-step').forEach(function(b){ b.disabled = !live; });
+      var adjust = panel.querySelector('.wt-adjust');
+      if (adjust) adjust.classList.toggle('spent', !live);
+    }
     if (topInput){
       topInput.addEventListener('input', function(){
-        wIn.forEach(function(el){ el.value = topInput.value; });
+        pendingInputs().forEach(function(el){ el.value = topInput.value; });
         commit();
       });
     }
     panel.querySelectorAll('.wt-step').forEach(function(b){
       b.addEventListener('click', function(){
         var step = parseFloat(b.dataset.step);
-        var any = false;
-        wIn.forEach(function(el){
+        var live = pendingInputs(), any = false;
+        live.forEach(function(el){
           var v = num(el);
           if (v == null) return;
           el.value = fmtW(Math.max(0, v + step));
           any = true;
         });
-        if (!any){                       /* nothing logged yet — start from zero */
-          wIn.forEach(function(el){ el.value = fmtW(Math.max(0, step)); });
+        if (!any){
+          /* Nothing to shift among the sets still to come, so step off the
+             heaviest weight the session already holds — logging set 1 at
+             100 kg and reaching for +2.5 means 102.5 for what is left, not
+             2.5. Only a session with no weight anywhere starts from zero. */
+          var base = topOf(shown());
+          live.forEach(function(el){ el.value = fmtW(Math.max(0, (base || 0) + step)); });
         }
         commit();
       });
     });
+    syncBulkControls();
     if (names){
       panel.querySelectorAll('.wt-var button').forEach(function(b){
         b.addEventListener('click', function(){
@@ -2547,6 +2676,7 @@
       panel.querySelectorAll('.wt-set').forEach(function(el, i){ el.classList.toggle('next-set', i === next); });
       var line = panel.querySelector('.wt-next');
       if (line) line.textContent = next < 0 ? 'All ' + nSets + ' sets complete' : 'Next: set ' + (next + 1) + ' of ' + nSets;
+      syncBulkControls();   /* a set ticked off is a set the bulk controls leave alone */
     }
     updateNextSet();
     /* rest length is per exercise: tap to cycle through the usual spans */
@@ -2717,7 +2847,7 @@
     return head + '</div>';
   }
 
-  function liftCard(name, es){
+  function liftCard(name, es, key){
     var m = wstore.prefs.metric;
     var pts = [];
     es.map(recordedEntry).filter(Boolean).slice(-52).forEach(function(e){
@@ -2729,6 +2859,7 @@
     });
     var card = document.createElement('div');
     card.className = 'chart-card';
+    if (key) card.dataset.pgkey = key;   /* what a "next" line scrolls to */
     card.innerHTML = cardHead(name, pts, wstore.unit, false);
     if (!pts.length){
       card.innerHTML += '<div class="cc-note">Nothing logged yet — tap the ' + wstore.unit + ' chip on this lift to start.</div>';
@@ -2743,14 +2874,14 @@
   /* one card per variant that has data; the active variant's empty card otherwise */
   function chartCards(row){
     var id = row.dataset.id, names = variantNames(row);
-    if (!names) return [liftCard(exName(row), entriesFor(id))];
+    if (!names) return [liftCard(exName(row), entriesFor(id), id)];
     var keys = [id, id + '~1'];
     var withData = keys.filter(function(k){
       return entriesFor(k).some(function(e){ return !!recordedEntry(e); });
     });
-    if (!withData.length) return [liftCard(activeName(row), [])];
+    if (!withData.length) return [liftCard(activeName(row), [], keyFor(row))];
     return withData.map(function(k){
-      return liftCard(names[k === id ? 0 : 1], entriesFor(k));
+      return liftCard(names[k === id ? 0 : 1], entriesFor(k), k);
     });
   }
 
@@ -2806,6 +2937,113 @@
     return s;
   }
 
+  /* ---- what to work on next ----
+     A chart per lift answers "is this one moving", one lift at a time. With
+     a dozen of them that is a dozen judgements to make and a long scroll to
+     make them on, and the answer you actually want out of Progress — which
+     lifts need a decision this week — was never stated anywhere.
+
+     Every reading here comes from sessions already logged: the same
+     liftRead() the exercise panel prints as its hint, plus how long it has
+     been since a lift was trained at all. Nothing is predicted and nothing
+     is averaged across lifts. A lift with nothing to say is left out. */
+  var FOCUS_ORDER = ['stall', 'hold', 'add', 'rate', 'cold'];
+  var FOCUS_LABEL = { stall: 'stalled', hold: 'hold', add: 'add load', rate: 'rate it', cold: 'cold' };
+  /* what a verdict says once it covers enough lifts that the individual
+     loads stop being the point */
+  var FOCUS_GROUP = {
+    stall: 'Same load three sessions running and still hard. Hold it and chase reps, or back off about a tenth and build again.',
+    hold: 'Last session was a grind. Repeat the load before adding to it.',
+    add: 'Finished the rep range without a grind — one increment up next time.',
+    rate: 'Same load three sessions running, and the sets were never rated — rate them and the next step picks itself.',
+    cold: 'No completed session in three weeks or more.'
+  };
+  /* the sets the panel would open with, so the summary judges a lift on the
+     same session shape the panel does */
+  function plannedSets(row){
+    var cur = currentEntry(keyFor(row));
+    return (store.counts && store.counts[row.dataset.id]) ||
+           Math.max(+row.dataset.sets, setsOf(cur).length, 1);
+  }
+  function lastLoggedWeek(key){
+    var es = entriesFor(key).filter(completedSession);
+    return es.length ? es[es.length - 1].ew : null;
+  }
+  function focusItems(){
+    var out = [];
+    wtRows.forEach(function(row){
+      var key = keyFor(row), name = activeName(row);
+      /* A lift that has dropped out of the rotation is not one to give load
+         advice about — how long it has been is the thing worth knowing, and
+         it outranks a reading taken off a session that old. A lift never
+         started is not cold, it is simply not begun. */
+      var last = lastLoggedWeek(key);
+      if (last != null && curWeek() - last >= 3){
+        out.push({ kind: 'cold', name: name, key: key,
+          msg: 'No completed session in ' + (curWeek() - last) + ' weeks.' });
+        return;
+      }
+      var read = liftRead(key, repRange(row), plannedSets(row), loadIncrement(row));
+      if (read) out.push({ kind: read.kind, name: name, msg: read.msg, key: key });
+    });
+    out.sort(function(a, b){ return FOCUS_ORDER.indexOf(a.kind) - FOCUS_ORDER.indexOf(b.kind); });
+    return out;
+  }
+  function focusSection(){
+    var items = focusItems();
+    var s = document.createElement('section');
+    s.className = 'pg-day';
+    s.innerHTML = '<h2><span>Next</span><span class="pg-focus">FROM WHAT YOU LOGGED</span></h2>';
+    var card = document.createElement('div');
+    card.className = 'chart-card';
+    if (!items.length){
+      card.innerHTML = '<div class="cc-head"><span class="cc-name">Nothing to flag</span></div>' +
+        '<div class="cc-note">Advice needs a finished session with its sets rated. Log and rate a lift and it turns up here.</div>';
+      s.appendChild(card);
+      return s;
+    }
+    /* One line per lift while a verdict applies to one or two of them, which
+       is the usual shape and the one where the exact load is the useful part.
+       A verdict covering three or more — a week where everything was a grind,
+       say — collapses to a single line naming them, because six rows all
+       reading "felt hard" is not a summary of anything. */
+    var rows = [], budget = 8;
+    FOCUS_ORDER.forEach(function(kind){
+      var group = items.filter(function(it){ return it.kind === kind; });
+      if (!group.length || budget <= 0) return;
+      if (group.length <= 2){
+        group.slice(0, budget).forEach(function(it){
+          budget--;
+          rows.push('<button type="button" class="fn-row fn-' + kind + '" data-key="' + esc(it.key) + '">' +
+            '<span class="fn-tag">' + FOCUS_LABEL[kind] + '</span>' +
+            '<span class="fn-body"><b>' + esc(it.name) + '</b><span>' + esc(it.msg) + '</span></span>' +
+          '</button>');
+        });
+        return;
+      }
+      budget--;
+      var names = group.slice(0, 3).map(function(it){ return it.name; }).join(', ') +
+                  (group.length > 3 ? ' +' + (group.length - 3) : '');
+      rows.push('<div class="fn-row fn-' + kind + ' fn-group">' +
+        '<span class="fn-tag">' + FOCUS_LABEL[kind] + '</span>' +
+        '<span class="fn-body"><b>' + group.length + ' lifts</b>' +
+          '<span>' + FOCUS_GROUP[kind] + '</span>' +
+          '<span class="fn-names">' + esc(names) + '</span></span>' +
+      '</div>');
+    });
+    card.innerHTML = '<div class="cc-head"><span class="cc-name">What to work on next</span></div>' +
+      '<div class="fn-list">' + rows.join('') + '</div>';
+    /* tapping a line goes to that lift's chart, which is the evidence for it */
+    card.querySelectorAll('.fn-row').forEach(function(b){
+      b.addEventListener('click', function(){
+        var t = viewProg.querySelector('[data-pgkey="' + b.dataset.key.replace(/"/g, '\\"') + '"]');
+        if (t) t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+    });
+    s.appendChild(card);
+    return s;
+  }
+
   function buildProgress(){
     viewProg.innerHTML = '';
 
@@ -2839,8 +3077,11 @@
       viewProg.appendChild(leg);
     }
 
-    viewProg.appendChild(bodySection());
     var any = Object.keys(wstore.wt).some(function(k){ return entriesFor(k).some(function(e){ return !!recordedEntry(e); }); });
+    /* the summary leads, because it is the answer the charts below are the
+       working for — but only once there is a session to read */
+    if (any) viewProg.appendChild(focusSection());
+    viewProg.appendChild(bodySection());
     days.forEach(function(sec){
       if (!any) return;
       var wtIn = Array.prototype.slice.call(sec.querySelectorAll('.row[data-wt]'));
@@ -3344,8 +3585,9 @@
   /* recompute today + roll the week on — runs on load and every time the
      page is brought back into view, so a tab left open overnight stays
      correct */
-  function syncToday(){
+  function syncToday(keepOpen){
     todayDow = new Date().getDay();
+    var wasWeek = curWeek();
     if (store.week !== curWeek()){ store = freshStore(); save(); }
     rollStaleWeek();
     /* a week finished and celebrated in an earlier session moves on the
@@ -3354,7 +3596,9 @@
     document.querySelectorAll('[data-day]').forEach(function(el){
       el.classList.toggle('today', +el.dataset.day === todayDow);
     });
-    renderAll();
+    /* a week that turned over while you were away hands you fresh cards, so
+       there is no collapsed state of yours left to keep */
+    renderAll(keepOpen && curWeek() === wasWeek);
     maybeCelebrate();
   }
 
@@ -3950,7 +4194,7 @@
 
   document.addEventListener('visibilitychange', function(){
     if (document.hidden) return;
-    syncToday();
+    syncToday(true);   /* coming back is not a reason to refold the cards */
     requestWake();   /* the OS drops the lock whenever the page is backgrounded */
     if (restEnd && !restBar.hidden) tickRest();
   });

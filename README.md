@@ -20,11 +20,18 @@ Three tabs:
   same ticks without the load fields. Days collapse once complete, and rest
   days complete themselves when their date arrives. The band at the top says
   which week the cards below belong to.
-- **Progress** — body weight and body fat, plus a chart per lift. The
-  measure toggle switches between estimated 1RM (moves with load *or* reps),
-  top set, and volume. Each point is coloured by how that week's sets felt,
-  so a flat line whose dots are turning green is a plateau you can push out
-  of, and one that stays red is one to back off from.
+- **Progress** — opens with **what to work on next**: the lifts that need a
+  decision this week, each with the one instruction for it — stalled, hold,
+  add load, rate it, or cold. Tap a line to drop to that lift's chart, which
+  is the evidence for it. A verdict that covers three or more lifts collapses
+  to a single line naming them, so a week where everything was a grind reads
+  as one sentence rather than six copies of it. Every line comes from
+  sessions already logged; nothing is predicted, and a lift with nothing to
+  say is left out. Below it: body weight and body fat, plus a chart per lift.
+  The measure toggle switches between estimated 1RM (moves with load *or*
+  reps), top set, and volume. Each point is coloured by how that week's sets
+  felt, so a flat line whose dots are turning green is a plateau you can push
+  out of, and one that stays red is one to back off from.
 - **History** — a calendar of training days and a week-by-week log. Tap a
   past day to correct it; tap a week to see what you lifted.
 
@@ -44,7 +51,9 @@ done button is still the way to take one back.
 Once a session is rated the app says so in one line under the sets: every set
 easy is 2.5 kg you are leaving behind, every set a grind is a week to repeat,
 and the same load three sessions running is a plateau named out loud with a
-way out of it. Last week's rating rides on the weight chip as a coloured dot,
+way out of it — backing off about a tenth of the load, rounded to that
+exercise's own step, rather than a flat amount that would be a trim on a trap
+bar and a quarter of an overhead press. Last week's rating rides on the weight chip as a coloured dot,
 so you can see what you are walking into before you open anything.
 
 Rate every loaded set of a session or the advice stays quiet — a half-rated
@@ -54,7 +63,19 @@ this existed simply have no rating, and nothing about them changes.
 ## How weeks flow
 
 Weights and reps save as you edit. **Done editing** closes the panel; it does
-not complete the sets. Tick the numbered done button or choose an effort to
+not complete the sets.
+
+Weight and reps both open on what you lifted last time, and only fall back to
+the prescription when there is no last time — so ticking a session off without
+editing records what you actually did, not the target you were chasing. The
+target stays on the card as the prescription.
+
+The **− / +** buttons and the weight field above the sets plan the sets you
+have not done yet: they level or shift those, and leave a set you have already
+ticked alone. A logged set is corrected in its own field, or by un-ticking it.
+Once every set is logged they have nothing left to plan and switch off. Sets
+ticked off from the day circle carry no load yet, so those they can still fill
+in. Tick the numbered done button or choose an effort to
 complete each set. Progress charts, lift history and personal records use
 completed sets only; suggestions for next time wait until the exercise is
 complete. The next unfinished set is highlighted with larger controls.
