@@ -206,6 +206,10 @@
   }
   .wb-count{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
   .wb-count.done{color:var(--done)}
+  /* the week's aerobic total rides alongside the session count — the dose is
+     a weekly number, so mid-week is when knowing it can still change it */
+  .wb-aero{color:var(--rest);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wb-aero.done{color:var(--done)}
   @keyframes wbfresh{from{background:var(--done);color:var(--on-done)}}
   .week-band.fresh .wb-when{
     animation:wbfresh 1.6s ease-out;
@@ -433,6 +437,9 @@
   /* lifts that carry no weight get the ticks on their own, side by side */
   .wt-ticks{display:flex;flex-wrap:wrap;gap:6px}
   .wt-ticks .wt-sdone{flex:1;min-width:52px;max-width:96px;height:46px;width:auto}
+  /* an aerobic session is one tick under a wide minutes row, so the button
+     takes the full width rather than sitting orphaned in the corner */
+  .wt-ticks.cd-ticks .wt-sdone{max-width:none;height:52px}
   .wt-set input{
     min-width:0;min-height:48px;width:100%;box-sizing:border-box;
     font-family:var(--mono);font-size:16px;font-weight:500;
@@ -536,12 +543,13 @@
     letter-spacing:.08em;color:var(--on-done);background:var(--done);
     padding:2px 6px;border-radius:2px;
   }
-  .wt-adjust{display:flex;align-items:stretch;gap:8px}
+  .wt-adjust,.cd-adjust{display:flex;align-items:stretch;gap:8px}
+  .cd-adjust{margin-bottom:12px}
   /* these plan the sets still to come, so they retire once every set is
      ticked — a logged set is corrected in its own field, never in bulk */
   .wt-adjust.spent{opacity:.45}
   .wt-adjust.spent .wt-step,.wt-adjust.spent .wt-field input{cursor:default}
-  .wt-step{
+  .wt-step,.cd-step{
     flex:1;min-height:46px;
     font-family:var(--mono);font-size:14px;font-weight:500;
     color:var(--court-deep);background:var(--panel);
@@ -549,23 +557,29 @@
     cursor:pointer;touch-action:manipulation;
     -webkit-tap-highlight-color:transparent;
   }
-  .wt-step:focus-visible,.wt-close:focus-visible{
+  .wt-step:focus-visible,.cd-step:focus-visible,.wt-close:focus-visible{
     outline:2px solid var(--court);outline-offset:2px;
   }
-  .wt-field{
+  .wt-field,.cd-field{
     display:flex;align-items:center;justify-content:center;gap:4px;
     flex:1.2;
     background:var(--panel);border:1px solid var(--line);border-radius:4px;
     padding:0 8px;
   }
-  .wt-field input{
+  .wt-field input,.cd-field input{
     width:64px;border:none;background:none;color:var(--ink);
     font-family:var(--mono);font-size:18px;font-weight:500;text-align:right;
     font-variant-numeric:tabular-nums;outline:none;
   }
   .wt-field input::-webkit-inner-spin-button,
   .wt-field input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-  .wt-field span{font-family:var(--mono);font-size:11px;color:var(--rest)}
+  .wt-field span,.cd-field span{font-family:var(--mono);font-size:11px;color:var(--rest)}
+  /* how the week's aerobic total stands, read back inside the session */
+  .cd-week{
+    margin:10px 0 0;font-family:var(--mono);font-size:11.5px;
+    color:var(--rest);letter-spacing:.02em;
+  }
+  .cd-week.met{color:var(--done)}
   .wt-hist{margin-top:10px;display:flex;flex-direction:column;gap:3px}
   .wt-hist div{
     display:flex;justify-content:space-between;
@@ -613,6 +627,14 @@
   .cc-delta{font-family:var(--mono);font-size:11px;color:var(--chart);white-space:nowrap}
   .cc-delta.down{color:var(--warn)}
   .cc-note{font-size:12.5px;color:var(--rest);margin-top:6px}
+  /* how much of the week's aerobic target is in — a bar reads "how far along"
+     at a glance in a way the bare number does not */
+  .ae-bar{
+    margin-top:10px;height:10px;border-radius:5px;
+    background:var(--row-line);overflow:hidden;
+  }
+  .ae-bar i{display:block;height:100%;background:var(--chart);border-radius:5px}
+  .ae-bar i.met{background:var(--done)}
   /* ---- "what to work on next" ---- */
   .fn-list{display:flex;flex-direction:column;margin-top:4px}
   .fn-row{
@@ -660,6 +682,7 @@
   .cc-plot .fx1{fill:var(--chart)}
   .cc-plot .fx2{fill:var(--warn)}
   .cc-plot .endlab{fill:var(--ink);font-family:var(--mono);font-size:11px;font-weight:500}
+  .cc-plot .ref{stroke:var(--done);stroke-dasharray:4 3;stroke-width:1.5;opacity:.8}
   .cc-plot .xh{stroke:var(--rest);stroke-dasharray:2 3;visibility:hidden}
   .cc-tip{
     position:absolute;display:none;pointer-events:none;z-index:5;
@@ -1051,7 +1074,8 @@
   .ed-sets{flex:.7;min-width:0;text-align:center;font-family:var(--mono)}
   .ed-reps{flex:1;min-width:0;text-align:center;font-family:var(--mono)}
   .ed-line2{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
-  .ed-increment{width:64px}
+  .ed-increment,.ed-mins{width:64px}
+  .ed-line3{margin-bottom:6px}
   .ed-line2 label{
     display:flex;align-items:center;gap:6px;white-space:nowrap;
     font-family:var(--mono);font-size:11px;color:var(--rest);
@@ -1193,6 +1217,7 @@
   <div class="week-band" id="week-band" aria-live="polite">
     <span class="wb-when" id="wb-when"></span>
     <span class="wb-count" id="wb-count"></span>
+    <span class="wb-aero" id="wb-aero" hidden></span>
   </div>
 
   <!-- MONDAY -->
@@ -1468,6 +1493,10 @@
     if (!wstore.rest) wstore.rest = {};      /* exercise id -> rest seconds */
     if (!wstore.setUndo) wstore.setUndo = {};
     if (!wstore.notes) wstore.notes = {};    /* exercise id -> free text */
+    /* minutes logged against the aerobic sessions: exercise id -> [{ew, dn, m}],
+       one record per training week, the same shape the lifts use. Kept apart
+       from wt so nothing about loads, charts or records has to know about it. */
+    if (!wstore.cardio) wstore.cardio = {};
     /* training weeks: w -> { start: dn, done: { cardId -> dn it was finished } }.
        Weeks used to be calendar weeks that wiped themselves every Monday; now
        one runs until it is finished, then the next starts that same day. The
@@ -1803,6 +1832,46 @@
     return { kind: kind, msg: msg, caution: fx === 'hard', w: ref.w, ew: ref.ew };
   }
 
+  /* ---- logged aerobic minutes ----
+     One record per exercise per training week, so a walk repeated across
+     weeks reads back as a series the same way a lift does. */
+  function cardioFor(id){ return wstore.cardio[id] || []; }
+  function cardioThisWeek(id){
+    var ew = curWeek();
+    return cardioFor(id).filter(function(e){ return e.ew === ew; })[0] || null;
+  }
+  /* on=false clears the week's record — untick the session and its minutes
+     leave the weekly total with it */
+  function writeCardio(id, mins, on){
+    var list = cardioFor(id).slice(), ew = curWeek();
+    var i = -1;
+    list.forEach(function(e, n){ if (e.ew === ew) i = n; });
+    if (!on || !(mins > 0)){
+      if (i >= 0) list.splice(i, 1);
+    } else if (i >= 0){
+      list[i] = { ew: ew, dn: list[i].dn, m: mins };   /* keep the day it was done */
+    } else {
+      list.push({ ew: ew, dn: todayDn(), m: mins });
+    }
+    if (list.length) wstore.cardio[id] = list; else delete wstore.cardio[id];
+    saveW();
+  }
+  /* every aerobic exercise the program currently holds */
+  function cardioExercises(){
+    var out = [];
+    DAY_IDS.forEach(function(d){
+      (program()[d] || []).forEach(function(x){ if (isCardio(x)) out.push(x); });
+    });
+    return out;
+  }
+  function aerobicMinutes(w){
+    var total = 0;
+    cardioExercises().forEach(function(x){
+      cardioFor(x.id).forEach(function(e){ if (e.ew === w && e.m > 0) total += e.m; });
+    });
+    return total;
+  }
+
   /* Writes this week's sets, dropping the entry when nothing is left in it. */
   function writeSets(key, sets){
     var es = entriesFor(key), ew = curWeek(), last = es[es.length - 1];
@@ -1899,10 +1968,10 @@
       { id: 'mon-4', rest: 60, name: 'Seated calf ⇄ tibialis raise', why: 'ankle armour — hoops injury #1', rx: '3 × 15 ea', sets: 3, wt: true, reps: '15' },
       { id: 'mon-5', rest: 60, name: 'Copenhagen adductor plank', why: '~40% groin-injury cut in RCTs', rx: '3 × 20s /side', sets: 3 },
       { id: 'sat-5', rest: 60, name: 'Pallof press + side plank', why: 'anti-rotation trunk for contact & cuts', rx: '2 rounds', sets: 2 },
-      { id: 'mon-6', rest: 0, name: 'Incline walk — zone 2', rx: '20 min', sets: 1, finisher: true }
+      { id: 'mon-6', rest: 0, name: 'Incline walk — zone 2', rx: '20 min', sets: 1, finisher: true, cardio: true, mins: 20 }
     ],
     'd-wed': [
-      { id: 'wed-1', rest: 0, name: 'Basketball', why: 'covers plyometrics + high-intensity intervals', rx: 'evening', sets: 1 }
+      { id: 'wed-1', rest: 0, name: 'Basketball', why: 'covers plyometrics + high-intensity intervals', rx: 'evening', sets: 1, cardio: true, mins: 60 }
     ],
     'd-thu': [
       { id: 'thu-1', rest: 180, name: 'Trap bar / RDL — use straps', why: 'posterior chain; straps spare the elbow', rx: '4 × 5–6', sets: 4, wt: true, reps: '5-6', variants: ['Trap bar DL', 'RDL'] },
@@ -1911,16 +1980,16 @@
       { id: 'thu-4', rest: 120, name: 'Overhead DB press — neutral grip', why: 'shoulder strength for rebounds/contests', rx: '3 × 6–8', sets: 3, wt: true, reps: '6-8' },
       { id: 'thu-5', rest: 120, name: 'Nordic / slider leg curl', why: '~50% hamstring-injury cut in meta-analyses', rx: '3 × 5', sets: 3 },
       { id: 'sat-4', rest: 60, name: 'Single-leg calf raise', why: 'Achilles capacity, side-to-side balance', rx: '3 × 12 /leg', sets: 3, wt: true, reps: '12' },
-      { id: 'thu-6', rest: 0, name: 'Incline walk — zone 2', rx: '20 min', sets: 1, finisher: true }
+      { id: 'thu-6', rest: 0, name: 'Incline walk — zone 2', rx: '20 min', sets: 1, finisher: true, cardio: true, mins: 20 }
     ],
     'd-sat': [
       { id: 'sat-1', rest: 150, name: 'Hip thrust or 45° back extension', why: 'glute drive → jump & sprint, spares knees', rx: '3 × 8', sets: 3, wt: true, reps: '8', variants: ['Hip thrust', '45° back extension'] },
       { id: 'sat-2', rest: 150, name: 'Incline DB press', why: 'incline angle the flat press misses', rx: '3 × 8–10', sets: 3, wt: true, reps: '8-10' },
       { id: 'sat-3', rest: 120, name: 'Cable row', why: 'pulling volume, elbow-friendly', rx: '3 × 10', sets: 3, wt: true, reps: '10' },
-      { id: 'sat-6', rest: 0, name: 'Incline walk — zone 2', rx: '45 min', sets: 1, finisher: true }
+      { id: 'sat-6', rest: 0, name: 'Incline walk — zone 2', rx: '45 min', sets: 1, finisher: true, cardio: true, mins: 45 }
     ],
     'd-sun': [
-      { id: 'sun-1', rest: 0, name: 'Incline walk — zone 2', why: 'tops up weekly aerobic dose toward 150 min', rx: '30 min', sets: 1 }
+      { id: 'sun-1', rest: 0, name: 'Incline walk — zone 2', why: 'tops up weekly aerobic dose toward 150 min', rx: '30 min', sets: 1, cardio: true, mins: 30 }
     ]
   };
   var DAY_IDS = ['d-mon', 'd-wed', 'd-thu', 'd-sat', 'd-sun'];
@@ -1944,9 +2013,48 @@
   }
   function loadIncrement(row){ return incrementOf(exById(row.dataset.id)); }
 
+  /* ---- aerobic sessions ----
+     A cardio exercise logs how long it took rather than what it carried, so
+     the walks and game night stop being a tick that says nothing and start
+     answering the one question the program's own standing orders ask: are
+     you getting the weekly aerobic dose. */
+  var AEROBIC_TARGET = 150;   /* min/week — the WHO/AHA adult moderate-intensity floor */
+  function minutesOf(x){
+    var n = x && x.mins;
+    return typeof n === 'number' && isFinite(n) && n > 0 && n <= 600 ? Math.round(n) : null;
+  }
+  function isCardio(x){ return !!(x && x.cardio); }
+  function defaultExById(id){
+    var found = null;
+    DAY_IDS.forEach(function(d){
+      (DEFAULT_PROGRAM[d] || []).forEach(function(x){ if (x.id === id) found = x; });
+    });
+    return found;
+  }
+  /* A program edited before this existed has no cardio flags, so its walks
+     would never be counted. Carry the defaults onto the exercises that still
+     carry their original ids, once, without touching anything already set. */
+  function seedCardioProgram(){
+    if (wstore.cardioSeeded) return;
+    if (wstore.program){
+      DAY_IDS.forEach(function(d){
+        (wstore.program[d] || []).forEach(function(x){
+          var def = defaultExById(x.id);
+          if (!def || !def.cardio || x.cardio != null) return;
+          x.cardio = true;
+          if (x.mins == null) x.mins = def.mins;
+        });
+      });
+    }
+    wstore.cardioSeeded = 1;
+    saveW();
+  }
+  seedCardioProgram();
+
   function rowHtml(x){
     var a = ' data-id="' + esc(x.id) + '" data-sets="' + (+x.sets || 1) + '"';
     if (x.wt) a += ' data-wt';
+    if (isCardio(x)) a += ' data-cardio';
     if (x.reps) a += ' data-reps="' + esc(x.reps) + '"';
     if (x.variants && x.variants.length === 2) a += ' data-variants="' + esc(x.variants.join('|')) + '"';
     /* The name owns the first line outright; .meta is the line under it —
@@ -2141,6 +2249,15 @@
     var count = document.getElementById('wb-count');
     count.textContent = done + '/' + need + ' sessions';
     count.classList.toggle('done', done >= need);
+    var aero = document.getElementById('wb-aero');
+    if (aero){
+      /* a program with nothing aerobic in it has no dose to report */
+      var any = cardioExercises().length > 0;
+      var mins = any ? aerobicMinutes(curWeek()) : 0;
+      aero.hidden = !any;
+      aero.textContent = mins + '/' + AEROBIC_TARGET + ' min';
+      aero.classList.toggle('done', mins >= AEROBIC_TARGET);
+    }
   }
   function flashWeekBand(){
     band.classList.remove('fresh');
@@ -2340,14 +2457,27 @@
     /* the set-number button is the done control: one per set, sitting with
        the set it belongs to */
     function doneBtn(i){
+      /* a single aerobic session is not "set 1 of 1" — it is the session, so
+         its button says so instead of showing a lone numeral */
+      var solo = cardio && nSets === 1;
+      var face = flags[i] ? (solo ? '✓ done' : '✓') : (solo ? 'Done' : (i + 1));
       return '<button type="button" class="wt-sdone' + (flags[i] ? ' on' : '') +
              '" data-i="' + i + '" aria-pressed="' + (flags[i] ? 'true' : 'false') +
-             '" aria-label="Set ' + (i + 1) + ' done">' + (flags[i] ? '✓' : (i + 1)) + '</button>';
+             '" aria-label="' + (solo ? 'Session done' : 'Set ' + (i + 1) + ' done') + '">' +
+             face + '</button>';
     }
+
+    /* an aerobic session logs how long it took: the field carries the
+       prescribed duration, so the normal case is still one tap */
+    var cardio = row.hasAttribute('data-cardio');
+    var cardioRec = cardio ? cardioThisWeek(id) : null;
+    var cardioSeed = cardioRec ? cardioRec.m : minutesOf(exById(id));
 
     var html = '<p class="wt-guide">' + (weighted
       ? 'Check your weight and reps, then tap an effort to complete the set and start rest. Or use the numbered done button.'
-      : 'Tap each numbered button as you finish a set.') + '</p>';
+      : cardio
+        ? 'Check the minutes, then tap done. They count toward your week\u2019s aerobic total.'
+        : 'Tap each numbered button as you finish a set.') + '</p>';
     if (names){
       /* the name is program text, and a restored backup is the one place
          program text comes from outside the app — escape it like every other
@@ -2394,10 +2524,19 @@
       html += '<div class="wt-undo"' + (removed.length ? '' : ' hidden') + '><span>Set removed. Its values are kept until you undo.</span><button type="button" data-undo>Undo removal</button></div>';
       html += '<div class="wt-hint" data-hint hidden></div>';
     } else {
+      if (cardio){
+        html += '<div class="cd-adjust">' +
+          '<button type="button" class="cd-step" data-step="-5" aria-label="5 minutes less">\u22125</button>' +
+          '<label class="cd-field"><input class="cd-mins" type="number" inputmode="numeric" step="5" min="0" max="600" value="' +
+            (cardioSeed == null ? '' : cardioSeed) + '" aria-label="Minutes"><span>min</span></label>' +
+          '<button type="button" class="cd-step" data-step="5" aria-label="5 minutes more">+5</button>' +
+        '</div>';
+      }
       /* nothing to load or count — just the sets, tapped off as you do them */
-      html += '<div class="wt-ticks" role="group" aria-label="Sets done">';
+      html += '<div class="wt-ticks' + (cardio ? ' cd-ticks' : '') + '" role="group" aria-label="Sets done">';
       for (var j = 0; j < nSets; j++) html += doneBtn(j);
       html += '</div>';
+      if (cardio) html += '<p class="cd-week" data-cdweek role="status"></p>';
       if (restFor(id)){
         html += '<div class="wt-setctl">' +
           '<button type="button" class="wt-rest" data-rest>rest ' + restLabel(restFor(id)) + '</button>' +
@@ -2410,7 +2549,10 @@
       (weighted ? '<div class="wt-hist">' + histLines(key) + '</div>' : '') +
       '<div class="wt-foot">' +
         '<span class="wt-note" role="status">' + (writeFailed ? 'Not saved — use Backup to keep a copy' : 'Saved on this device') + '</span>' +
-        '<button type="button" class="wt-close">' + (weighted ? 'Done editing' : 'Done') + '</button>' +
+        /* an aerobic panel already has a "Done" — the one that logs the
+           session — so the way out of the panel says what it does */
+        '<button type="button" class="wt-close">' +
+          (weighted ? 'Done editing' : cardio ? 'Close' : 'Done') + '</button>' +
       '</div>';
     panel.innerHTML = html;
 
@@ -2424,12 +2566,14 @@
       flags[i] = on;
       var b = doneBtns[i];
       if (b){
+        var solo = cardio && nSets === 1;
         b.classList.toggle('on', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        b.textContent = on ? '✓' : (i + 1);
+        b.textContent = on ? (solo ? '✓ done' : '✓') : (solo ? 'Done' : (i + 1));
       }
       writeFlags(id, flags);
       if (weighted) commit();
+      if (cardio) commitCardio();
       save();
       updateNextSet();
       if (on) startRest(restFor(id), exName(row), i + 1, nSets);
@@ -2444,6 +2588,46 @@
         markSet(i, !flags[i]);
       });
     });
+
+    /* ---- aerobic minutes ----
+       The record follows the tick: the minutes in the field are what gets
+       logged when the session is complete, and taking the tick back takes
+       the minutes out of the week's total with it. Editing the field after
+       the fact just corrects the number already logged. */
+    var cdIn = panel.querySelector('.cd-mins');
+    function cardioDone(){
+      for (var i = 0; i < nSets; i++) if (!flags[i]) return false;
+      return true;
+    }
+    function cardioMins(){
+      if (!cdIn) return null;
+      var v = parseInt(cdIn.value, 10);
+      return isNaN(v) || v <= 0 ? null : Math.min(600, v);
+    }
+    function renderCardioWeek(){
+      var el = panel.querySelector('[data-cdweek]');
+      if (!el) return;
+      var total = aerobicMinutes(curWeek());
+      el.textContent = total + ' of ' + AEROBIC_TARGET + ' min logged this week';
+      el.classList.toggle('met', total >= AEROBIC_TARGET);
+    }
+    function commitCardio(){
+      writeCardio(id, cardioMins(), cardioDone());
+      renderCardioWeek();
+      renderBand();
+    }
+    if (cdIn){
+      cdIn.addEventListener('input', commitCardio);
+      panel.querySelectorAll('.cd-step').forEach(function(b){
+        b.addEventListener('click', function(){
+          var step = +b.dataset.step;
+          var base = cardioMins();
+          cdIn.value = String(Math.max(0, Math.min(600, (base == null ? 0 : base) + step)));
+          commitCardio();
+        });
+      });
+      renderCardioWeek();
+    }
 
     var topInput = panel.querySelector('.wt-top');
     var wIn = Array.prototype.slice.call(panel.querySelectorAll('.wt-sw'));
@@ -2755,11 +2939,15 @@
   }
 
   /* generic line chart: pts = [{t, v}] ascending, any t axis */
-  function buildChart(pts0, name, axisLabel, tipFor, unit){
+  /* ref, when given, draws a target line across the plot and is kept inside
+     the axis range — a weekly dose chart that does not show the dose leaves
+     you counting gridlines to answer the only question it is there for. */
+  function buildChart(pts0, name, axisLabel, tipFor, unit, ref){
     var w = Math.max(260, viewProg.clientWidth - 30);
     var H = 130, pl = 42, pr = 14, pt = 16, pb = 22;
     var vals = pts0.map(function(p){ return p.v; });
     var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (ref != null){ lo = Math.min(lo, ref); hi = Math.max(hi, ref); }
     /* pick a round gridline step for the range — weights step in 2.5s,
        tonnage in hundreds, so it can't be hard-coded */
     var step = niceStep(Math.max(hi - lo, hi * 0.05) || 2.5);
@@ -2780,6 +2968,10 @@
     });
     g += '<text class="xlab" x="' + pl + '" y="' + (H - 6) + '">' + axisLabel(t0) + '</text>' +
          '<text class="xlab" x="' + (w - pr) + '" y="' + (H - 6) + '" text-anchor="end">' + axisLabel(t1) + '</text>';
+    if (ref != null){
+      var ry = Y(ref).toFixed(1);
+      g += '<line class="ref" x1="' + pl + '" y1="' + ry + '" x2="' + (w - pr) + '" y2="' + ry + '"/>';
+    }
     var pts = pts0.map(function(p){ return { x: X(p.t), y: Y(p.v), t: p.t, v: p.v, c: p.c, n: p.n }; });
     g += '<polyline class="ln" points="' +
          pts.map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ') + '"/>';
@@ -2883,6 +3075,56 @@
     return withData.map(function(k){
       return liftCard(names[k === id ? 0 : 1], entriesFor(k), k);
     });
+  }
+
+  /* ---- aerobic dose ----
+     The program prescribes the walks and game night and the standing orders
+     name a weekly target, but until now nothing added them up, so the one
+     longevity number the program is built around was the one thing the app
+     could not tell you. This counts only minutes actually logged against a
+     completed session. */
+  function aerobicSection(){
+    var weeks = [];
+    Object.keys(wstore.cardio).forEach(function(id){
+      cardioFor(id).forEach(function(e){ if (e.m > 0 && weeks.indexOf(e.ew) < 0) weeks.push(e.ew); });
+    });
+    weeks.sort(function(a, b){ return a - b; });
+    var pts = weeks.slice(-52).map(function(w){ return { t: w, v: aerobicMinutes(w) }; });
+
+    var s = document.createElement('section');
+    s.className = 'pg-day';
+    s.innerHTML = '<h2><span>Aerobic</span><span class="pg-focus">' + AEROBIC_TARGET + ' MIN / WK</span></h2>';
+
+    var card = document.createElement('div');
+    card.className = 'chart-card';
+    var now = aerobicMinutes(curWeek());
+    var pct = Math.max(0, Math.min(100, Math.round(now / AEROBIC_TARGET * 100)));
+    card.innerHTML =
+      '<div class="cc-head"><span class="cc-name">This week</span>' +
+        '<span class="cc-now">' + now + ' / ' + AEROBIC_TARGET + ' min</span></div>' +
+      '<div class="ae-bar" role="img" aria-label="' + now + ' of ' + AEROBIC_TARGET +
+        ' minutes logged this week"><i style="width:' + pct + '%"' +
+        (now >= AEROBIC_TARGET ? ' class="met"' : '') + '></i></div>';
+    if (!pts.length){
+      card.innerHTML += '<div class="cc-note">Open a walk or game night and tick it off — the minutes in the panel are what count here.</div>';
+    } else if (now < AEROBIC_TARGET){
+      card.innerHTML += '<div class="cc-note">' + (AEROBIC_TARGET - now) + ' min to go. Sunday’s walk is the usual way to close a gap this size.</div>';
+    }
+    s.appendChild(card);
+
+    /* a week in progress is always short, so the trend is drawn on the weeks
+       that have finished — otherwise every chart would end on a dip */
+    var past = pts.filter(function(p){ return p.t !== curWeek(); });
+    if (past.length > 1){
+      var hist = document.createElement('div');
+      hist.className = 'chart-card';
+      hist.innerHTML = cardHead('Minutes a week', past, 'min', false);
+      hist.appendChild(buildChart(past, 'Weekly aerobic minutes', weekLabel, weekTip, 'min', AEROBIC_TARGET));
+      hist.innerHTML += '<div class="cc-note">Completed weeks only. The dashed line is ' + AEROBIC_TARGET +
+        ' min a week of moderate activity \u2014 the WHO and AHA adult guideline. Vigorous work such as game night counts double toward it, which this total does not do for you.</div>';
+      s.appendChild(hist);
+    }
+    return s;
   }
 
   function bodySection(){
@@ -3081,7 +3323,10 @@
     /* the summary leads, because it is the answer the charts below are the
        working for — but only once there is a session to read */
     if (any) viewProg.appendChild(focusSection());
+    /* Body leads — the cut is the headline goal and the weigh-in is an action,
+       not a readout. Aerobic sits behind it and ahead of the lift charts. */
     viewProg.appendChild(bodySection());
+    if (cardioExercises().length) viewProg.appendChild(aerobicSection());
     days.forEach(function(sec){
       if (!any) return;
       var wtIn = Array.prototype.slice.call(sec.querySelectorAll('.row[data-wt]'));
@@ -3826,6 +4071,10 @@
               '<input class="ed-f ed-sets" data-k="sets" type="number" inputmode="numeric" min="1" max="12" value="' + (+x.sets || 1) + '" aria-label="Number of sets">' +
               '<input class="ed-f ed-reps" data-k="reps" value="' + esc(x.reps || '') + '" placeholder="6-8" aria-label="Rep target">' +
             '</div>' +
+            '<div class="ed-line2 ed-line3">' +
+              '<label><input type="checkbox" class="ed-f ed-cardio" data-k="cardio"' + (x.cardio ? ' checked' : '') + '> aerobic</label>' +
+              '<label>Minutes <input class="ed-f ed-mins" data-k="mins" type="number" inputmode="numeric" min="0" max="600" step="5" value="' + (minutesOf(x) == null ? '' : minutesOf(x)) + '" aria-label="Prescribed minutes"></label>' +
+            '</div>' +
             '<div class="ed-line2">' +
               '<label><input type="checkbox" class="ed-f ed-wt" data-k="wt"' + (x.wt ? ' checked' : '') + '> weights</label>' +
               '<label>Step (kg) <input class="ed-f ed-increment" data-k="increment" type="number" inputmode="decimal" min="0.25" max="100" step="0.25" value="' + incrementOf(x) + '" aria-label="Weight increment in kg"></label>' +
@@ -3848,6 +4097,11 @@
     var host = f.closest('.ed-ex');
     var x = draft[host.dataset.d][+host.dataset.i], k = f.dataset.k;
     if (k === 'wt') x.wt = f.checked;
+    else if (k === 'cardio') x.cardio = f.checked;
+    else if (k === 'mins'){
+      var m = parseInt(f.value, 10);
+      if (isNaN(m) || m <= 0) delete x.mins; else x.mins = Math.min(600, m);
+    }
     else if (k === 'sets') x.sets = Math.min(12, Math.max(1, parseInt(f.value, 10) || 1));
     else if (k === 'increment') x.increment = Math.round(Math.min(100, Math.max(0.25, parseFloat(f.value) || 2.5)) * 4) / 4;
     else if (k === 'reps') x.reps = /^\d+(-\d+)?$/.test(f.value.trim()) ? f.value.trim() : '';
@@ -4069,7 +4323,7 @@
      leaving nothing to go back to. Every key the app will later assume is
      checked first, and the write is undone in full if anything still throws. */
   function isObj(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
-  var BK_OBJECTS = ['wt', 'variants', 'daysDone', 'prSeen', 'prefs', 'rest', 'notes', 'weeks', 'program', 'setUndo', 'activeRest'];
+  var BK_OBJECTS = ['wt', 'variants', 'daysDone', 'prSeen', 'prefs', 'rest', 'notes', 'weeks', 'program', 'setUndo', 'activeRest', 'cardio'];
   var BK_ARRAYS = ['bw', 'weeksDone', 'game'];
   function backupFault(data){
     if (!isObj(data) || data.app !== 'sams-training-week') return 'not a backup';

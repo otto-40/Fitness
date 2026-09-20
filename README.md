@@ -60,6 +60,28 @@ Rate every loaded set of a session or the advice stays quiet — a half-rated
 session says nothing rather than something misleading. Sets logged before
 this existed simply have no rating, and nothing about them changes.
 
+## Aerobic minutes
+
+Walks and game night log how long they took rather than what they carried.
+Open one and the minutes field is already filled with the prescribed
+duration, so the normal case is still one tap; change it with **−5 / +5** or
+by typing when the session ran long or short. The tick is what logs it —
+editing the field on its own records nothing, and taking the tick back
+removes those minutes from the week again.
+
+The week band under the tabs carries the running total beside the session
+count (`95/150 min`), and **Progress** has an *Aerobic* card with the week
+against the target and a chart of completed weeks. 150 min/week of
+moderate-intensity activity is the WHO and AHA adult guideline. Vigorous
+work such as game night counts double toward that guideline; this total does
+not do that for you, so a week built mostly of basketball is worth more than
+the number suggests.
+
+Which exercises count, and their prescribed minutes, are set per exercise
+under **Edit program** — the *aerobic* checkbox and the *Minutes* box. The
+walks and game night start switched on; a program edited before this existed
+has the defaults carried onto whichever of those exercises it still holds.
+
 ## How weeks flow
 
 Weights and reps save as you edit. **Done editing** closes the panel; it does
@@ -175,7 +197,8 @@ Two `localStorage` keys:
   sets were tracked individually hold a plain count; that still reads back.)
 - `sams-training-weights` — everything durable: per-set weights, reps and
   effort by exercise and week, body-weight log, day-level training history,
-  game effort ratings, notes, rest lengths, preferences and any program
+  game effort ratings, logged aerobic minutes (`cardio`, one record per
+  exercise per week), notes, rest lengths, preferences and any program
   edits.
 
 Weeks are numbered rather than pinned to the calendar. `weeks` maps a week
