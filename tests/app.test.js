@@ -345,12 +345,65 @@ async function main() {
     check('hint retracts below the range', await page.locator('.wt-panel [data-hint]').isHidden(), true);
     check('chip still shows the top set', (await page.textContent('[data-id="mon-1"] .wt .wt-val')).trim(), '100');
 
-    // the steppers move every set and keep the gap
+    // Every set is logged, so the bulk controls have nothing left to plan and
+    // must not rewrite what is already on the record.
+    check('steppers retire once every set is logged',
+      await page.locator('.wt-panel .wt-step[data-step="2.5"]').isDisabled(), true);
+    check('so does the every-set field', await page.locator('.wt-panel .wt-top').isDisabled(), true);
+    check('logged weights stand',
+      await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
+      ['100', '100', '100', '90']);
+  });
+
+  /* The steppers and the "every set" field plan the sets still to come. They
+     used to shift the ones already ticked too, so loading up for set 2 after
+     logging set 1 rewrote set 1 to a weight that was never on the bar. */
+  await test('bulk load controls never rewrite a logged set', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+    await tickSet(page, 'mon-1', 1);           // set 1 done at 100
+
     await page.click('.wt-panel .wt-step[data-step="2.5"]');
     await page.waitForTimeout(150);
-    check('all sets shift together',
+    check('the logged set holds its weight',
       await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
-      ['102.5', '102.5', '102.5', '92.5']);
+      ['100', '102.5', '102.5', '102.5']);
+    check('and the record agrees', await page.evaluate(() => {
+      const es = JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'];
+      return es[es.length - 1].s.map((s) => s.w);
+    }), [100, 102.5, 102.5, 102.5]);
+
+    // typing in the every-set field levels only what is still to come
+    await page.fill('.wt-panel .wt-top', '90');
+    await page.waitForTimeout(150);
+    check('typed weight spares the logged set',
+      await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
+      ['100', '90', '90', '90']);
+
+    // taking the set back hands it to the bulk controls again
+    await tickSet(page, 'mon-1', 1);
+    await page.fill('.wt-panel .wt-top', '80');
+    await page.waitForTimeout(150);
+    check('an un-ticked set is editable in bulk again',
+      await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
+      ['80', '80', '80', '80']);
+  });
+
+  /* Ticking a day off its circle logs the sets with no load; filling the
+     weight in afterwards is a normal way to log, and has nothing to protect. */
+  await test('a day ticked off its circle can still be weighed in bulk', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await completeDay(page, 'd-mon');
+    await page.click('#d-mon .day-name');
+    await page.waitForTimeout(300);
+    await page.click('[data-id="mon-1"] .wt');
+    check('the field is live for sets logged without a weight',
+      await page.locator('.wt-panel .wt-top').isDisabled(), false);
+    await page.fill('.wt-panel .wt-top', '75');
+    await page.waitForTimeout(150);
+    check('every set takes the weight',
+      await page.locator('.wt-panel .wt-sw').evaluateAll((els) => els.map((e) => e.value)),
+      ['75', '75', '75', '75']);
   });
 
   await test('Save records the panel as shown', { date: '2026-07-23T09:00:00',
@@ -400,7 +453,8 @@ async function main() {
     await page.reload();
     await page.waitForTimeout(350);
     await page.click('[data-id="mon-1"] .wt');
-    await page.fill('.wt-panel .wt-top', '102.5');
+    // the sets are logged, so the load is corrected in its own field now
+    await page.fill('.wt-panel .wt-sw[data-i="0"]', '102.5');
     await page.waitForTimeout(250);
     check('PR does not re-fire', await page.locator('.wt-panel .wt-pr').count(), 0);
   });
@@ -557,14 +611,14 @@ async function main() {
 
     for (const n of [1, 2, 3, 4]) await rate(page, n, 2);
     check('a grind at the top of the range holds it', (await page.textContent('.wt-panel [data-hint]')).trim(),
-      'All sets at 8, but every one was a grind — repeat 100 kg before adding.');
+      'All sets at 8, but the session felt hard — repeat 100 kg before adding.');
     check('and reads as a caution', await page.locator('.wt-panel [data-hint].caution').count(), 1);
 
     // back down the range: now effort is the only thing that can speak
     for (const i of [0, 1, 2, 3]) await page.fill(`.wt-panel .wt-sr[data-i="${i}"]`, '6');
     await page.waitForTimeout(200);
     check('hard low in the range says stay', (await page.textContent('.wt-panel [data-hint]')).trim(),
-      'Every set hard — stay at 100 kg next week and add reps.');
+      'This session felt hard — stay at 100 kg next week and add reps.');
 
     for (const n of [1, 2, 3, 4]) await rate(page, n, 0);
     check('easy low in the range says go up', (await page.textContent('.wt-panel [data-hint]')).trim(),
@@ -1947,6 +2001,149 @@ async function main() {
       await openRow(page, 'mon-2');
       check('another exercise keeps default', await page.locator('.wt-step').allTextContents(), ['−2.5', '+2.5']);
     });
+
+
+  // ---------------------------------------------------------------- records
+  /* Reps used to seed at the top of the prescribed range rather than what was
+     actually lifted, so a session ticked off without editing recorded reps
+     that were never performed — and a hard week came back as a top-of-range
+     week that earned more load. */
+  await test('reps seed from what was lifted, not the target', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-1': [{ ew: ew - 1, w: 100, s: [
+          { w: 100, r: 6, e: 1, done: true }, { w: 100, r: 6, e: 1, done: true },
+          { w: 100, r: 5, e: 2, done: true }, { w: 100, r: 5, e: 2, done: true }] }] },
+      }));
+    `) }, async (page) => {
+    await openRow(page, 'mon-1');
+    check('reps come back as last week’s', await page.locator('.wt-panel .wt-sr').evaluateAll((e) => e.map((x) => x.value)), ['6', '6', '5', '5']);
+    check('weights come back as last week’s', await page.locator('.wt-panel .wt-sw').evaluateAll((e) => e.map((x) => x.value)), ['100', '100', '100', '100']);
+
+    await tickAll(page, 'mon-1');
+    check('the record is what was lifted', await page.evaluate(() => {
+      const es = JSON.parse(localStorage.getItem('sams-training-weights')).wt['mon-1'];
+      return es[es.length - 1].s.map((s) => s.r);
+    }), [6, 6, 5, 5]);
+    check('a repeat of a hard week is not read as top of range',
+      (await page.textContent('.wt-panel [data-hint]')).includes('load 102.5'), false);
+  });
+
+  /* With no history the prescription is still the sensible starting point. */
+  await test('reps fall back to the prescription with no history', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'mon-1');
+    check('top of the 6–8 range', await page.locator('.wt-panel .wt-sr').evaluateAll((e) => e.map((x) => x.value)), ['8', '8', '8', '8']);
+  });
+
+  /* A flat 5 kg back-off is a different thing on every bar: 4% off a trap bar
+     and 28% off an overhead dumbbell press. */
+  await test('a stalled lift backs off by a share of the load, not a flat 5 kg', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const hard = (w) => ({ w, r: 5, e: 2, done: true });
+      const sess = (e, w) => ({ ew: e, w, s: [hard(w), hard(w), hard(w), hard(w)] });
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        program: { 'd-mon': [
+          { id: 'mon-1', name: 'Trap bar', rx: '4 × 5', sets: 4, wt: true, reps: '5', increment: 5 },
+          { id: 'mon-3', name: 'OHP', rx: '4 × 5', sets: 4, wt: true, reps: '5', increment: 1.25 }],
+          'd-wed': [], 'd-thu': [], 'd-sat': [], 'd-sun': [] },
+        wt: {
+          'mon-1': [sess(ew - 3, 130), sess(ew - 2, 130), sess(ew - 1, 130)],
+          'mon-3': [sess(ew - 3, 18), sess(ew - 2, 18), sess(ew - 1, 18)],
+        },
+      }));
+    `) }, async (page) => {
+    await openRow(page, 'mon-1');
+    check('130 kg backs off about a tenth, on its own 5 kg step',
+      (await page.textContent('.wt-panel [data-hint]')).includes('drop to 115 kg'), true);
+    await page.click('.wt-panel .wt-close');
+    await openRow(page, 'mon-3');
+    check('18 kg backs off proportionally, not by 5 kg',
+      (await page.textContent('.wt-panel [data-hint]')).includes('drop to 16.25 kg'), true);
+  });
+
+  // ------------------------------------------------------- what to work on
+  /* Progress answered "is this lift moving" one chart at a time and never
+     "which lifts need a decision this week". */
+  await test('Progress leads with what to work on next', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const mk = (e, w, reps, fx) => ({ ew: e, w, s: reps.map((r, i) => ({ w, r, e: fx[i], done: true })) });
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: {
+          'thu-1': [mk(ew-3,130,[5,5,5,5],[2,2,2,2]), mk(ew-2,130,[5,5,5,5],[2,2,2,2]), mk(ew-1,130,[5,5,5,5],[2,2,2,2])],
+          'mon-3': [mk(ew-2,36,[7,7,6,6],[1,1,2,2]), mk(ew-1,38,[6,6,6,6],[2,2,2,2])],
+          'thu-4': [mk(ew-6,18,[8,8,8],[1,1,1])],
+        },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    const rows = await page.locator('.fn-row').evaluateAll((els) =>
+      els.map((e) => [e.querySelector('.fn-tag').textContent, e.querySelector('b').textContent]));
+    check('a stalled lift is named first', rows[0], ['stalled', 'Trap bar DL']);
+    check('then one to hold', rows[1], ['hold', 'DB bench press']);
+    check('a lift out of the rotation is called cold, not advised on',
+      rows.some((r) => r[0] === 'cold' && r[1] === 'Overhead DB press'), true);
+    check('no line claims a six-week-old session was last week',
+      (await page.textContent('.fn-list')).includes('last week'), false);
+    check('tapping a line goes to its chart', await page.evaluate(() => {
+      const before = scrollY;
+      document.querySelector('.fn-row.fn-stall').click();
+      return document.querySelector('[data-pgkey="thu-1"]') !== null;
+    }), true);
+  });
+
+  /* A week where everything was a grind flags every lift, and six rows all
+     reading "felt hard" summarises nothing. */
+  await test('a verdict covering several lifts collapses to one line', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const hard = (w) => ({ w, r: 6, e: 2, done: true });
+      const sess = (w) => ({ ew: ew - 1, w, s: [hard(w), hard(w), hard(w)] });
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1,
+        wt: { 'mon-2': [sess(30)], 'thu-2': [sess(50)], 'thu-3': [sess(40)], 'sat-3': [sess(45)] },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    check('one line, not four', await page.locator('.fn-row').count(), 1);
+    check('it counts them', (await page.textContent('.fn-row b')).trim(), '4 lifts');
+    check('and names them', (await page.textContent('.fn-names')).includes('Bulgarian split squat'), true);
+  });
+
+  /* Coming back to the app re-renders, and re-deriving each day's collapsed
+     state from completion there undid whatever the user had open. */
+  await test('coming back to the app leaves the cards as you left them', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('#d-mon .day-name');            // fold Monday away
+    await page.waitForTimeout(150);
+    check('folded', await page.locator('#d-mon.closed').count(), 1);
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(250);
+    check('still folded after a resume', await page.locator('#d-mon.closed').count(), 1);
+
+    await page.click('#d-mon .day-name');            // and open again
+    await page.waitForTimeout(150);
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(250);
+    check('still open after a resume', await page.locator('#d-mon.closed').count(), 0);
+  });
+
+
+  /* A session reads as hard once half its sets are, so the line must not
+     claim every set was — it fires on M/E/H/H too. */
+  await test('the hard-session line does not claim every set was hard', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await page.click('[data-id="mon-1"] .wt');
+    await page.fill('.wt-panel .wt-top', '100');
+    await page.waitForTimeout(150);
+    for (const i of [0, 1, 2, 3]) await page.fill(`.wt-panel .wt-sr[data-i="${i}"]`, '6');
+    await page.waitForTimeout(150);
+    await rate(page, 1, 1); await rate(page, 2, 0); await rate(page, 3, 2); await rate(page, 4, 2);
+    const hint = (await page.textContent('.wt-panel [data-hint]')).trim();
+    check('reads the session, not every set', hint, 'This session felt hard — stay at 100 kg next week and add reps.');
+    check('and the sets it is reading were mixed', await storedEfforts(page, 'mon-1'), [1, 0, 2, 2]);
+  });
 
   await browser.close();
 
