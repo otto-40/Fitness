@@ -167,6 +167,40 @@ iOS captures the icon and name when you install, so after either changes you
 need to delete the tile and add it again. Logged data is unaffected — it
 belongs to the site, not the tile.
 
+## Look and feel
+
+One palette, two themes, declared as custom properties at the top of the
+stylesheet. Nothing below that block picks a colour of its own.
+
+Each token says what it is *for*, so no colour carries two meanings:
+
+| Role | Light | Dark | Used for |
+| --- | --- | --- | --- |
+| `--accent` | `#1A56C4` | `#5B9BF0` | the one thing you can act on — the next set, the weight to beat, the lit tab |
+| `--ok` | `#0F7145` | `#3DB37C` | logged, complete, cleared to add load |
+| `--attn` | `#8A5200` | `#DFA23C` | hold, back off, a week that needs a decision |
+| `--danger` | `#B02A25` | `#F08A80` | destructive, and only destructive — an armed tick, nothing else |
+| `--text` / `--text-muted` | `#0E1B2E` / `#4A5A6F` | `#EAF0F7` / `#9FB2C8` | body and secondary text |
+| `--bg` / `--surface` / `--surface-sunk` | `#F4F6F9` / `#FFFFFF` / `#EDF1F6` | `#0A1728` / `#122336` / `#0F1E2F` | page, cards, a panel inside a card |
+
+Every pairing clears WCAG AA: text at 4.5:1 or better on every surface it
+sits on, control edges and chart marks at 3:1 or better, in both themes.
+
+Colour never carries a meaning on its own. Effort is a shape as well as a
+hue — circle easy, diamond moderate, triangle hard — on the chart, in the
+legend, on the weight chip and on the chosen rating button. A finished lift
+is struck through, a complete week carries a tick, and the warning banners
+carry an icon and a rule.
+
+Sizes come from the same block: `--t-*` for type, `--s1`–`--s7` for a 4px
+spacing scale, `--r-*` for radii, and `--tap: 44px` as the floor for
+anything you tap. `--motion` and `--motion-fast` are set to `0s` under
+`prefers-reduced-motion`, which switches off every transition at once.
+
+Dark is declared once and applied both to `prefers-color-scheme: dark` and
+to an explicit `data-theme="dark"`; the media query steps aside for
+`data-theme="light"`, so there is no third copy to drift out of step.
+
 ## Development
 
 Plain HTML, CSS and JavaScript in a single `index.html` — no build step and

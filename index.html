@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F2F5F9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0A1B33" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F6F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1728" media="(prefers-color-scheme: dark)">
 <title>Sam's Training Week</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -25,248 +25,368 @@
     unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
   }
 
+  /* ===================================================================
+     DESIGN TOKENS
+     One palette, two themes. Every colour in the app comes from here.
+
+     Roles, not shades — each token says what it is for, so a colour is
+     never picked twice for two meanings:
+       accent  the one thing you can act on          (taps, links, next set)
+       ok      logged, complete, cleared to progress
+       attn    hold, back off, needs a decision
+       danger  destructive, and only destructive
+     Colour never carries a meaning on its own: every state that uses one
+     also changes a glyph, a border, a label or a shape.
+
+     Verified at AA — body text ≥4.5:1 on every surface it sits on, UI
+     edges and chart marks ≥3:1, in both themes.
+     =================================================================== */
   :root{
-    --floor:#F2F5F9;        /* cool off-white, keyed to the badge navy */
-    --panel:#FFFFFF;
-    --ink:#0B1B30;          /* logo navy, as text */
-    --court:#12294A;        /* primary fill — deep navy from the badge */
-    --court-deep:#14355C;   /* brand-coloured text that still reads on white */
-    --line:#D6DEE8;
-    --rest:#6B7A8D;
-    --row-line:#E8EDF3;
-    --finisher-bg:#EDF2F8;
-    --tap-flash:#E3EAF3;
-    --on-court:#FFFFFF;     /* text on primary fills */
-    --done:#1A7A4F;         /* completion — trained days, finished weeks */
-    --on-done:#FFFFFF;
-    --warn:#B0463C;         /* destructive confirms and cautions */
-    --on-warn:#FFFFFF;
-    --chart:#2F6DB5;        /* validated against a white surface */
-    --bar-bg:#0B1B30;       /* the rest bar stays dark in both themes */
-    --bar-fg:#F2F5F9;
+    /* -- surfaces -- */
+    --bg:#F4F6F9;            /* the page itself */
+    --surface:#FFFFFF;       /* cards */
+    --surface-sunk:#EDF1F6;  /* a panel inside a card */
+    --surface-press:#E2E8F1; /* pressed */
+    --line:#C6D0DE;          /* card and control edges */
+    --line-soft:#E4EAF1;     /* dividers between rows */
+
+    /* -- text -- */
+    --text:#0E1B2E;          /* 17.3:1 on a card */
+    --text-muted:#4A5A6F;    /* 7.0:1 on a card, 6.5:1 on the page */
+
+    /* -- roles -- */
+    --accent:#1A56C4;        /* 6.6:1 as text, 6.6:1 as a fill under white */
+    --on-accent:#FFFFFF;
+    --accent-soft:#E4ECFB;
+    --ok:#0F7145;
+    --on-ok:#FFFFFF;
+    --ok-soft:#E2F2E9;
+    --attn:#8A5200;
+    --on-attn:#FFFFFF;
+    --attn-soft:#FBEEDC;
+    --danger:#B02A25;
+    --on-danger:#FFFFFF;
+    --danger-soft:#FBE7E5;
+
+    /* -- the rest timer floats over everything and stays dark in both
+          themes, so it carries its own three -- */
+    --bar-bg:#0D1B2C;
+    --bar-fg:#F2F6FB;
+    --bar-accent:#8FBCF7;
+
+    --scrim:rgba(8,18,32,.62);
+    --shadow-card:0 1px 2px rgba(14,27,46,.06);
+    --shadow-pop:0 10px 30px rgba(8,18,32,.28);
+
+    /* -- type -- */
     --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     --display:'Oswald','Arial Narrow',ui-sans-serif,system-ui,sans-serif;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    /* a real scale, so nothing is 9.5px because it happened to fit */
+    --t-micro:11px;   /* uppercase mono labels only */
+    --t-xs:12px;
+    --t-sm:13px;
+    --t-base:15px;
+    --t-md:17px;
+    --t-lg:20px;
+    --t-xl:24px;
+    --t-2xl:30px;
+    --t-num:18px;     /* numbers you read mid-set */
+    --t-num-lg:22px;
+
+    /* -- space: 4px base -- */
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s7:32px;
+    /* -- radius -- */
+    --r-sm:6px; --r-md:10px; --r-lg:14px; --r-full:999px;
+    /* -- the smallest thing worth a thumb mid-set -- */
+    --tap:44px;
+    /* -- motion: reduced-motion zeroes these once, for everything -- */
+    --motion-fast:.13s;
+    --motion:.22s;
+    --ease:cubic-bezier(.2,.7,.35,1);
+
     color-scheme:light dark;
   }
+
+  /* Dark is declared once and applied to both the system preference and the
+     explicit toggle. The media query steps aside for an explicit light
+     choice, so "light" needs no third copy that can drift out of step. */
   @media (prefers-color-scheme:dark){
-    :root{
-      --floor:#0A1B33;        /* the badge background itself */
-      --panel:#12263F;
-      --ink:#EEF3F9;
-      --court:#4E93D9;        /* lifted blue, since navy is the ground here */
-      --court-deep:#9CC6EE;
-      --line:#23405E;
-      --rest:#8FA3BC;
-      --row-line:#1C3554;
-      --finisher-bg:#16304E;
-      --tap-flash:#1B3859;
-      --on-court:#08152A;
-      --done:#3FAF78;
-      --on-done:#08152A;
-      --warn:#E58C82;
-      --on-warn:#08152A;
-      --chart:#4E93D9;        /* validated against the dark panel */
-      --bar-bg:#16304E;
-      --bar-fg:#F2F5F9;
+    :root:not([data-theme="light"]){
+      --bg:#0A1728;
+      --surface:#122336;
+      --surface-sunk:#0F1E2F;
+      --surface-press:#1B3048;
+      --line:#2C4460;
+      --line-soft:#1E3247;
+      --text:#EAF0F7;
+      --text-muted:#9FB2C8;
+      --accent:#5B9BF0;
+      --on-accent:#06121F;
+      --accent-soft:#17304E;
+      --ok:#3DB37C;
+      --on-ok:#062018;
+      --ok-soft:#123528;
+      --attn:#DFA23C;
+      --on-attn:#1E1400;
+      --attn-soft:#33280F;
+      --danger:#F08A80;
+      --on-danger:#2A0B08;
+      --danger-soft:#3A1B18;
+      --scrim:rgba(3,9,18,.74);
+      --shadow-card:0 1px 2px rgba(0,0,0,.3);
+      --shadow-pop:0 10px 30px rgba(0,0,0,.5);
     }
   }
-  /* the artifact viewer's theme toggle stamps data-theme on the root and
-     must beat the media query in both directions */
   :root[data-theme="dark"]{
-    --floor:#0A1B33;        /* the badge background itself */
-    --panel:#12263F;
-    --ink:#EEF3F9;
-    --court:#4E93D9;        /* lifted blue, since navy is the ground here */
-    --court-deep:#9CC6EE;
-    --line:#23405E;
-    --rest:#8FA3BC;
-    --row-line:#1C3554;
-    --finisher-bg:#16304E;
-    --tap-flash:#1B3859;
-    --on-court:#08152A;
-    --done:#3FAF78;
-    --on-done:#08152A;
-    --warn:#E58C82;
-    --on-warn:#08152A;
-    --chart:#4E93D9;        /* validated against the dark panel */
-    --bar-bg:#16304E;
-    --bar-fg:#F2F5F9;
+    --bg:#0A1728;
+    --surface:#122336;
+    --surface-sunk:#0F1E2F;
+    --surface-press:#1B3048;
+    --line:#2C4460;
+    --line-soft:#1E3247;
+    --text:#EAF0F7;
+    --text-muted:#9FB2C8;
+    --accent:#5B9BF0;
+    --on-accent:#06121F;
+    --accent-soft:#17304E;
+    --ok:#3DB37C;
+    --on-ok:#062018;
+    --ok-soft:#123528;
+    --attn:#DFA23C;
+    --on-attn:#1E1400;
+    --attn-soft:#33280F;
+    --danger:#F08A80;
+    --on-danger:#2A0B08;
+    --danger-soft:#3A1B18;
+    --scrim:rgba(3,9,18,.74);
+    --shadow-card:0 1px 2px rgba(0,0,0,.3);
+    --shadow-pop:0 10px 30px rgba(0,0,0,.5);
   }
-  :root[data-theme="light"]{
-    --floor:#F2F5F9;        /* cool off-white, keyed to the badge navy */
-    --panel:#FFFFFF;
-    --ink:#0B1B30;          /* logo navy, as text */
-    --court:#12294A;        /* primary fill — deep navy from the badge */
-    --court-deep:#14355C;   /* brand-coloured text that still reads on white */
-    --line:#D6DEE8;
-    --rest:#6B7A8D;
-    --row-line:#E8EDF3;
-    --finisher-bg:#EDF2F8;
-    --tap-flash:#E3EAF3;
-    --on-court:#FFFFFF;     /* text on primary fills */
-    --on-tape:#0B1B30;      /* text on orange fills */
-    --chart:#2F6DB5;        /* validated against a white surface */
-    --bar-bg:#0B1B30;       /* the rest bar stays dark in both themes */
-    --bar-fg:#F2F5F9;
+  @media (prefers-reduced-motion:reduce){
+    :root{--motion-fast:0s;--motion:0s}
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   body{
-    font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
-    background:var(--floor);
-    color:var(--ink);
+    font-family:var(--sans);
+    background:var(--bg);
+    color:var(--text);
+    font-size:var(--t-base);
     line-height:1.45;
-    padding:0 14px 56px;
+    padding:0 var(--s4) 56px;
+    -webkit-font-smoothing:antialiased;
   }
   .sheet{max-width:680px;margin:0 auto}
 
+  /* ---------- shared control system ----------
+     Every button, link and input in the app draws its focus ring, its
+     pressed state and its disabled state from here, so the three states
+     look the same everywhere they appear. */
+  button,input,textarea,select{font-family:inherit}
+  :where(button,[role="button"],a[href],summary,input,textarea){
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+  }
+  :where(button,[role="button"],a[href],summary,input,textarea,.cal-cell):focus-visible{
+    outline:3px solid var(--accent);
+    outline-offset:2px;
+    border-radius:var(--r-sm);
+  }
+  :where(button,[role="button"]):not(:disabled):active{
+    transform:translateY(1px);
+  }
+  @media (prefers-reduced-motion:reduce){
+    :where(button,[role="button"]):not(:disabled):active{transform:none}
+  }
+  :where(button):disabled{opacity:.45;cursor:default}
+
   /* ---------- header ---------- */
   /* The masthead is read once and then scrolled past for the life of the
-     app. At its old size it cost a third of a phone screen — the screen you
-     are holding mid-set — so it is trimmed to the smallest that still reads
-     as a masthead, and the tabs land you below it rather than on it. */
+     app, so it is the smallest thing that still reads as a masthead — and
+     the tabs land you below it rather than on it. */
   header.masthead{
-    border-top:4px solid var(--ink);
-    border-bottom:1px solid var(--ink);
-    padding:11px 0 11px;
-    margin-bottom:10px;
+    padding:var(--s4) 0 var(--s3);
   }
   .eyebrow{
     font-family:var(--mono);
-    font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--court);font-weight:500;margin-bottom:3px;
+    font-size:var(--t-micro);letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;margin-bottom:var(--s1);
   }
   h1{
     font-family:var(--display);
-    font-weight:600;font-size:clamp(22px,5.4vw,32px);
-    text-transform:uppercase;letter-spacing:.01em;line-height:1.05;
+    font-weight:600;font-size:clamp(24px,6vw,var(--t-2xl));
+    text-transform:uppercase;letter-spacing:.005em;line-height:1.02;
     text-wrap:balance;
   }
-  /* the goals are a single scannable strip rather than a wrapped block */
-  .goals{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  /* the goals are one quiet line under the title, not four boxes competing
+     with it — they are context, and context does not need a border each */
+  .goals{
+    display:flex;flex-wrap:wrap;column-gap:var(--s2);row-gap:2px;
+    margin-top:var(--s2);
+  }
   .goals span{
-    font-family:var(--mono);font-size:9.5px;font-weight:500;
-    border:1px solid var(--ink);padding:2px 6px;border-radius:2px;
+    font-family:var(--mono);font-size:var(--t-micro);font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);
+    display:flex;align-items:center;
+  }
+  .goals span:not(:last-child)::after{
+    content:"";width:3px;height:3px;border-radius:50%;
+    background:var(--line);margin-left:var(--s2);
   }
 
   /* ---------- sticky top bar: view tabs + day nav ---------- */
   .topbar{
     position:sticky;top:0;z-index:10;
-    background:var(--floor);
+    background:var(--bg);
     border-bottom:1px solid var(--line);
-    padding-top:10px;
-    margin-bottom:16px;
+    padding-top:var(--s2);
+    margin-bottom:var(--s4);
   }
-  .tabs{display:flex;gap:5px;margin-bottom:8px}
-  .tab{
-    flex:1;min-height:40px;
-    font-family:var(--mono);font-size:11.5px;font-weight:500;
-    letter-spacing:.08em;text-transform:uppercase;
-    color:var(--rest);background:none;
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+  /* One segmented control, used for the view tabs and again for the
+     measure toggle on Progress: a single track, one lit segment. */
+  .tabs,.metric-tabs{
+    display:flex;gap:2px;
+    background:var(--surface-sunk);
+    border:1px solid var(--line);
+    border-radius:var(--r-md);
+    padding:3px;
   }
-  .tab.active{background:var(--ink);border-color:var(--ink);color:var(--floor)}
-  .tab:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .tabs{margin-bottom:var(--s2)}
+  .tab,.mt{
+    flex:1;min-height:var(--tap);min-width:0;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-muted);background:none;
+    border:none;border-radius:var(--r-sm);
+    cursor:pointer;
+    transition:background var(--motion-fast) var(--ease),color var(--motion-fast) var(--ease);
+  }
+  /* the lit segment carries an accent underline as well as a fill, so which
+     view you are in does not rest on colour alone */
+  .tab.active,.mt.on{
+    background:var(--surface);color:var(--text);font-weight:600;
+    box-shadow:var(--shadow-card),inset 0 -3px 0 var(--accent);
+  }
+  .tab:not(.active):active,.mt:not(.on):active{background:var(--surface-press)}
   .topbar.away .daynav{display:none}
   .daynav{
-    display:flex;gap:5px;
-    padding-bottom:10px;
+    display:flex;gap:var(--s1);
+    padding:0 0 var(--s2);
   }
   .daynav a{
     flex:1;min-width:0;
-    display:flex;align-items:center;justify-content:center;
-    min-height:42px;
-    font-family:var(--mono);font-size:11px;font-weight:500;
-    letter-spacing:.06em;text-transform:uppercase;
-    color:var(--ink);text-decoration:none;
-    border:1px solid var(--line);border-radius:4px;
-    background:var(--panel);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:var(--tap);
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
+    letter-spacing:.04em;text-transform:uppercase;
+    color:var(--text-muted);text-decoration:none;
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    background:var(--surface);
     position:relative;
-    touch-action:manipulation;
   }
+  .daynav a:active{background:var(--surface-press)}
   .daynav a.today{
-    background:var(--court);border-color:var(--court);color:var(--on-court);
+    background:var(--accent);border-color:var(--accent);color:var(--on-accent);
+    font-weight:600;
   }
+  /* a trained day gets a dot *and* a heavier label, so the state survives
+     a greyscale screenshot and a colour-blind reader alike */
+  .daynav a.complete{color:var(--ok);border-color:var(--ok)}
   .daynav a.complete::after{
-    content:"";position:absolute;right:4px;top:4px;
-    width:6px;height:6px;border-radius:50%;background:var(--done);
+    content:"";position:absolute;right:5px;top:5px;
+    width:7px;height:7px;border-radius:50%;background:var(--ok);
   }
-  .daynav a:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .daynav a.today.complete{color:var(--on-accent);border-color:var(--accent)}
+  .daynav a.today.complete::after{background:var(--on-accent)}
 
   /* ---------- week band: which week the cards below belong to ---------- */
   .week-band{
-    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
-    padding:0 2px 12px;
-    font-family:var(--mono);font-size:11px;font-weight:500;
-    letter-spacing:.06em;text-transform:uppercase;
-    color:var(--rest);
+    display:flex;align-items:center;justify-content:space-between;gap:var(--s2);
+    padding:0 var(--s1) var(--s3);
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
+    letter-spacing:.05em;text-transform:uppercase;
+    color:var(--text-muted);
   }
-  .wb-count{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .wb-count.done{color:var(--done)}
+  .wb-count{
+    color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;
+    font-weight:600;
+  }
+  .wb-count.done{color:var(--ok)}
+  .wb-count.done::before{content:"✓ "}
   /* the week's aerobic total rides alongside the session count — the dose is
      a weekly number, so mid-week is when knowing it can still change it */
-  .wb-aero{color:var(--rest);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .wb-aero.done{color:var(--done)}
-  @keyframes wbfresh{from{background:var(--done);color:var(--on-done)}}
+  .wb-aero{color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wb-aero.done{color:var(--ok)}
+  @keyframes wbfresh{from{background:var(--ok);color:var(--on-ok)}}
   .week-band.fresh .wb-when{
     animation:wbfresh 1.6s ease-out;
-    border-radius:3px;padding:2px 4px;margin:-2px -4px;
+    border-radius:var(--r-sm);padding:2px var(--s1);margin:-2px calc(var(--s1) * -1);
   }
   @media (prefers-reduced-motion:reduce){ .week-band.fresh .wb-when{animation:none} }
 
   /* ---------- day cards ---------- */
   .day{
-    background:var(--panel);
+    background:var(--surface);
     border:1px solid var(--line);
-    border-left:5px solid var(--court);
-    border-radius:4px;
-    margin-bottom:14px;
+    border-radius:var(--r-md);
+    margin-bottom:var(--s3);
     overflow:hidden;
-    scroll-margin-top:130px;
+    box-shadow:var(--shadow-card);
+    scroll-margin-top:136px;
   }
-  .day.rest{border-left-color:var(--line);background:transparent}
-  .day.ball{border-left-color:var(--court)}
-  .day.optional{border-left-style:dashed;border-left-color:var(--court)}
-  .day.today{box-shadow:0 0 0 2px var(--court)}
-  .day.rest.today{box-shadow:0 0 0 2px var(--rest)}
+  /* A rest day carries nothing to do, so it reads as a note rather than a
+     card: no fill, no shadow, no accent. */
+  .day.rest{background:transparent;box-shadow:none;border-style:dashed}
+  .day.optional{border-style:dashed}
+  /* Today is the card you came here for. It gets the accent edge and the
+     ring; every other day is plain, so there is exactly one of these on
+     screen at a time. */
+  .day.today{
+    border-color:var(--accent);
+    box-shadow:0 0 0 1px var(--accent),var(--shadow-card);
+  }
+  .day.today::before{
+    content:"";display:block;height:4px;background:var(--accent);
+  }
+  .day.rest.today{border-color:var(--text-muted);box-shadow:none}
+  .day.rest.today::before{background:var(--text-muted)}
 
   .day-head{
-    display:flex;align-items:center;gap:8px;
-    padding:10px 14px 8px;
+    display:flex;align-items:center;gap:var(--s2);
+    padding:var(--s3) var(--s3) var(--s2);
     cursor:pointer;
     position:relative;
-    -webkit-tap-highlight-color:transparent;
     user-select:none;-webkit-user-select:none;
   }
+  .day-head:active{background:var(--surface-press)}
   .day-check{
-    width:36px;height:36px;flex-shrink:0;
+    width:var(--tap);height:var(--tap);flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    font-size:16px;line-height:1;
+    font-size:var(--t-md);line-height:1;
     color:transparent;background:none;
-    border:1.5px solid var(--line);border-radius:50%;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    border:2px solid var(--line);border-radius:50%;
+    cursor:pointer;
+    transition:background var(--motion-fast) var(--ease),border-color var(--motion-fast) var(--ease);
   }
-  .day-check.on{background:var(--done);border-color:var(--done);color:var(--on-done)}
+  .day-check.on{background:var(--ok);border-color:var(--ok);color:var(--on-ok)}
   /* armed = one tap away from clearing an already-completed day */
-  .day-check.warn{background:var(--warn);border-color:var(--warn);color:var(--on-warn)}
-  .day-check:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .day-check.warn{background:var(--danger);border-color:var(--danger);color:var(--on-danger)}
   .day-check-tip{
-    position:absolute;top:100%;right:14px;margin-top:4px;z-index:5;
-    background:var(--ink);color:var(--floor);
-    font-family:var(--mono);font-size:10.5px;font-weight:500;
-    padding:4px 8px;border-radius:3px;white-space:nowrap;
+    position:absolute;top:100%;right:var(--s3);margin-top:var(--s1);z-index:5;
+    background:var(--text);color:var(--bg);
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
+    padding:6px var(--s2);border-radius:var(--r-sm);white-space:nowrap;
+    box-shadow:var(--shadow-pop);
     pointer-events:none;
   }
   /* rest days complete themselves by date — no control to show */
   .day.rest .day-check{border-color:transparent;pointer-events:none}
-  .day.rest .day-check.on{background:none;color:var(--rest)}
+  .day.rest .day-check.on{background:none;color:var(--text-muted)}
   .day-body{
     display:grid;grid-template-rows:1fr;
-    transition:grid-template-rows .25s ease;
+    transition:grid-template-rows var(--motion) var(--ease);
   }
   .day.closed .day-body{grid-template-rows:0fr}
   .day-body>.day-inner{overflow:hidden;min-height:0;visibility:visible}
@@ -274,561 +394,678 @@
      leave the tab order with it — otherwise tabbing lands the focus ring
      somewhere invisible. Held back until the collapse has finished so the
      content is still there to animate away; reopening is immediate. */
-  .day.closed .day-body>.day-inner{visibility:hidden;transition:visibility 0s linear .25s}
-  .day.closed .day-head{padding-bottom:10px}
-  .day-head:focus-visible{outline:2px solid var(--court);outline-offset:-2px}
+  .day.closed .day-body>.day-inner{visibility:hidden;transition:visibility 0s linear .22s}
+  .day.closed .day-head{padding-bottom:var(--s3)}
   @media (prefers-reduced-motion:reduce){
     .day-body{transition:none}
     .day.closed .day-body>.day-inner{transition:none}
   }
   .day-name{
-    font-family:var(--display);font-weight:600;font-size:18px;
-    text-transform:uppercase;letter-spacing:.04em;
+    font-family:var(--display);font-weight:600;font-size:var(--t-lg);
+    text-transform:uppercase;letter-spacing:.03em;line-height:1.1;
   }
   .today-badge{
     display:none;
-    font-family:var(--mono);font-size:10px;font-weight:500;
-    letter-spacing:.1em;text-transform:uppercase;
-    background:var(--court);color:var(--on-court);
-    padding:2px 6px;border-radius:2px;
+    font-family:var(--mono);font-size:var(--t-micro);font-weight:600;
+    letter-spacing:.09em;text-transform:uppercase;
+    background:var(--accent);color:var(--on-accent);
+    padding:3px var(--s2);border-radius:var(--r-full);
     align-self:center;
   }
   .day.today .today-badge{display:inline-block}
   .day-focus{
     margin-left:auto;
-    font-family:var(--mono);font-size:11px;color:var(--court);
-    font-weight:500;text-transform:uppercase;letter-spacing:.08em;text-align:right;
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
+    font-weight:500;text-transform:uppercase;letter-spacing:.06em;text-align:right;
+    line-height:1.5;
   }
-  .day.ball .day-focus{color:var(--court)}
-  .day.rest .day-focus{color:var(--rest)}
+  .day.rest .day-focus{color:var(--text-muted)}
   .day-count{
-    font-family:var(--mono);font-size:11px;font-weight:500;
-    color:var(--rest);white-space:nowrap;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
+    color:var(--text);white-space:nowrap;
     font-variant-numeric:tabular-nums;
   }
-  .day-count.done{color:var(--done)}
+  .day-count.done{color:var(--ok)}
 
   /* ---------- exercise rows (tap to log a set) ---------- */
-  /* Two lines, not two columns. Stacking the prescription, the pips and the
-     weight chip down the right-hand side squeezed the name into half the
-     width — long ones wrapped early and left the caret stranded on a line of
-     its own — while the short stack left dead space under the name. The name
-     now gets the full width with its prescription beside it, and the things
-     you tap sit together on their own line underneath. */
+  /* Two lines, not two columns. The name gets the full width with its
+     prescription beside it, and the things you tap sit together on their own
+     line underneath. */
   .row{
-    display:flex;flex-direction:column;gap:5px;
+    display:flex;flex-direction:column;gap:var(--s2);
     width:100%;text-align:left;
-    padding:10px 14px;
-    min-height:52px;
+    padding:var(--s3);
+    min-height:var(--tap);
     font:inherit;color:inherit;
     background:none;border:none;
-    border-top:1px solid var(--row-line);
+    border-top:1px solid var(--line-soft);
     cursor:pointer;
-    -webkit-tap-highlight-color:transparent;
-    touch-action:manipulation;
     user-select:none;-webkit-user-select:none;
   }
-  .row:active{background:var(--tap-flash)}
-  .row:focus-visible{outline:2px solid var(--court);outline-offset:-2px}
-  .ex{min-width:0;font-size:15px}
+  .row:active{background:var(--surface-press)}
+  .row:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:0}
+  .ex{min-width:0;font-size:var(--t-base);line-height:1.3}
+  .ex-name{font-weight:600}
   /* Why the lift is in the program is read once, when you set the program
      up, and then costs a line on every row for the rest of the app's life.
-     It belongs behind the caret the row already has: open the exercise and
-     it is the first thing above the sets. The note stays put — a seat pin
-     is what you want to see without opening anything. */
+     It belongs behind the caret the row already has. The note stays put — a
+     seat pin is what you want to see without opening anything. */
   .why{
-    display:none;font-size:11.5px;color:var(--rest);
-    margin-top:3px;
+    display:none;font-size:var(--t-sm);color:var(--text-muted);
+    margin-top:var(--s1);font-weight:400;
   }
   .row[aria-expanded="true"] .why{display:block}
-  /* no minimum: a lift with nothing to load is just its pips, and should
-     take the height of its pips */
-  .meta{display:flex;align-items:center;gap:10px}
+  .meta{display:flex;align-items:center;gap:var(--s3)}
   .rx{
-    font-family:var(--mono);font-size:13px;font-weight:500;
-    white-space:nowrap;color:var(--court-deep);flex-shrink:0;
+    font-family:var(--mono);font-size:var(--t-sm);font-weight:600;
+    white-space:nowrap;color:var(--text);flex-shrink:0;
+    font-variant-numeric:tabular-nums;
   }
-  /* pips left, the weight chip pushed to the right edge */
-  .pips{display:flex;gap:4px;margin-right:auto}
+  /* pips left, the weight chip pushed to the right edge. Big enough to
+     count at a glance without looking straight at them. */
+  .pips{display:flex;gap:var(--s1);margin-right:auto}
   .pip{
-    width:11px;height:11px;border-radius:2px;
-    border:1.5px solid var(--court);
+    width:14px;height:14px;border-radius:3px;
+    border:2px solid var(--text-muted);
+    background:var(--surface);
   }
-  .pip.filled{background:var(--court)}
+  .pip.filled{background:var(--accent);border-color:var(--accent)}
   /* A finished lift strikes its name through — but only its name. The
      coaching line and the note under it ("seat pin 4") are the things you
-     come back to read next week, and a line through faded 11px text is
+     come back to read next week, and a line through faded small text is
      exactly what you cannot read. */
-  .row.done .ex{opacity:.55}
-  .row.done .ex-name{text-decoration:line-through;text-decoration-thickness:1px}
-  .row.done .rx{opacity:.5}
+  .row.done .ex{opacity:.7}
+  .row.done .ex-name{text-decoration:line-through;text-decoration-thickness:1.5px}
+  .row.done .rx{opacity:.6}
+  .row.done .pip.filled{background:var(--ok);border-color:var(--ok)}
   /* the row is a disclosure: it opens the exercise, it never logs anything */
-  .row[aria-expanded="true"]{background:var(--finisher-bg)}
+  .row[aria-expanded="true"]{background:var(--surface-sunk)}
   .row-caret{
-    font-family:var(--mono);font-size:10px;color:var(--rest);
-    margin-left:6px;display:inline-block;
+    font-family:var(--mono);font-size:var(--t-micro);color:var(--text-muted);
+    margin-left:var(--s1);display:inline-block;
+    transition:transform var(--motion-fast) var(--ease);
   }
   .row[aria-expanded="true"] .row-caret{transform:rotate(180deg)}
-  .row.finisher{background:var(--finisher-bg);font-weight:600}
-  .row.finisher .rx{color:var(--court)}
+  .row.finisher{background:var(--surface-sunk)}
 
   /* ---------- weight chip + entry panel (progressive overload) ---------- */
+  /* The weight to beat is the number you come to this screen for, so it is
+     the biggest thing on the row and the easiest thing to hit. Its three
+     states are told apart by border style and a leading glyph as well as by
+     colour: logged (solid), last week's (dashed, muted), nothing yet (+). */
   .wt{
-    display:flex;align-items:center;gap:3px;
-    font-family:var(--mono);font-size:12.5px;font-weight:500;
-    color:var(--court-deep);background:none;
-    border:1.5px solid var(--court);border-radius:3px;
-    padding:5px 8px;min-height:30px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    display:flex;align-items:center;gap:var(--s1);
+    font-family:var(--mono);font-size:var(--t-num);font-weight:600;
+    color:var(--accent);background:var(--surface);
+    border:2px solid var(--accent);border-radius:var(--r-sm);
+    padding:var(--s1) var(--s3);min-height:var(--tap);min-width:76px;
+    justify-content:center;
+    cursor:pointer;
     font-variant-numeric:tabular-nums;
+    transition:background var(--motion-fast) var(--ease);
   }
-  .wt .wt-unit{font-size:10px;opacity:.75}
-  .wt .wt-trend{font-size:9px;color:var(--court)}
-  .wt .wt-trend.down{color:var(--warn)}
-  .wt.is-prev{border-style:dashed;border-color:var(--rest);color:var(--rest)}
+  .wt:active{background:var(--accent-soft)}
+  .wt .wt-unit{font-size:var(--t-xs);font-weight:500;opacity:.8}
+  .wt .wt-trend{font-size:var(--t-xs);color:var(--accent)}
+  .wt .wt-trend.down{color:var(--attn)}
+  /* last week's number, not this week's: dashed and muted, because it is a
+     target rather than a record */
+  .wt.is-prev{
+    border-style:dashed;border-color:var(--text-muted);
+    color:var(--text-muted);background:none;
+  }
+  .wt.is-prev .wt-trend{color:var(--text-muted)}
   /* nothing logged yet is the one state that most needs tapping, so it reads
      as an invitation rather than as a disabled control */
-  .wt.is-empty{border-style:dashed;border-color:var(--court);color:var(--court)}
-  .wt:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  .row.done .wt{opacity:.6}
+  .wt.is-empty{border-style:dashed;background:none}
+  .row.done .wt{
+    border-color:var(--ok);color:var(--ok);background:var(--ok-soft);
+  }
+  .row.done .wt .wt-trend{color:var(--ok)}
 
   .wt-panel{
-    border-top:1px dashed var(--line);
-    background:var(--finisher-bg);
-    padding:12px 14px;
+    border-top:1px solid var(--line);
+    background:var(--surface-sunk);
+    padding:var(--s4) var(--s3) var(--s3);
   }
+  .wt-guide{
+    font-size:var(--t-sm);line-height:1.5;color:var(--text-muted);
+    margin:0 0 var(--s4);
+  }
+  /* variant picker: the same segmented control the view tabs use */
   .wt-var{
-    display:flex;gap:6px;margin-bottom:10px;
+    display:flex;gap:2px;margin-bottom:var(--s3);
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-md);padding:3px;
   }
   .wt-var button{
-    flex:1;min-height:36px;
-    font-family:var(--mono);font-size:11.5px;font-weight:500;
-    color:var(--rest);background:none;
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    flex:1;min-height:var(--tap);min-width:0;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
+    color:var(--text-muted);background:none;
+    border:none;border-radius:var(--r-sm);
+    cursor:pointer;
   }
-  .wt-var button.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
-  .wt-var button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  .wt-sets{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-  .wt-guide{font-size:14px;line-height:1.5;color:var(--ink);margin:0 0 16px}
-  .wt-set{display:grid;grid-template-columns:48px minmax(0,1.35fr) 12px minmax(0,1fr);align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--line)}
-  .wt-set.next-set{background:var(--panel);outline:2px solid var(--court);outline-offset:2px;border-radius:4px}
-  .wt-next{font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--ink)}
-  .wt-undo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;margin:12px 0}
-  .wt-undo[hidden]{display:none}
-  .wt-undo button{min-height:48px;padding:8px 12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;cursor:pointer}
-  .wt-undo button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  /* the set number doubles as the done control — completing a set happens
-     here, next to the set it belongs to, and nowhere else */
-  .wt-sdone{
-    width:48px;height:48px;flex-shrink:0;padding:0;
-    display:flex;align-items:center;justify-content:center;
-    font-family:var(--mono);font-size:13px;font-weight:500;
-    font-variant-numeric:tabular-nums;
-    color:var(--rest);background:var(--panel);
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+  .wt-var button.on{
+    background:var(--accent);color:var(--on-accent);font-weight:600;
   }
-  .wt-sdone.on{background:var(--done);border-color:var(--done);color:var(--on-done)}
-  .wt-sdone:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  /* lifts that carry no weight get the ticks on their own, side by side */
-  .wt-ticks{display:flex;flex-wrap:wrap;gap:6px}
-  .wt-ticks .wt-sdone{flex:1;min-width:52px;max-width:96px;height:46px;width:auto}
-  /* an aerobic session is one tick under a wide minutes row, so the button
-     takes the full width rather than sitting orphaned in the corner */
-  .wt-ticks.cd-ticks .wt-sdone{max-width:none;height:52px}
-  .wt-set input{
-    min-width:0;min-height:48px;width:100%;box-sizing:border-box;
-    font-family:var(--mono);font-size:16px;font-weight:500;
-    font-variant-numeric:tabular-nums;text-align:center;
-    color:var(--ink);background:var(--panel);
-    border:1px solid var(--line);border-radius:4px;
-    padding:0 4px;outline:none;
-  }
-  .wt-set input::-webkit-inner-spin-button,
-  .wt-set input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-  .wt-set input:focus-visible{outline:2px solid var(--court);outline-offset:-1px}
-  .wt-sw{flex:1.35}
-  .wt-sr{flex:1}
-  .wt-x,.wt-su{
-    font-family:var(--mono);font-size:11px;color:var(--rest);flex-shrink:0;
-  }
-  .wt-x{width:9px;text-align:center}
+  .wt-var button:not(.on):active{background:var(--surface-press)}
 
-  /* Put named effort choices below each set so they stay easy to tap. */
-  .wt-shead{
-    display:flex;align-items:center;gap:7px;margin-top:10px;
-    font-family:var(--mono);font-size:12px;color:var(--ink);
-    text-transform:uppercase;letter-spacing:.07em;
-  }
-  .wt-shead span{text-align:center}
-  .wt-shead .h-n{width:48px;flex-shrink:0}
-  .wt-shead .h-w{flex:1.35}
-  .wt-shead .h-x{width:9px;flex-shrink:0}
-  .wt-shead .h-r{flex:1}
-  .wt-shead .h-e{display:none}
-  .wt-fx{grid-column:1 / -1;display:flex;gap:8px;width:100%}
-  .wt-fxb{
-    flex:1;min-width:0;min-height:48px;padding:0 4px;
-    font-family:var(--mono);font-size:14px;font-weight:500;
-    color:var(--rest);background:var(--panel);
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .wt-fxb.on{border-color:transparent}
-  .wt-fxb.fx0.on{background:var(--done);color:var(--on-done)}
-  .wt-fxb.fx1.on{background:var(--court);color:var(--on-court)}
-  .wt-fxb.fx2.on{background:var(--warn);color:var(--on-warn)}
-  .wt-fxb:focus-visible{outline:2px solid var(--court);outline-offset:-1px}
-  /* the same three colours wherever a logged effort is read back */
-  .fx-mark{font-style:normal;font-weight:500}
-  .fx-mark.fx0{color:var(--done)}
-  .fx-mark.fx1{color:var(--court-deep)}
-  .fx-mark.fx2{color:var(--warn)}
-  .wt-fxdot{
-    width:6px;height:6px;border-radius:50%;flex-shrink:0;display:none;
-  }
-  .wt-fxdot.fx0{display:block;background:var(--done)}
-  .wt-fxdot.fx1{display:block;background:var(--court)}
-  .wt-fxdot.fx2{display:block;background:var(--warn)}
-  .wt-note{font-family:var(--mono);font-size:10px;color:var(--rest)}
-  .wt-setctl{display:flex;align-items:center;gap:6px;margin-top:8px}
-  .wt-nset{
-    font-family:var(--mono);font-size:11px;color:var(--rest);
-    background:none;border:1px solid var(--line);border-radius:3px;
-    padding:7px 10px;min-height:34px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .wt-nset[disabled]{opacity:.4;cursor:default}
-  .wt-rest{
-    margin-left:auto;
-    font-family:var(--mono);font-size:11px;color:var(--court-deep);
-    background:none;
-    border:1px solid var(--line);border-radius:3px;
-    padding:7px 10px;min-height:34px;
-    display:flex;align-items:center;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .wt-nset:focus-visible,.wt-rest:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  .wt-notes{
-    width:100%;margin-top:10px;min-height:40px;
-    font-family:inherit;font-size:13px;
-    color:var(--ink);background:var(--panel);
-    border:1px solid var(--line);border-radius:4px;
-    padding:8px 10px;outline:none;
-  }
-  .wt-notes:focus-visible{outline:2px solid var(--court);outline-offset:-1px}
-  .row-note{
-    display:block;font-size:11.5px;color:var(--court-deep);margin-top:2px;
-  }
-  .wt-hint{
-    margin-top:10px;font-size:12.5px;color:var(--court-deep);
-    padding-left:16px;position:relative;
-  }
-  .wt-hint::before{
-    content:"";position:absolute;left:0;top:5px;
-    width:8px;height:8px;background:var(--done);border-radius:1px;
-  }
-  /* advice to hold or back off is a caution, and reads as one */
-  .wt-hint.caution::before{background:var(--warn)}
-  .wt-pr{
-    display:inline-block;margin-left:6px;
-    font-family:var(--mono);font-size:10px;font-weight:500;
-    letter-spacing:.08em;color:var(--on-done);background:var(--done);
-    padding:2px 6px;border-radius:2px;
-  }
-  .wt-adjust,.cd-adjust{display:flex;align-items:stretch;gap:8px}
-  .cd-adjust{margin-bottom:12px}
+  /* ---- bulk planner: levels the sets you have not done yet ---- */
+  .wt-adjust,.cd-adjust{display:flex;align-items:stretch;gap:var(--s2)}
+  .cd-adjust{margin-bottom:var(--s3)}
   /* these plan the sets still to come, so they retire once every set is
      ticked — a logged set is corrected in its own field, never in bulk */
   .wt-adjust.spent{opacity:.45}
   .wt-adjust.spent .wt-step,.wt-adjust.spent .wt-field input{cursor:default}
   .wt-step,.cd-step{
-    flex:1;min-height:46px;
-    font-family:var(--mono);font-size:14px;font-weight:500;
-    color:var(--court-deep);background:var(--panel);
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    flex:1;min-height:var(--tap);
+    font-family:var(--mono);font-size:var(--t-md);font-weight:600;
+    color:var(--accent);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    cursor:pointer;
   }
-  .wt-step:focus-visible,.cd-step:focus-visible,.wt-close:focus-visible{
-    outline:2px solid var(--court);outline-offset:2px;
-  }
+  .wt-step:active,.cd-step:active{background:var(--accent-soft)}
   .wt-field,.cd-field{
-    display:flex;align-items:center;justify-content:center;gap:4px;
-    flex:1.2;
-    background:var(--panel);border:1px solid var(--line);border-radius:4px;
-    padding:0 8px;
+    display:flex;align-items:center;justify-content:center;gap:var(--s1);
+    flex:1.3;min-height:var(--tap);
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:0 var(--s2);
+  }
+  .wt-field:focus-within,.cd-field:focus-within{
+    border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);
   }
   .wt-field input,.cd-field input{
-    width:64px;border:none;background:none;color:var(--ink);
-    font-family:var(--mono);font-size:18px;font-weight:500;text-align:right;
+    width:68px;min-height:var(--tap);border:none;background:none;color:var(--text);
+    font-family:var(--mono);font-size:var(--t-num-lg);font-weight:600;text-align:right;
     font-variant-numeric:tabular-nums;outline:none;
   }
   .wt-field input::-webkit-inner-spin-button,
   .wt-field input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-  .wt-field span,.cd-field span{font-family:var(--mono);font-size:11px;color:var(--rest)}
+  .wt-field span,.cd-field span{
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
+  }
   /* how the week's aerobic total stands, read back inside the session */
   .cd-week{
-    margin:10px 0 0;font-family:var(--mono);font-size:11.5px;
-    color:var(--rest);letter-spacing:.02em;
+    margin:var(--s3) 0 0;font-family:var(--mono);font-size:var(--t-xs);
+    color:var(--text-muted);letter-spacing:.02em;
   }
-  .cd-week.met{color:var(--done)}
-  .wt-hist{margin-top:10px;display:flex;flex-direction:column;gap:3px}
+  .cd-week.met{color:var(--ok)}
+  .cd-week.met::before{content:"✓ "}
+
+  /* ---- the sets ---- */
+  /* the column labels share the set row's grid and its padding, so "kg"
+     sits over the kg field rather than near it */
+  .wt-shead{
+    display:grid;grid-template-columns:56px minmax(0,1.35fr) 12px minmax(0,1fr);
+    align-items:center;gap:var(--s2);
+    margin-bottom:var(--s1);
+    padding:0 var(--s2) 0 calc(var(--s2) + 5px);
+    font-family:var(--mono);font-size:var(--t-micro);color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.09em;
+  }
+  .wt-shead span{text-align:center}
+  .wt-shead .h-e{display:none}
+  .wt-next{
+    font-size:var(--t-base);font-weight:600;margin:var(--s5) 0 var(--s2);
+    color:var(--text);
+  }
+  .wt-sets{display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s2)}
+  /* One set, one card. Three states, each told apart by more than colour:
+       to do     — plain surface
+       next      — accent rail down the left, tinted, raised
+       logged    — green rail, tinted, the done button ticked */
+  .wt-set{
+    display:grid;grid-template-columns:56px minmax(0,1.35fr) 12px minmax(0,1fr);
+    align-items:center;gap:var(--s2);
+    padding:var(--s2);
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-left:4px solid var(--line);
+    border-radius:var(--r-sm);
+    transition:border-color var(--motion-fast) var(--ease),background var(--motion-fast) var(--ease);
+  }
+  .wt-set.next-set{
+    border-color:var(--accent);border-left-color:var(--accent);
+    background:var(--accent-soft);
+    box-shadow:var(--shadow-card);
+  }
+  .wt-set.set-done{
+    border-left-color:var(--ok);
+    background:var(--ok-soft);
+  }
+  .wt-undo{
+    display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;
+    font-size:var(--t-sm);margin:var(--s3) 0;color:var(--text-muted);
+  }
+  .wt-undo[hidden]{display:none}
+  .wt-undo button{
+    min-height:var(--tap);padding:var(--s2) var(--s3);
+    background:var(--surface);color:var(--accent);font-weight:600;
+    border:1px solid var(--accent);border-radius:var(--r-sm);cursor:pointer;
+  }
+  .wt-undo button:active{background:var(--accent-soft)}
+  /* The set number doubles as the done control — completing a set happens
+     here, next to the set it belongs to, and nowhere else. It is the most
+     tapped control in the app, so it is the loudest thing in the row. */
+  .wt-sdone{
+    width:56px;height:56px;flex-shrink:0;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:var(--t-md);font-weight:600;
+    font-variant-numeric:tabular-nums;
+    color:var(--accent);background:var(--surface);
+    border:2px solid var(--accent);border-radius:var(--r-sm);
+    cursor:pointer;
+    transition:background var(--motion-fast) var(--ease),border-color var(--motion-fast) var(--ease);
+  }
+  .wt-sdone:active{background:var(--accent-soft)}
+  .wt-sdone.on{
+    background:var(--ok);border-color:var(--ok);color:var(--on-ok);
+  }
+  /* a set still to come, but not the one you are on, does not shout */
+  .wt-set:not(.next-set):not(.set-done) .wt-sdone{
+    color:var(--text-muted);border-color:var(--line);
+  }
+  /* lifts that carry no weight get the ticks on their own, side by side */
+  .wt-ticks{display:flex;flex-wrap:wrap;gap:var(--s2)}
+  .wt-ticks .wt-sdone{flex:1;min-width:64px;max-width:104px;height:56px;width:auto}
+  /* an aerobic session is one tick under a wide minutes row, so the button
+     takes the full width rather than sitting orphaned in the corner */
+  .wt-ticks.cd-ticks .wt-sdone{max-width:none;height:56px;font-size:var(--t-base)}
+  .wt-set input{
+    min-width:0;min-height:var(--tap);width:100%;box-sizing:border-box;
+    font-family:var(--mono);font-size:var(--t-num);font-weight:600;
+    font-variant-numeric:tabular-nums;text-align:center;
+    color:var(--text);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:0 var(--s1);outline:none;
+  }
+  .wt-set input::-webkit-inner-spin-button,
+  .wt-set input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .wt-set input:focus-visible{
+    outline:3px solid var(--accent);outline-offset:-1px;
+  }
+  .wt-sw{flex:1.35}
+  .wt-sr{flex:1}
+  .wt-x,.wt-su{
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);flex-shrink:0;
+  }
+  .wt-x{width:12px;text-align:center}
+
+  /* Named effort choices below each set so they stay easy to tap. Unselected
+     they are quiet; the chosen one fills, and carries its own glyph so the
+     rating never rests on colour alone. */
+  .wt-fx{grid-column:1 / -1;display:flex;gap:var(--s2);width:100%}
+  .wt-fxb{
+    flex:1;min-width:0;min-height:var(--tap);padding:0 var(--s1);
+    font-family:var(--mono);font-size:var(--t-sm);font-weight:500;
+    color:var(--text-muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    cursor:pointer;
+  }
+  .wt-fxb:active{background:var(--surface-press)}
+  .wt-fxb.on{border-color:transparent;font-weight:600}
+  .wt-fxb.on::before{margin-right:4px}
+  .wt-fxb.fx0.on{background:var(--ok);color:var(--on-ok)}
+  .wt-fxb.fx0.on::before{content:"○"}
+  .wt-fxb.fx1.on{background:var(--accent);color:var(--on-accent)}
+  .wt-fxb.fx1.on::before{content:"◆"}
+  .wt-fxb.fx2.on{background:var(--attn);color:var(--on-attn)}
+  .wt-fxb.fx2.on::before{content:"▲"}
+  /* the same three marks wherever a logged effort is read back */
+  .fx-mark{font-style:normal;font-weight:600}
+  .fx-mark.fx0{color:var(--ok)}
+  .fx-mark.fx1{color:var(--accent)}
+  .fx-mark.fx2{color:var(--attn)}
+  .wt-fxdot{
+    width:9px;height:9px;flex-shrink:0;display:none;
+  }
+  .wt-fxdot.fx0{display:block;background:var(--ok);border-radius:50%}
+  .wt-fxdot.fx1{display:block;background:var(--accent);transform:rotate(45deg)}
+  .wt-fxdot.fx2{
+    display:block;background:var(--attn);
+    clip-path:polygon(50% 0,100% 100%,0 100%);
+  }
+  .wt-note{font-family:var(--mono);font-size:var(--t-micro);color:var(--text-muted)}
+  .wt-setctl{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s3)}
+  .wt-nset{
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:0 var(--s3);min-height:var(--tap);
+    cursor:pointer;
+  }
+  .wt-nset:active{background:var(--surface-press)}
+  .wt-nset[disabled]{opacity:.45;cursor:default}
+  .wt-rest{
+    margin-left:auto;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;color:var(--accent);
+    background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:0 var(--s3);min-height:var(--tap);
+    display:flex;align-items:center;
+    cursor:pointer;
+  }
+  .wt-rest:active{background:var(--accent-soft)}
+  .wt-notes{
+    width:100%;margin-top:var(--s3);min-height:var(--tap);
+    font-family:inherit;font-size:var(--t-sm);
+    color:var(--text);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:var(--s2) var(--s3);outline:none;
+  }
+  .wt-notes:focus-visible{outline:3px solid var(--accent);outline-offset:-1px}
+  .row-note{
+    display:block;font-size:var(--t-sm);color:var(--accent);margin-top:var(--s1);
+    font-weight:500;
+  }
+  /* what to do next time: a square marker for "go", a triangle for "hold",
+     so the advice is not carried by its colour */
+  .wt-hint{
+    margin-top:var(--s3);font-size:var(--t-sm);color:var(--text);
+    background:var(--ok-soft);border-radius:var(--r-sm);
+    padding:var(--s2) var(--s3) var(--s2) 30px;position:relative;
+  }
+  .wt-hint::before{
+    content:"▲";position:absolute;left:var(--s3);top:var(--s2);
+    font-size:var(--t-xs);line-height:1.5;color:var(--ok);
+  }
+  /* advice to hold or back off is a caution, and reads as one */
+  .wt-hint.caution{background:var(--attn-soft)}
+  .wt-hint.caution::before{content:"■";color:var(--attn)}
+  .wt-pr{
+    display:inline-block;margin-left:var(--s2);
+    font-family:var(--mono);font-size:var(--t-micro);font-weight:600;
+    letter-spacing:.08em;color:var(--on-ok);background:var(--ok);
+    padding:2px var(--s2);border-radius:var(--r-full);
+  }
+  .wt-hist{
+    margin-top:var(--s4);display:flex;flex-direction:column;gap:var(--s1);
+    border-top:1px solid var(--line);padding-top:var(--s3);
+  }
   .wt-hist div{
-    display:flex;justify-content:space-between;
-    font-family:var(--mono);font-size:12px;color:var(--rest);
+    display:flex;justify-content:space-between;gap:var(--s2);
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
     font-variant-numeric:tabular-nums;
   }
-  .wt-hist b{color:var(--ink);font-weight:500}
-  .wt-hist .wt-h-reps{color:var(--rest);font-weight:400}
-  .wt-hist .wt-h-fx{font-weight:400;letter-spacing:.04em}
-  .wt-hist em{font-style:normal;color:var(--court)}
-  .wt-hist em.neg{color:var(--warn)}
-  .wt-hist .wt-none{display:block;font-family:inherit;color:var(--rest);font-size:12.5px}
-  .wt-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+  .wt-hist b{color:var(--text);font-weight:600}
+  .wt-hist .wt-h-reps{color:var(--text-muted);font-weight:400}
+  .wt-hist .wt-h-fx{font-weight:500;letter-spacing:.04em}
+  .wt-hist em{font-style:normal;color:var(--accent)}
+  .wt-hist em.neg{color:var(--attn)}
+  .wt-hist .wt-none{display:block;font-family:inherit;color:var(--text-muted);font-size:var(--t-sm)}
+  .wt-foot{
+    display:flex;justify-content:space-between;align-items:center;gap:var(--s3);
+    margin-top:var(--s4);
+  }
   .wt-close{
-    font-family:var(--mono);font-size:12px;font-weight:500;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
     letter-spacing:.06em;text-transform:uppercase;
-    color:var(--on-court);background:var(--court);
-    border:none;border-radius:3px;padding:10px 18px;min-height:40px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    color:var(--on-accent);background:var(--accent);
+    border:none;border-radius:var(--r-sm);padding:0 var(--s5);min-height:var(--tap);
+    cursor:pointer;
   }
 
   /* ---------- progress tab: week-on-week charts ---------- */
-  .pg-day{margin-bottom:20px}
+  .pg-day{margin-bottom:var(--s6)}
   .pg-day h2{
-    display:flex;justify-content:space-between;align-items:baseline;gap:8px;
-    font-family:var(--display);font-size:15px;font-weight:600;
-    text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2);
+    font-family:var(--display);font-size:var(--t-md);font-weight:600;
+    text-transform:uppercase;letter-spacing:.05em;
+    margin-bottom:var(--s3);
   }
   .pg-focus{
-    font-family:var(--mono);font-size:10.5px;font-weight:500;
-    color:var(--court);letter-spacing:.08em;
+    font-family:var(--mono);font-size:var(--t-micro);font-weight:500;
+    color:var(--text-muted);letter-spacing:.08em;
   }
   .chart-card{
-    background:var(--panel);border:1px solid var(--line);border-radius:4px;
-    padding:12px 14px;margin-bottom:10px;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:var(--s3) var(--s4) var(--s4);margin-bottom:var(--s3);
+    box-shadow:var(--shadow-card);
   }
-  .cc-head{display:flex;align-items:baseline;gap:8px}
-  .cc-name{flex:1;min-width:0;font-size:14px;font-weight:600}
+  .cc-head{display:flex;align-items:baseline;gap:var(--s2)}
+  .cc-name{flex:1;min-width:0;font-size:var(--t-base);font-weight:600}
   .cc-now{
-    font-family:var(--mono);font-size:13.5px;font-weight:500;
+    font-family:var(--mono);font-size:var(--t-md);font-weight:600;
     font-variant-numeric:tabular-nums;white-space:nowrap;
   }
-  .cc-delta{font-family:var(--mono);font-size:11px;color:var(--chart);white-space:nowrap}
-  .cc-delta.down{color:var(--warn)}
-  .cc-note{font-size:12.5px;color:var(--rest);margin-top:6px}
+  /* a delta says which way *and* how much — the arrow is in the text the JS
+     writes, so it survives without the colour */
+  .cc-delta{
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
+    color:var(--accent);white-space:nowrap;
+  }
+  .cc-delta.down{color:var(--attn)}
+  .cc-note{font-size:var(--t-sm);color:var(--text-muted);margin-top:var(--s2)}
   /* how much of the week's aerobic target is in — a bar reads "how far along"
      at a glance in a way the bare number does not */
   .ae-bar{
-    margin-top:10px;height:10px;border-radius:5px;
-    background:var(--row-line);overflow:hidden;
+    margin-top:var(--s3);height:10px;border-radius:var(--r-full);
+    background:var(--surface-sunk);overflow:hidden;
+    border:1px solid var(--line);
   }
-  .ae-bar i{display:block;height:100%;background:var(--chart);border-radius:5px}
-  .ae-bar i.met{background:var(--done)}
+  .ae-bar i{
+    display:block;height:100%;background:var(--accent);border-radius:var(--r-full);
+    transition:width var(--motion) var(--ease);
+  }
+  .ae-bar i.met{background:var(--ok)}
+
   /* ---- "what to work on next" ---- */
-  .fn-list{display:flex;flex-direction:column;margin-top:4px}
+  .fn-list{display:flex;flex-direction:column;margin-top:var(--s1)}
   .fn-row{
-    display:flex;align-items:flex-start;gap:10px;width:100%;
-    padding:10px 0;border:none;border-top:1px solid var(--row-line);
+    display:flex;align-items:flex-start;gap:var(--s3);width:100%;
+    padding:var(--s3) 0;border:none;border-top:1px solid var(--line-soft);
     background:none;text-align:left;color:inherit;font:inherit;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    min-height:var(--tap);
+    cursor:pointer;
   }
   .fn-row:first-child{border-top:none}
-  .fn-row:active{background:var(--tap-flash)}
-  .fn-row:focus-visible{outline:2px solid var(--court);outline-offset:-2px}
+  .fn-row:active{background:var(--surface-press)}
+  /* the verdict is a word, not a colour — the tint behind it only reinforces
+     what the label already says */
   .fn-tag{
-    flex:none;min-width:62px;margin-top:1px;
-    font-family:var(--mono);font-size:9.5px;font-weight:500;
-    letter-spacing:.08em;text-transform:uppercase;text-align:center;
-    padding:3px 5px;border-radius:2px;
-    color:var(--on-done);background:var(--done);
+    flex:none;min-width:74px;margin-top:2px;
+    font-family:var(--mono);font-size:var(--t-micro);font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;text-align:center;
+    padding:var(--s1) var(--s2);border-radius:var(--r-full);
+    color:var(--on-ok);background:var(--ok);
   }
   /* holding, backing off and a stall read as cautions, the way the
      exercise panel's own hint does */
-  .fn-hold .fn-tag,.fn-stall .fn-tag{background:var(--warn);color:var(--on-warn)}
-  .fn-rate .fn-tag,.fn-cold .fn-tag{background:var(--rest);color:var(--on-court)}
-  .fn-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .fn-body b{font-size:13.5px;font-weight:600}
-  .fn-body span{font-size:12px;color:var(--rest);line-height:1.4}
-  .fn-row.fn-group{cursor:default}
-  .fn-names{font-family:var(--mono);font-size:11px;color:var(--court-deep)}
-  .cc-plot{position:relative;margin-top:8px}
-  .cc-plot svg{
-    display:block;width:100%;height:auto;
-    touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  .fn-hold .fn-tag,.fn-stall .fn-tag{background:var(--attn);color:var(--on-attn)}
+  .fn-rate .fn-tag,.fn-cold .fn-tag{
+    background:none;color:var(--text-muted);
+    box-shadow:inset 0 0 0 1px var(--line);
   }
-  .cc-plot .grid{stroke:var(--row-line)}
-  .cc-plot .tick,.cc-plot .xlab{fill:var(--rest);font-family:var(--mono);font-size:10px}
+  .fn-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .fn-body b{font-size:var(--t-base);font-weight:600}
+  .fn-body span{font-size:var(--t-sm);color:var(--text-muted);line-height:1.45}
+  .fn-row.fn-group{cursor:default}
+  .fn-names{font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted)}
+
+  /* ---- charts ---- */
+  .cc-plot{position:relative;margin-top:var(--s3)}
+  .cc-plot svg{display:block;width:100%;height:auto}
+  .cc-plot .grid{stroke:var(--line-soft)}
+  .cc-plot .tick,.cc-plot .xlab{
+    fill:var(--text-muted);font-family:var(--mono);font-size:11px;
+  }
   .cc-plot .ln{
-    fill:none;stroke:var(--chart);stroke-width:2;
+    fill:none;stroke:var(--accent);stroke-width:2.5;
     stroke-linejoin:round;stroke-linecap:round;
   }
-  .cc-plot .dot{fill:var(--chart)}
-  .cc-plot .end{fill:var(--chart);stroke:var(--panel);stroke-width:2}
-  /* a dot is coloured by how that week's sets felt, so a flat line whose
-     dots are turning green is a plateau you can push out of */
-  .cc-plot .fx0{fill:var(--done)}
-  .cc-plot .fx1{fill:var(--chart)}
-  .cc-plot .fx2{fill:var(--warn)}
-  .cc-plot .endlab{fill:var(--ink);font-family:var(--mono);font-size:11px;font-weight:500}
-  .cc-plot .ref{stroke:var(--done);stroke-dasharray:4 3;stroke-width:1.5;opacity:.8}
-  .cc-plot .xh{stroke:var(--rest);stroke-dasharray:2 3;visibility:hidden}
+  .cc-plot .dot,.cc-plot .end{fill:var(--accent)}
+  .cc-plot .end{stroke:var(--surface);stroke-width:2.5}
+  /* A point is coloured by how that week's sets felt — and shaped by it too:
+     circle easy, diamond moderate, triangle hard. The trend is readable in
+     greyscale and to a colour-blind reader, not only in hue. */
+  .cc-plot .fx0{fill:var(--ok)}
+  .cc-plot .fx1{fill:var(--accent)}
+  .cc-plot .fx2{fill:var(--attn)}
+  .cc-plot .endlab{
+    fill:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;
+  }
+  .cc-plot .ref{stroke:var(--ok);stroke-dasharray:4 3;stroke-width:1.5}
+  .cc-plot .xh{stroke:var(--text-muted);stroke-dasharray:2 3;visibility:hidden}
   .cc-tip{
     position:absolute;display:none;pointer-events:none;z-index:5;
-    background:var(--ink);color:var(--floor);
-    font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;
-    padding:4px 7px;border-radius:3px;white-space:nowrap;
+    background:var(--text);color:var(--bg);
+    font-family:var(--mono);font-size:var(--t-xs);font-variant-numeric:tabular-nums;
+    padding:var(--s1) var(--s2);border-radius:var(--r-sm);white-space:nowrap;
+    box-shadow:var(--shadow-pop);
     transform:translate(-50%,-130%);
   }
+  /* nothing logged yet: say what would fill it, rather than showing a frame */
   .pg-empty{
-    background:var(--panel);border:1px dashed var(--line);border-radius:4px;
-    padding:18px 14px;font-size:13.5px;color:var(--rest);
-    margin-bottom:16px;
+    background:var(--surface);border:1px dashed var(--line);border-radius:var(--r-md);
+    padding:var(--s5) var(--s4);font-size:var(--t-sm);color:var(--text-muted);
+    margin-bottom:var(--s4);text-align:center;
   }
-  .pg-note{font-size:11px;color:var(--rest);margin-top:4px}
+  .pg-empty p{margin-bottom:var(--s4)}
+  .pg-empty-go{
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--on-accent);background:var(--accent);
+    border:none;border-radius:var(--r-sm);
+    padding:0 var(--s5);min-height:var(--tap);
+    cursor:pointer;
+  }
+  .pg-note{font-size:var(--t-xs);color:var(--text-muted);margin-top:var(--s2)}
   .fx-legend{
-    display:flex;flex-wrap:wrap;align-items:center;gap:10px;
-    font-family:var(--mono);font-size:10.5px;color:var(--rest);
-    margin:-8px 0 16px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3);
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
+    margin:0 0 var(--s4);
   }
-  .fx-legend span{display:flex;align-items:center;gap:5px}
-  .fx-legend i{width:8px;height:8px;border-radius:50%}
-  .fx-legend i.fx0{background:var(--done)}
-  .fx-legend i.fx1{background:var(--chart)}
-  .fx-legend i.fx2{background:var(--warn)}
-  .metric-tabs{display:flex;gap:5px;margin-bottom:16px}
-  .mt{
-    flex:1;min-height:38px;
-    font-family:var(--mono);font-size:11px;font-weight:500;
-    letter-spacing:.04em;
-    color:var(--rest);background:var(--panel);
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .mt.on{background:var(--court);border-color:var(--court);color:var(--on-court)}
-  .mt:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .fx-legend span{display:flex;align-items:center;gap:var(--s1)}
+  .fx-legend i{width:10px;height:10px;flex-shrink:0}
+  .fx-legend i.fx0{background:var(--ok);border-radius:50%}
+  .fx-legend i.fx1{background:var(--accent);transform:rotate(45deg)}
+  .fx-legend i.fx2{background:var(--attn);clip-path:polygon(50% 0,100% 100%,0 100%)}
+  /* the measure toggle is a filter within Progress, not a peer of the view
+     tabs above it — same control, deliberately quieter */
+  .metric-tabs{margin-bottom:var(--s4);background:none;border-color:var(--line)}
+  .mt{font-size:var(--t-micro)}
+  .mt.on{color:var(--accent)}
 
   /* ---------- history tab ---------- */
   .hist-head{
-    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
-    margin-bottom:10px;
+    display:flex;align-items:center;justify-content:space-between;gap:var(--s2);
+    margin-bottom:var(--s3);
   }
   .hist-head h2{
-    font-family:var(--display);font-size:15px;font-weight:600;
-    text-transform:uppercase;letter-spacing:.06em;
-  }
-  .hist-streak{
-    font-family:var(--mono);font-size:11px;font-weight:500;
-    color:var(--done);border:1px solid var(--done);
-    padding:3px 8px;border-radius:2px;white-space:nowrap;
-  }
-  .cal{
-    background:var(--panel);border:1px solid var(--line);border-radius:4px;
-    padding:12px 14px;margin-bottom:14px;
-  }
-  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .cal-title{
-    font-family:var(--display);font-size:15px;font-weight:600;
+    font-family:var(--display);font-size:var(--t-md);font-weight:600;
     text-transform:uppercase;letter-spacing:.05em;
   }
-  .cal-nav button{
-    width:40px;height:38px;
-    font-family:var(--mono);font-size:15px;color:var(--ink);
-    background:none;border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+  .hist-streak{
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
+    color:var(--ok);background:var(--ok-soft);border:1px solid var(--ok);
+    padding:var(--s1) var(--s3);border-radius:var(--r-full);white-space:nowrap;
   }
+  .cal{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:var(--s4);margin-bottom:var(--s4);
+    box-shadow:var(--shadow-card);
+  }
+  .cal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:var(--s3);
+  }
+  .cal-title{
+    font-family:var(--display);font-size:var(--t-md);font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;
+  }
+  .cal-nav{display:flex;gap:var(--s1)}
+  .cal-nav button{
+    width:var(--tap);height:var(--tap);
+    font-family:var(--mono);font-size:var(--t-md);color:var(--text);
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
+    cursor:pointer;
+  }
+  .cal-nav button:not(:disabled):active{background:var(--surface-press)}
   .cal-nav button:disabled{opacity:.35;cursor:default}
-  .cal-nav button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--s1)}
   .cal-grid .dow{
-    font-family:var(--mono);font-size:9.5px;color:var(--rest);
-    text-align:center;padding:2px 0;text-transform:uppercase;
+    font-family:var(--mono);font-size:var(--t-micro);color:var(--text-muted);
+    text-align:center;padding:var(--s1) 0;text-transform:uppercase;
   }
   .cal-cell{
     aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;
-    border-radius:4px;position:relative;color:var(--ink);
+    font-family:var(--mono);font-size:var(--t-sm);font-variant-numeric:tabular-nums;
+    border-radius:var(--r-sm);position:relative;color:var(--text);
   }
-  .cal-cell.c-future{color:var(--rest);opacity:.45}
-  .cal-cell.c-done{background:var(--done);color:var(--on-done);font-weight:500}
-  .cal-cell.c-ball{background:var(--court);color:var(--on-court);font-weight:500}
-  .cal-cell.c-assumed{box-shadow:inset 0 0 0 1.5px var(--done);color:var(--done)}
+  .cal-cell.c-future{color:var(--text-muted);opacity:.5}
+  .cal-cell.c-done{background:var(--ok);color:var(--on-ok);font-weight:600}
+  .cal-cell.c-ball{background:var(--accent);color:var(--on-accent);font-weight:600}
+  .cal-cell.c-assumed{box-shadow:inset 0 0 0 2px var(--ok);color:var(--ok);font-weight:600}
   .cal-cell.c-rest::after{
-    content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
-    width:4px;height:4px;border-radius:50%;background:var(--rest);
+    content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
+    width:4px;height:4px;border-radius:50%;background:var(--text-muted);
   }
-  .cal-cell.c-today{box-shadow:0 0 0 2px var(--ink)}
-  .cal-cell.c-today.c-assumed{box-shadow:0 0 0 2px var(--ink),inset 0 0 0 1.5px var(--done)}
+  .cal-cell.c-today{box-shadow:0 0 0 2px var(--text)}
+  .cal-cell.c-today.c-assumed{box-shadow:0 0 0 2px var(--text),inset 0 0 0 2px var(--ok)}
   button.cal-cell{
-    border:none;font:inherit;font-family:var(--mono);font-size:12px;
-    background:none;cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    border:none;font:inherit;font-family:var(--mono);font-size:var(--t-sm);
+    background:none;cursor:pointer;
     font-variant-numeric:tabular-nums;
   }
   button.cal-cell.c-edit:not(.c-done):not(.c-ball):not(.c-assumed){
     box-shadow:inset 0 0 0 1px var(--line);
   }
   button.cal-cell.c-warn{
-    background:var(--warn);color:var(--on-warn);
-    box-shadow:0 0 0 2px var(--warn);
+    background:var(--danger);color:var(--on-danger);
+    box-shadow:0 0 0 2px var(--danger);
   }
-  button.cal-cell:focus-visible{outline:2px solid var(--court);outline-offset:1px}
   .cal-hint{
-    margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--rest);
+    margin-top:var(--s3);font-family:var(--mono);font-size:var(--t-xs);
+    color:var(--text-muted);
   }
   .cal-legend{
-    display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;
-    font-family:var(--mono);font-size:10.5px;color:var(--rest);
+    display:flex;flex-wrap:wrap;gap:var(--s3);margin-top:var(--s3);
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
   }
+  .cal-legend span{display:inline-flex;align-items:center}
   .cal-legend i{
-    display:inline-block;width:10px;height:10px;border-radius:2px;
-    margin-right:5px;vertical-align:-1px;font-style:normal;
+    display:inline-block;width:12px;height:12px;border-radius:3px;
+    margin-right:var(--s2);vertical-align:-2px;font-style:normal;flex-shrink:0;
   }
-  .wk-lines{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+  .wk-lines{margin-top:var(--s2);display:flex;flex-direction:column}
   .wk-lines div{
-    display:flex;justify-content:space-between;gap:10px;
-    font-family:var(--mono);font-size:12px;color:var(--rest);
+    display:flex;justify-content:space-between;gap:var(--s3);
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
     font-variant-numeric:tabular-nums;
   }
-  /* A week with a lot to say has to wrap, but it used to break inside a
-     phrase — "game" on one line, "high" alone on the next. Each fact is
-     unbreakable now, so a wrap lands on a separator. */
+  /* A week with a lot to say has to wrap, but never inside a phrase — each
+     fact is unbreakable, so a wrap lands on a separator. */
   .wk-lines>div>span:first-child{flex-shrink:0}
-  .wk-lines b{color:var(--ink);font-weight:500;text-align:right;min-width:0}
+  .wk-lines b{color:var(--text);font-weight:600;text-align:right;min-width:0}
   .wk-bit{white-space:nowrap}
-  .wk-lines b.wk-done{color:var(--done)}   /* a week that hit all its sessions */
-  .wk-line.has-detail{
-    cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-    min-height:32px;align-items:center;
+  /* a week that hit all its sessions is marked by a tick, not by turning
+     two wrapped lines of text green */
+  .wk-lines b.wk-done{color:var(--text)}
+  .wk-lines b.wk-done::before{content:"✓ ";color:var(--ok);font-weight:700}
+  .wk-line{
+    padding:var(--s2) 0;border-top:1px solid var(--line-soft);
   }
-  .wk-line.has-detail:focus-visible{outline:2px solid var(--court);outline-offset:2px}
-  .wk-caret{margin-left:6px;color:var(--rest);font-size:9px;display:inline-block}
+  .wk-line:first-child{border-top:none}
+  .wk-line.has-detail{
+    cursor:pointer;min-height:var(--tap);align-items:center;
+  }
+  .wk-line.has-detail:active{background:var(--surface-press)}
+  .wk-caret{
+    margin-left:var(--s1);color:var(--text-muted);font-size:var(--t-micro);
+    display:inline-block;transition:transform var(--motion-fast) var(--ease);
+  }
   .wk-line[aria-expanded="true"] .wk-caret{transform:rotate(180deg)}
   .wk-detail{
-    display:flex;flex-direction:column;gap:3px;
-    margin:2px 0 8px;padding:8px 10px;
-    background:var(--finisher-bg);border-radius:4px;
+    display:flex;flex-direction:column;gap:var(--s1);
+    margin:var(--s1) 0 var(--s2);padding:var(--s3);
+    background:var(--surface-sunk);border-radius:var(--r-sm);
   }
   .wk-detail div{
-    display:flex;justify-content:space-between;gap:10px;
-    font-size:12px;color:var(--rest);
+    display:flex;justify-content:space-between;gap:var(--s3);
+    font-size:var(--t-sm);color:var(--text-muted);
   }
   .wk-detail b{
-    font-family:var(--mono);font-size:11.5px;font-weight:500;
-    color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
+    color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;
   }
   .wk-detail .wk-fx{letter-spacing:.04em}
 
@@ -836,280 +1073,309 @@
   .celebrate{
     position:fixed;inset:0;z-index:50;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(5,16,32,.94);
-    padding:24px;
+    background:var(--bar-bg);
+    padding:var(--s6);
   }
   .celebrate[hidden]{display:none}
   .celebrate canvas{
     position:absolute;inset:0;width:100%;height:100%;
     pointer-events:none;
   }
-  .cel-card{position:relative;text-align:center;color:#EEF3F9}
-  @keyframes celpop{from{transform:scale(.82);opacity:0}}
-  .cel-card{animation:celpop .45s cubic-bezier(.2,.9,.3,1.2)}
+  .cel-card{position:relative;text-align:center;color:var(--bar-fg)}
+  @keyframes celpop{from{transform:scale(.88);opacity:0}}
+  .cel-card{animation:celpop .4s var(--ease)}
   .cel-eyebrow{
-    font-family:var(--mono);font-size:11px;font-weight:500;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
     letter-spacing:.16em;text-transform:uppercase;
-    color:var(--done);margin-bottom:10px;
+    color:var(--bar-accent);margin-bottom:var(--s3);
   }
   .cel-card h2{
     font-family:var(--display);font-weight:600;
-    font-size:clamp(44px,13vw,64px);line-height:.95;
+    font-size:clamp(46px,13vw,64px);line-height:.95;
     text-transform:uppercase;letter-spacing:.01em;
   }
-  .cel-card p{margin-top:14px;font-size:14px;color:#9FB3C9}
+  .cel-card p{margin-top:var(--s4);font-size:var(--t-base);color:#A9BDD4}
   .cel-stats{
-    font-family:var(--mono);font-size:12.5px;color:var(--done) !important;
+    font-family:var(--mono);font-size:var(--t-sm);color:var(--bar-accent) !important;
     letter-spacing:.04em;
   }
   .cel-stats:empty{display:none}
   .cel-actions{
-    margin-top:26px;display:flex;gap:10px;justify-content:center;
-    opacity:0;animation:celfade .4s ease 1s forwards;
+    margin-top:var(--s6);display:flex;gap:var(--s3);justify-content:center;
+    opacity:0;animation:celfade .4s ease .9s forwards;
   }
   @keyframes celfade{to{opacity:1}}
   #cel-next{
-    font-family:var(--mono);font-size:13px;font-weight:500;
+    font-family:var(--mono);font-size:var(--t-sm);font-weight:600;
     letter-spacing:.06em;text-transform:uppercase;
-    color:var(--on-done);background:var(--done);
-    border:none;border-radius:4px;
-    padding:14px 22px;min-height:48px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    color:var(--bar-bg);background:var(--bar-fg);
+    border:none;border-radius:var(--r-sm);
+    padding:var(--s3) var(--s6);min-height:52px;
+    cursor:pointer;
   }
-  #cel-next:focus-visible{outline:2px solid var(--done);outline-offset:2px}
+  #cel-next:focus-visible{outline:3px solid var(--bar-accent);outline-offset:3px}
   @media (prefers-reduced-motion:reduce){
     .cel-card{animation:none}
     .cel-actions{animation:none;opacity:1}
   }
 
-  .day.rest .day-head{padding-bottom:12px}
-  .rest-note{padding:0 14px 12px;font-size:13.5px;color:var(--rest)}
+  .day.rest .day-head{padding-bottom:var(--s3)}
+  .rest-note{padding:0 var(--s3) var(--s3);font-size:var(--t-sm);color:var(--text-muted)}
 
   /* ---------- game-effort toggle ---------- */
   .fx{
-    display:flex;align-items:center;gap:6px;
-    padding:10px 14px;
-    border-top:1px solid var(--row-line);
+    display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;
+    padding:var(--s3);
+    border-top:1px solid var(--line-soft);
   }
   .fx-lab{
-    font-family:var(--mono);font-size:10.5px;color:var(--rest);
-    text-transform:uppercase;letter-spacing:.08em;margin-right:2px;
+    font-family:var(--mono);font-size:var(--t-micro);color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.08em;margin-right:var(--s1);
   }
   .fx-btn{
-    flex:1;max-width:78px;min-height:38px;
-    font-family:var(--mono);font-size:11.5px;font-weight:500;
-    color:var(--rest);background:none;
-    border:1px solid var(--line);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    flex:1;max-width:96px;min-height:var(--tap);
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
+    color:var(--text-muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    cursor:pointer;
   }
-  .fx-btn.on{background:var(--ink);border-color:var(--ink);color:var(--floor)}
-  .fx-btn:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .fx-btn:active{background:var(--surface-press)}
+  .fx-btn.on{
+    background:var(--accent);border-color:var(--accent);color:var(--on-accent);
+    font-weight:600;
+  }
 
   /* ---------- rules footer ---------- */
-  .rules{margin-top:26px;border-top:1px solid var(--ink);padding-top:4px}
+  .rules{
+    margin-top:var(--s6);border-top:1px solid var(--line);
+    padding-top:var(--s1);
+  }
   .rules summary{
-    font-family:var(--display);font-size:14px;font-weight:600;
-    text-transform:uppercase;letter-spacing:.08em;
-    padding:12px 0;cursor:pointer;list-style:none;
-    display:flex;align-items:center;gap:8px;
-    touch-action:manipulation;
+    font-family:var(--display);font-size:var(--t-base);font-weight:600;
+    text-transform:uppercase;letter-spacing:.07em;
+    padding:var(--s3) 0;cursor:pointer;list-style:none;
+    display:flex;align-items:center;gap:var(--s2);min-height:var(--tap);
   }
   .rules summary::-webkit-details-marker{display:none}
   .rules summary::after{
-    content:"+";font-family:var(--mono);font-weight:500;font-size:16px;
-    margin-left:auto;color:var(--court);
+    content:"+";font-family:var(--mono);font-weight:500;font-size:var(--t-lg);
+    margin-left:auto;color:var(--accent);
   }
   .rules[open] summary::after{content:"–"}
-  .rules ul{padding-bottom:8px}
+  .rules ul{padding-bottom:var(--s2)}
   .rules li{
-    list-style:none;font-size:13.5px;padding-left:18px;position:relative;margin-bottom:8px;
+    list-style:none;font-size:var(--t-sm);padding-left:var(--s5);
+    position:relative;margin-bottom:var(--s3);line-height:1.5;
   }
   .rules li::before{
-    content:"";position:absolute;left:0;top:7px;width:8px;height:8px;
-    background:var(--court);border-radius:1px;
+    content:"";position:absolute;left:0;top:6px;width:8px;height:8px;
+    background:var(--accent);border-radius:2px;
   }
-  .rules li.caution::before{background:var(--warn)}
+  .rules li.caution::before{
+    background:var(--attn);border-radius:0;
+    clip-path:polygon(50% 0,100% 100%,0 100%);
+  }
 
   /* ---------- body-weight log ---------- */
   .bw-form{
-    display:flex;gap:8px;align-items:stretch;margin-top:10px;flex-wrap:wrap;
+    display:flex;gap:var(--s2);align-items:stretch;margin-top:var(--s3);flex-wrap:wrap;
   }
   .bw-form label{
-    flex:1;min-width:90px;
-    display:flex;align-items:center;gap:5px;
-    background:var(--floor);border:1px solid var(--line);border-radius:4px;
-    padding:0 10px;min-height:44px;
-    font-family:var(--mono);font-size:11px;color:var(--rest);
+    flex:1;min-width:100px;
+    display:flex;align-items:center;gap:var(--s1);
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:0 var(--s3);min-height:var(--tap);
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
   }
+  .bw-form label:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
   .bw-form input{
-    width:100%;min-width:0;border:none;background:none;color:var(--ink);
-    font-family:var(--mono);font-size:16px;font-weight:500;text-align:right;
+    width:100%;min-width:0;min-height:var(--tap);
+    border:none;background:none;color:var(--text);
+    font-family:var(--mono);font-size:var(--t-num);font-weight:600;text-align:right;
     font-variant-numeric:tabular-nums;outline:none;
   }
   .bw-form input::-webkit-inner-spin-button,
   .bw-form input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   #bw-save{
-    font-family:var(--mono);font-size:12px;font-weight:500;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;
     letter-spacing:.06em;text-transform:uppercase;
-    color:var(--on-court);background:var(--court);
-    border:none;border-radius:4px;padding:0 16px;min-height:44px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    color:var(--on-accent);background:var(--accent);
+    border:none;border-radius:var(--r-sm);padding:0 var(--s5);min-height:var(--tap);
+    cursor:pointer;
   }
-  #bw-save:focus-visible{outline:2px solid var(--court);outline-offset:2px}
 
-  /* ---------- backup / restore ---------- */
+  /* ---------- dialogs: backup / restore, program editor ---------- */
   .backup{
     position:fixed;inset:0;z-index:60;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(5,16,32,.72);
-    padding:20px;
+    background:var(--scrim);
+    padding:var(--s5);
   }
   .backup[hidden]{display:none}
   .bk-card{
-    background:var(--panel);border:1px solid var(--line);border-radius:6px;
-    padding:18px 16px;max-width:520px;width:100%;max-height:calc(100dvh - 40px);overflow:auto;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:var(--s5);max-width:520px;width:100%;
+    max-height:calc(100dvh - 40px);overflow:auto;
+    box-shadow:var(--shadow-pop);
   }
   .bk-card h3{
-    font-family:var(--display);font-size:16px;font-weight:600;
-    text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
+    font-family:var(--display);font-size:var(--t-lg);font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--s2);
   }
-  .bk-label{display:block;font-size:14px;margin:12px 0 6px}
-  .bk-note{font-size:14px;color:var(--rest);margin-bottom:10px}
+  .bk-label{display:block;font-size:var(--t-sm);font-weight:600;margin:var(--s4) 0 var(--s2)}
+  .bk-note{font-size:var(--t-sm);color:var(--text-muted);margin-bottom:var(--s3)}
   #bk-text{
     width:100%;resize:vertical;
-    font-family:var(--mono);font-size:11px;line-height:1.5;
-    color:var(--ink);background:var(--floor);
-    border:1px solid var(--line);border-radius:4px;
-    padding:8px;outline:none;
+    font-family:var(--mono);font-size:var(--t-xs);line-height:1.5;
+    color:var(--text);background:var(--surface-sunk);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:var(--s3);outline:none;
   }
-  #bk-text:focus-visible{outline:2px solid var(--court);outline-offset:1px}
-  .bk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:flex-end}
+  #bk-text:focus-visible{outline:3px solid var(--accent);outline-offset:-1px}
+  .bk-actions{
+    display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s4);
+    justify-content:flex-end;
+  }
   .bk-actions button{
-    font-family:var(--mono);font-size:12px;font-weight:500;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
     letter-spacing:.06em;text-transform:uppercase;
-    border-radius:4px;padding:10px 16px;min-height:42px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-    background:none;border:1px solid var(--line);color:var(--rest);
+    border-radius:var(--r-sm);padding:0 var(--s4);min-height:var(--tap);
+    cursor:pointer;
+    background:var(--surface);border:1px solid var(--line);color:var(--text);
   }
-  .bk-actions #bk-copy{background:var(--court);border-color:var(--court);color:var(--on-court)}
-  .bk-actions button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .bk-actions button:active{background:var(--surface-press)}
+  .bk-actions #bk-copy{
+    background:var(--accent);border-color:var(--accent);color:var(--on-accent);
+    font-weight:600;
+  }
 
   /* ---------- footer ---------- */
   .foot{
-    margin-top:20px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+    margin-top:var(--s5);display:flex;justify-content:space-between;
+    align-items:center;gap:var(--s3);
   }
-  .foot small{font-size:11px;color:var(--rest)}
-  .foot-btns{display:flex;gap:6px;flex-shrink:0}
+  .foot small{font-size:var(--t-xs);color:var(--text-muted);line-height:1.5}
+  .foot-btns{display:flex;gap:var(--s2);flex-shrink:0}
+  /* the app speaking up: a backup overdue, a save that failed, data that
+     would not read. Marked by a rule and an icon as well as a tint. */
   .bk-age{
-    margin-top:8px;font-family:var(--mono);font-size:11px;
-    color:var(--court-deep);background:var(--finisher-bg);
-    padding:8px 10px;border-radius:3px;border-left:3px solid var(--warn);
+    margin-top:var(--s3);font-family:var(--mono);font-size:var(--t-xs);
+    line-height:1.5;color:var(--text);background:var(--attn-soft);
+    padding:var(--s3) var(--s3) var(--s3) 34px;border-radius:var(--r-sm);
+    border-left:4px solid var(--attn);position:relative;
   }
+  .bk-age::before{
+    content:"!";position:absolute;left:var(--s3);top:var(--s3);
+    display:flex;align-items:center;justify-content:center;
+    width:16px;height:16px;border-radius:50%;
+    background:var(--attn);color:var(--on-attn);
+    font-size:11px;font-weight:700;line-height:1;
+  }
+  #store-warn,#broken-warn{background:var(--danger-soft);border-left-color:var(--danger)}
+  #store-warn::before,#broken-warn::before{background:var(--danger);color:var(--on-danger)}
   .bk-age[hidden]{display:none}
-  .prefs{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-  .pref{
-    font-family:var(--mono);font-size:11px;
-    color:var(--rest);background:none;
-    border:1px solid var(--line);border-radius:3px;
-    padding:7px 12px;min-height:36px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+  .prefs{display:flex;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap}
+  .pref,.pref-action,.foot-btn{
+    font-family:var(--mono);font-size:var(--t-xs);
+    color:var(--text-muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:0 var(--s3);min-height:var(--tap);
+    display:inline-flex;align-items:center;gap:var(--s1);
+    cursor:pointer;
   }
-  .pref::before{content:"○ "}
-  .pref[aria-pressed="true"]{color:var(--court-deep);border-color:var(--court)}
-  .pref[aria-pressed="true"]::before{content:"● "}
-  .pref:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .pref:active,.pref-action:active,.foot-btn:active{background:var(--surface-press)}
+  .pref::before{content:"○"}
+  .pref[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+  .pref[aria-pressed="true"]::before{content:"●"}
+  .pref-action{color:var(--accent);border-color:var(--accent);font-weight:600}
 
   /* ---------- program editor ---------- */
-  .pref-action{
-    font-family:var(--mono);font-size:11px;
-    color:var(--court-deep);background:none;
-    border:1px solid var(--court);border-radius:3px;
-    padding:7px 12px;min-height:36px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .pref-action:focus-visible{outline:2px solid var(--court);outline-offset:2px}
   .editor{
     position:fixed;inset:0;z-index:60;
-    background:rgba(5,16,32,.72);
-    padding:16px;overflow-y:auto;
+    background:var(--scrim);
+    padding:var(--s4);overflow-y:auto;
     display:flex;align-items:flex-start;justify-content:center;
   }
   .editor[hidden]{display:none}
   .ed-card{
-    background:var(--panel);border:1px solid var(--line);border-radius:6px;
-    padding:18px 16px;max-width:560px;width:100%;margin:auto;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:var(--s5);max-width:560px;width:100%;margin:auto;
+    box-shadow:var(--shadow-pop);
   }
   .ed-card h3{
-    font-family:var(--display);font-size:16px;font-weight:600;
-    text-transform:uppercase;letter-spacing:.05em;
+    font-family:var(--display);font-size:var(--t-lg);font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;
   }
-  .ed-note{font-size:12px;color:var(--rest);margin:6px 0 14px}
-  .ed-day{margin-bottom:18px}
+  .ed-note{font-size:var(--t-sm);color:var(--text-muted);margin:var(--s2) 0 var(--s4)}
+  .ed-day{margin-bottom:var(--s5)}
   .ed-day h4{
-    font-family:var(--display);font-size:13px;font-weight:600;
-    text-transform:uppercase;letter-spacing:.08em;color:var(--court);
-    margin-bottom:8px;
+    font-family:var(--display);font-size:var(--t-sm);font-weight:600;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--accent);
+    margin-bottom:var(--s2);
   }
   .ed-ex{
-    border:1px solid var(--line);border-radius:4px;
-    padding:8px;margin-bottom:8px;
-    display:flex;flex-direction:column;gap:6px;
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:var(--s3);margin-bottom:var(--s2);
+    display:flex;flex-direction:column;gap:var(--s2);
   }
   .ed-f{
-    font-family:inherit;font-size:13px;
-    color:var(--ink);background:var(--floor);
-    border:1px solid var(--line);border-radius:3px;
-    padding:8px;min-height:38px;outline:none;width:100%;
+    font-family:inherit;font-size:var(--t-sm);
+    color:var(--text);background:var(--surface-sunk);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:var(--s2) var(--s3);min-height:var(--tap);outline:none;width:100%;
   }
-  .ed-f:focus-visible{outline:2px solid var(--court);outline-offset:-1px}
-  .ed-why{font-size:12px;color:var(--rest)}
-  .ed-line{display:flex;gap:6px}
+  .ed-f:focus-visible{outline:3px solid var(--accent);outline-offset:-1px}
+  .ed-why{font-size:var(--t-sm);color:var(--text-muted)}
+  .ed-line{display:flex;gap:var(--s2)}
   .ed-rx{flex:2;min-width:0}
   .ed-sets{flex:.7;min-width:0;text-align:center;font-family:var(--mono)}
   .ed-reps{flex:1;min-width:0;text-align:center;font-family:var(--mono)}
-  .ed-line2{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
-  .ed-increment,.ed-mins{width:64px}
-  .ed-line3{margin-bottom:6px}
+  .ed-line2{
+    display:flex;flex-wrap:wrap;align-items:center;
+    justify-content:space-between;gap:var(--s2);
+  }
+  .ed-increment,.ed-mins{width:74px}
+  .ed-line3{margin-bottom:var(--s1)}
   .ed-line2 label{
-    display:flex;align-items:center;gap:6px;white-space:nowrap;
-    font-family:var(--mono);font-size:11px;color:var(--rest);
+    display:flex;align-items:center;gap:var(--s2);white-space:nowrap;
+    font-family:var(--mono);font-size:var(--t-xs);color:var(--text-muted);
+    min-height:var(--tap);
   }
   .ed-line2 input[type="checkbox"]{
-    width:20px;height:20px;flex-shrink:0;accent-color:var(--court);
+    width:22px;height:22px;flex-shrink:0;accent-color:var(--accent);
   }
-  .ed-btns{display:flex;gap:4px}
+  .ed-btns{display:flex;gap:var(--s1)}
   .ed-btns button{
-    width:38px;height:38px;
-    font-size:13px;color:var(--ink);background:none;
-    border:1px solid var(--line);border-radius:3px;
-    cursor:pointer;touch-action:manipulation;
+    width:var(--tap);height:var(--tap);
+    font-size:var(--t-base);color:var(--text);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-sm);
+    cursor:pointer;
   }
+  .ed-btns button:not([disabled]):active{background:var(--surface-press)}
   .ed-btns button[disabled]{opacity:.35;cursor:default}
   .ed-add{
-    width:100%;min-height:38px;
-    font-family:var(--mono);font-size:11.5px;color:var(--court-deep);
-    background:none;border:1px dashed var(--court);border-radius:4px;
-    cursor:pointer;touch-action:manipulation;
+    width:100%;min-height:var(--tap);
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:600;color:var(--accent);
+    background:none;border:1px dashed var(--accent);border-radius:var(--r-sm);
+    cursor:pointer;
   }
+  .ed-add:active{background:var(--accent-soft)}
   .ed-actions{
-    display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
-    margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+    display:flex;gap:var(--s2);justify-content:flex-end;flex-wrap:wrap;
+    margin-top:var(--s4);padding-top:var(--s4);border-top:1px solid var(--line);
   }
   .ed-actions button{
-    font-family:var(--mono);font-size:12px;font-weight:500;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
     letter-spacing:.06em;text-transform:uppercase;
-    background:none;border:1px solid var(--line);border-radius:4px;
-    color:var(--rest);padding:11px 16px;min-height:44px;
-    cursor:pointer;touch-action:manipulation;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
+    color:var(--text);padding:0 var(--s4);min-height:var(--tap);
+    cursor:pointer;
   }
-  .ed-actions #ed-save{background:var(--court);border-color:var(--court);color:var(--on-court)}
-  .ed-actions button:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .ed-actions button:active{background:var(--surface-press)}
+  .ed-actions #ed-save{
+    background:var(--accent);border-color:var(--accent);color:var(--on-accent);
+    font-weight:600;
+  }
 
   /* ---------- rest timer ---------- */
   /* a floating card rather than a full-bleed bar: phone screens curve at the
@@ -1119,68 +1385,64 @@
     left:max(12px, calc(env(safe-area-inset-left) + 12px));
     right:max(12px, calc(env(safe-area-inset-right) + 12px));
     bottom:max(14px, calc(env(safe-area-inset-bottom) + 10px));
-    padding:0 14px 12px;
+    padding:0 var(--s4) var(--s3);
     background:var(--bar-bg);color:var(--bar-fg);
-    border-radius:16px;overflow:hidden;
-    box-shadow:0 6px 24px rgba(3,10,20,.4);
+    border-radius:var(--r-lg);overflow:hidden;
+    box-shadow:var(--shadow-pop);
   }
   .rest-bar[hidden]{display:none}
   /* keep the footer controls clear of the floating card while it's up */
-  body.resting{padding-bottom:calc(190px + env(safe-area-inset-bottom))}
+  body.resting{padding-bottom:calc(200px + env(safe-area-inset-bottom))}
   .rb-track{
-    height:3px;margin:0 -14px 10px;background:rgba(255,255,255,.16);
+    height:4px;margin:0 calc(var(--s4) * -1) var(--s3);
+    background:rgba(255,255,255,.18);
   }
   .rb-fill{
-    height:100%;width:100%;background:#7FA9D8;
+    height:100%;width:100%;background:var(--bar-accent);
     transform-origin:left center;
   }
   @media (prefers-reduced-motion:no-preference){
     .rb-fill{transition:width .25s linear}
   }
-  .rest-bar.done .rb-fill{background:var(--done)}
-  .rb-ctx{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+  .rest-bar.done .rb-fill{background:#4FC08D}
+  .rb-ctx{display:flex;align-items:baseline;gap:var(--s2);margin-bottom:var(--s1)}
   .rb-lab{
-    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
-    text-transform:uppercase;color:#7FA9D8;
+    font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
+    text-transform:uppercase;color:var(--bar-accent);font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .rb-set{
-    font-family:var(--mono);font-size:10.5px;color:rgba(242,245,249,.65);
+    font-family:var(--mono);font-size:var(--t-xs);color:rgba(242,246,251,.72);
     margin-left:auto;white-space:nowrap;
   }
-  .rb-main{display:flex;align-items:center;gap:8px}
+  .rb-main{display:flex;align-items:center;gap:var(--s2)}
   .rb-time{
-    font-family:var(--mono);font-size:26px;font-weight:500;
-    font-variant-numeric:tabular-nums;letter-spacing:.02em;
-    margin-right:auto;min-width:84px;
+    font-family:var(--mono);font-size:32px;font-weight:600;
+    font-variant-numeric:tabular-nums;letter-spacing:.01em;
+    margin-right:auto;min-width:96px;line-height:1.1;
   }
-  .rest-bar.done .rb-lab{color:var(--done)}
-  
-  .rest-bar.done .rb-set{color:rgba(242,245,249,.8)}
+  .rest-bar.done .rb-lab{color:#4FC08D}
+  .rest-bar.done .rb-set{color:rgba(242,246,251,.85)}
   .rest-bar button{
-    font-family:var(--mono);font-size:12px;font-weight:500;
-    color:var(--floor);background:none;
-    border:1px solid rgba(255,255,255,.3);border-radius:4px;
-    padding:9px 10px;min-height:44px;min-width:48px;
-    cursor:pointer;touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
+    font-family:var(--mono);font-size:var(--t-xs);font-weight:500;
+    color:var(--bar-fg);background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.34);border-radius:var(--r-sm);
+    padding:0 var(--s2);min-height:var(--tap);min-width:var(--tap);
+    cursor:pointer;
   }
-  #rb-stop{background:rgba(255,255,255,.14)}
-  .rest-bar button:focus-visible{outline:2px solid #7FA9D8;outline-offset:2px}
-  .foot-btn{
-    font-family:var(--mono);font-size:11px;font-weight:500;
-    color:var(--rest);background:none;
-    border:1px solid var(--line);border-radius:3px;
-    padding:7px 12px;cursor:pointer;touch-action:manipulation;
-  }
-  .foot-btn:focus-visible{outline:2px solid var(--court);outline-offset:2px}
+  .rest-bar button:active{background:rgba(255,255,255,.2)}
+  #rb-stop{background:rgba(255,255,255,.2);font-weight:600}
+  .rest-bar button:focus-visible{outline:3px solid var(--bar-accent);outline-offset:2px}
 
   @media (max-width:420px){
+    body{padding:0 var(--s3) 56px}
     .ex{font-size:14.5px}
-    .rx{font-size:12px}
-    .row{padding:11px 10px;gap:10px}
-    .day-head{padding:11px 10px 7px}
-    .daynav a{font-size:10px;letter-spacing:.02em}
+    .row{padding:var(--s3) var(--s2)}
+    .day-head{padding:var(--s3) var(--s2) var(--s2)}
+    .daynav a{font-size:var(--t-micro);letter-spacing:.02em}
+    .tab,.mt{font-size:var(--t-micro);letter-spacing:.04em}
+    .wt-panel{padding:var(--s3) var(--s2) var(--s3)}
+    .cal{padding:var(--s3)}
   }
 </style>
 </head>
@@ -2494,11 +2756,15 @@
           '<label class="wt-field"><input class="wt-top" type="number" inputmode="decimal" step="0.5" min="0" value="' + seedW(0) + '" aria-label="Weight for the sets still to do"><span>kg</span></label>' +
           '<button type="button" class="wt-step" data-step="' + increment + '" aria-label="' + increment + ' kg on the sets still to do">+' + increment + '</button>' +
         '</div>';
-      html += '<div class="wt-shead" aria-hidden="true">' +
+
+      /* the column labels belong against the sets they label, so they sit
+         under the "next set" line rather than above it */
+      html += '<p class="wt-next" role="status"></p>' +
+        '<div class="wt-shead" aria-hidden="true">' +
           '<span class="h-n">done</span><span class="h-w">kg</span><span class="h-x"></span>' +
           '<span class="h-r">reps</span><span class="h-e">effort</span>' +
-        '</div>';
-      html += '<p class="wt-next" role="status"></p><div class="wt-sets">';
+        '</div>' +
+        '<div class="wt-sets">';
       for (var i = 0; i < nSets; i++){
         var se = seedE(i);
         html += '<div class="wt-set" data-set="' + i + '">' +
@@ -2857,7 +3123,12 @@
     });
     function updateNextSet(){
       var next = flags.indexOf(false);
-      panel.querySelectorAll('.wt-set').forEach(function(el, i){ el.classList.toggle('next-set', i === next); });
+      /* three states, one pass: the set you are on, the ones already logged,
+         and the plain ones still to come */
+      panel.querySelectorAll('.wt-set').forEach(function(el, i){
+        el.classList.toggle('next-set', i === next);
+        el.classList.toggle('set-done', !!flags[i]);
+      });
       var line = panel.querySelector('.wt-next');
       if (line) line.textContent = next < 0 ? 'All ' + nSets + ' sets complete' : 'Next: set ' + (next + 1) + ' of ' + nSets;
       syncBulkControls();   /* a set ticked off is a set the bulk controls leave alone */
@@ -2976,11 +3247,29 @@
     g += '<polyline class="ln" points="' +
          pts.map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ') + '"/>';
     g += '<line class="xh" x1="0" x2="0" y1="' + pt + '" y2="' + (H - pb) + '"/>';
+    /* A point's shape carries how that week felt, alongside its colour —
+       circle easy, diamond moderate, triangle hard — so the trend reads in
+       greyscale and to a colour-blind eye, not only in hue. Areas are
+       matched by eye so no one rating looks heavier than the others. */
+    function mark(cls, x, y, r){
+      var a = 'class="' + cls + '" ', n = function(v){ return v.toFixed(1); };
+      if (cls.indexOf('fx1') > -1){
+        var d = r * 1.3;
+        return '<path ' + a + 'd="M' + n(x) + ',' + n(y - d) + 'L' + n(x + d) + ',' + n(y) +
+               'L' + n(x) + ',' + n(y + d) + 'L' + n(x - d) + ',' + n(y) + 'Z"/>';
+      }
+      if (cls.indexOf('fx2') > -1){
+        var w = r * 1.45, h = r * 1.3;
+        return '<path ' + a + 'd="M' + n(x) + ',' + n(y - h) + 'L' + n(x + w) + ',' + n(y + h) +
+               'L' + n(x - w) + ',' + n(y + h) + 'Z"/>';
+      }
+      return '<circle ' + a + 'cx="' + n(x) + '" cy="' + n(y) + '" r="' + n(r) + '"/>';
+    }
     pts.forEach(function(p, i){
       var fx = p.c ? ' ' + p.c : '';
       g += i === pts.length - 1
-        ? '<circle class="end' + fx + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5"/>'
-        : '<circle class="dot' + fx + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="4"/>';
+        ? mark('end' + fx, p.x, p.y, 5)
+        : mark('dot' + fx, p.x, p.y, 4);
     });
     var lastP = pts[pts.length - 1];
     g += '<text class="endlab" x="' + (lastP.x - 8).toFixed(1) + '" y="' +
@@ -3345,7 +3634,7 @@
     if (!any){
       var em = document.createElement('div');
       em.className = 'pg-empty';
-      em.innerHTML = '<p>Complete your first set to start your progress history. Saved weights are a plan until you tick the set or rate its effort.</p><button type="button" class="mt">Go to today’s workout</button>';
+      em.innerHTML = '<p>Complete your first set to start your progress history. Saved weights are a plan until you tick the set or rate its effort.</p><button type="button" class="pg-empty-go">Go to today’s workout</button>';
       em.querySelector('button').addEventListener('click', function(){
         selectTab('week');
         var today = document.querySelector('.day.today');
@@ -3588,10 +3877,10 @@
         : '<span class="' + cls + '">' + d + '</span>';
     }
     h += '</div><div class="cal-legend">' +
-      '<span><i style="background:var(--done)"></i>trained</span>' +
-      '<span><i style="background:var(--court)"></i>game</span>' +
-      '<span><i style="box-shadow:inset 0 0 0 1.5px var(--done)"></i>before tracking</span>' +
-      '<span><i style="background:var(--rest);border-radius:50%"></i>rest</span>' +
+      '<span><i style="background:var(--ok)"></i>trained</span>' +
+      '<span><i style="background:var(--accent)"></i>game</span>' +
+      '<span><i style="box-shadow:inset 0 0 0 2px var(--ok)"></i>before tracking</span>' +
+      '<span><i style="background:var(--text-muted);border-radius:50%"></i>rest</span>' +
       '</div>' +
       '<p class="cal-hint">Tap a past training day to add or remove it.</p>';
     return h;
@@ -3780,7 +4069,7 @@
     var ctx = canvas.getContext('2d');
     var W = canvas.width = canvas.clientWidth;
     var H = canvas.height = canvas.clientHeight;
-    var colors = ['#12294A', '#F26402', '#2F6DB5', '#9CC6EE', '#FBF9F8'];
+    var colors = ['#1A56C4', '#5B9BF0', '#0F7145', '#8FBCF7', '#F2F6FB'];
     var ps = [];
     for (var i = 0; i < count; i++){
       ps.push({

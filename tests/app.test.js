@@ -678,9 +678,12 @@ async function main() {
     await page.waitForTimeout(300);
     check('the colours are explained once', await page.locator('.fx-legend').count(), 1);
     const card = page.locator('.chart-card', { hasText: 'Leg press' });
+    /* a point's shape carries the rating alongside its colour: circle easy,
+       diamond moderate, triangle hard — so hard and moderate are paths */
     check('same load, week by week getting easier',
-      await card.locator('.cc-plot circle').evaluateAll((els) => els.map((e) => e.getAttribute('class'))),
-      ['dot fx2', 'dot fx1', 'end fx0']);
+      await card.locator('.cc-plot circle, .cc-plot path').evaluateAll(
+        (els) => els.map((e) => e.tagName.toLowerCase() + ':' + e.getAttribute('class'))),
+      ['path:dot fx2', 'path:dot fx1', 'circle:end fx0']);
   });
 
   // --------------------------------------------------------------- body + log
