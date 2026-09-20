@@ -693,7 +693,7 @@ async function main() {
     await page.fill('#bw-bf', '22.8');
     await page.click('#bw-save');
     await page.waitForTimeout(250);
-    check('weight recorded', (await page.textContent('.pg-day .chart-card .cc-now')).trim(), '92.4 kg');
+    check('weight recorded', (await page.textContent('.chart-card:has(#bw-w) .cc-now')).trim(), '92.4 kg');
     check('body fat card appears', await page.locator('.chart-card', { hasText: 'Body fat' }).count(), 1);
   });
 
@@ -1587,7 +1587,8 @@ async function main() {
     await page.click('.wt-close');
     await page.click('#tab-progress');
     check('one useful empty state', await page.locator('.pg-empty').count(), 1);
-    check('only the body section remains, no empty lift groups', await page.locator('.pg-day').count(), 1);
+    check('no lift groups, only the standing sections',
+      await page.locator('.pg-day h2 > span:first-child').allTextContents(), ['Body', 'Aerobic']);
     await page.click('#tab-week');
     await tickSet(page, 'mon-1', 1);
     await page.fill('.wt-sw[data-i="1"]', '200');
@@ -2143,6 +2144,190 @@ async function main() {
     const hint = (await page.textContent('.wt-panel [data-hint]')).trim();
     check('reads the session, not every set', hint, 'This session felt hard — stay at 100 kg next week and add reps.');
     check('and the sets it is reading were mixed', await storedEfforts(page, 'mon-1'), [1, 0, 2, 2]);
+  });
+
+
+  // ------------------------------------------------------- aerobic minutes
+  /* The program prescribes the walks and game night and the standing orders
+     name a weekly target, but nothing used to add them up. */
+  await test('an aerobic session logs its minutes when it is ticked', { date: '2026-07-23T09:00:00' }, async (page) => {
+    check('the week starts at nothing', (await page.textContent('#wb-aero')).trim(), '0/150 min');
+    await openRow(page, 'mon-6');
+    check('the field carries the prescription', await page.inputValue('.wt-panel .cd-mins'), '20');
+    check('nothing logged from opening it', (await page.textContent('#wb-aero')).trim(), '0/150 min');
+
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    check('the tick is what logs it', (await page.textContent('#wb-aero')).trim(), '20/150 min');
+    check('stored against the training week', await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('sams-training-weights')).cardio['mon-6'];
+      return [c.length, c[0].m];
+    }), [1, 20]);
+
+    await page.reload();
+    await page.waitForTimeout(350);
+    check('and it survives a reload', (await page.textContent('#wb-aero')).trim(), '20/150 min');
+    check('the band does not call it met', await page.locator('#wb-aero.done').count(), 0);
+  });
+
+  /* A walk you stretched out should count for what it took, not the plan. */
+  await test('minutes can be corrected, and only count once ticked', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'thu-6');
+    for (let i = 0; i < 3; i++) {
+      await page.click('.wt-panel .cd-step[data-step="5"]');
+      await page.waitForTimeout(100);
+    }
+    check('the field moved', await page.inputValue('.wt-panel .cd-mins'), '35');
+    check('editing alone logs nothing', (await page.textContent('#wb-aero')).trim(), '0/150 min');
+
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    check('the edited number is what counts', (await page.textContent('#wb-aero')).trim(), '35/150 min');
+
+    // correcting after the fact updates the record rather than adding one
+    await page.fill('.wt-panel .cd-mins', '50');
+    await page.waitForTimeout(200);
+    check('corrected in place', (await page.textContent('#wb-aero')).trim(), '50/150 min');
+    check('still one record', await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('sams-training-weights')).cardio['thu-6'].length), 1);
+  });
+
+  /* Taking the session back has to take its minutes out of the week too, or
+     the total would drift above what was actually done. */
+  await test('unticking an aerobic session removes its minutes', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'mon-6');
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    check('logged', (await page.textContent('#wb-aero')).trim(), '20/150 min');
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    check('and taken back out', (await page.textContent('#wb-aero')).trim(), '0/150 min');
+    check('the record goes with it', await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('sams-training-weights')).cardio['mon-6'] === undefined), true);
+  });
+
+  /* The dose is a weekly number — a new week starts from zero without
+     touching what the finished weeks recorded. */
+  await test('the aerobic total is per training week', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'mon-6');
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    check('this week', (await page.textContent('#wb-aero')).trim(), '20/150 min');
+
+    await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      w.weeks[w.weekNo].start -= 7;               // age the week out, as time would
+      localStorage.setItem('sams-training-weights', JSON.stringify(w));
+    });
+    await page.reload();
+    await page.waitForTimeout(350);
+    check('the new week starts empty', (await page.textContent('#wb-aero')).trim(), '0/150 min');
+    check('last week is still on the record', await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('sams-training-weights')).cardio['mon-6'].length), 1);
+  });
+
+  await test('Progress reports the week against the target', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1, wt: {},
+        cardioSeeded: 1,
+        cardio: { 'mon-6': [{ ew, dn, m: 20 }], 'wed-1': [{ ew, dn, m: 75 }] },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    check('this week against the target',
+      (await page.textContent('.chart-card:has(.ae-bar) .cc-now')).trim(), '95 / 150 min');
+    check('the bar reflects it', await page.evaluate(() =>
+      document.querySelector('.ae-bar i').style.width), '63%');
+    check('and says what is left',
+      (await page.textContent('.chart-card:has(.ae-bar) .cc-note')).includes('55 min to go'), true);
+  });
+
+  /* A chart of weekly doses that does not show the dose leaves you counting
+     gridlines to answer the only question it is there for. */
+  await test('the aerobic chart draws the target and only finished weeks', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const c = [];
+      for (let k = 4; k >= 1; k--) c.push({ ew: ew - k, dn: 7 * (ew - k) - 3, m: 100 + k * 10 });
+      c.push({ ew, dn, m: 20 });                     // the week in progress
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1, wt: {},
+        cardioSeeded: 1, cardio: { 'mon-6': c },
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-progress');
+    await page.waitForTimeout(300);
+    check('the target line is drawn', await page.locator('.cc-plot .ref').count(), 1);
+    check('four finished weeks, not five',
+      await page.locator('.chart-card .cc-plot circle').count(), 4);
+    check('the week in progress is in the readout, not the trend',
+      (await page.textContent('.chart-card:has(.ae-bar) .cc-now')).trim(), '20 / 150 min');
+    check('the target stays inside the axis range', await page.evaluate(() => {
+      const ref = +document.querySelector('.cc-plot .ref').getAttribute('y1');
+      const ticks = [...document.querySelectorAll('.cc-plot .tick')].map((t) => +t.getAttribute('y'));
+      return ref >= Math.min(...ticks) - 6 && ref <= Math.max(...ticks) + 6;
+    }), true);
+  });
+
+  /* A program edited before this existed carries no cardio flags, so its
+     walks would never be counted unless the defaults are carried across. */
+  await test('an older edited program still gets its walks counted', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1, wt: {},
+        program: {
+          'd-mon': [{ id: 'mon-6', name: 'Incline walk', rx: '20 min', sets: 1 }],
+          'd-wed': [], 'd-thu': [], 'd-sat': [], 'd-sun': [],
+        },
+      }));
+    `) }, async (page) => {
+    check('the walk offers minutes', await page.locator('[data-id="mon-6"][data-cardio]').count(), 1);
+    await openRow(page, 'mon-6');
+    check('seeded from the default', await page.inputValue('.wt-panel .cd-mins'), '20');
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    check('and it counts', (await page.textContent('#wb-aero')).trim(), '20/150 min');
+  });
+
+  /* Which exercises are aerobic, and for how long, is program data like
+     everything else — and a backup has to carry the minutes. */
+  await test('aerobic settings are editable and backed up', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'sat-6');
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    check('45 min walk logged', (await page.textContent('#wb-aero')).trim(), '45/150 min');
+
+    // a real round trip through the dialog, not just a look at the raw store
+    await page.click('#backup-btn');
+    await page.waitForTimeout(250);
+    const payload = await page.inputValue('#bk-text');
+    check('the backup carries the minutes', payload.includes('"cardio"') && payload.includes('sat-6'), true);
+    await page.click('#bk-close');
+    await page.waitForTimeout(150);
+
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForTimeout(350);
+    check('wiped', (await page.textContent('#wb-aero')).trim(), '0/150 min');
+    await page.click('#backup-btn');
+    await page.waitForTimeout(250);
+    await page.fill('#bk-text', payload);
+    await page.click('#bk-restore');
+    await page.waitForTimeout(150);
+    await page.click('#bk-restore');          // restore is arm-then-confirm
+    await page.waitForTimeout(500);
+    if (await page.locator('#backup').isVisible()) await page.click('#bk-close');
+    await page.waitForTimeout(250);
+    check('restored with its minutes', (await page.textContent('#wb-aero')).trim(), '45/150 min');
+
+    // turn the walk off as an aerobic exercise; it drops out of the count
+    await page.click('#pref-edit');
+    await page.waitForTimeout(250);
+    await page.uncheck('.ed-ex[data-d="d-sat"]:last-of-type .ed-cardio');
+    await page.click('#ed-save');
+    await page.waitForTimeout(500);
+    check('no longer counted', (await page.textContent('#wb-aero')).trim(), '0/150 min');
   });
 
   await browser.close();
