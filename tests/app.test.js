@@ -941,6 +941,45 @@ async function main() {
     check('removed on confirm', await page.locator(`.c-edit[data-dn="${missing}"][aria-pressed="false"]`).count(), 1);
   });
 
+  /* A week finished on a day hands that same day to the next week as its
+     start, so the date belongs to two week records. Clearing it on the
+     calendar has to reach the week that actually stamped a session there,
+     not just the later week the date also opens. */
+  await test('clearing the day a week was finished on uncounts that session',
+    { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      const daysDone = {};
+      const weeks = {};
+      weeks[ew - 2] = { start: dn - 14, done: { 'd-mon': dn - 14, 'd-wed': dn - 12, 'd-thu': dn - 11, 'd-sat': dn - 8 } };
+      weeks[ew - 1] = { start: dn - 8, done: { 'd-mon': dn - 7, 'd-wed': dn - 5, 'd-thu': dn - 4, 'd-sat': dn - 2 } };
+      weeks[ew] = { start: dn - 2, done: {} };
+      [ew - 2, ew - 1].forEach(w => Object.values(weeks[w].done).forEach(x => daysDone[x] = 1));
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone,
+        backfilled: 1, perSet: 1, weeks, weekNo: ew,
+      }));
+    `) }, async (page) => {
+    await page.click('#tab-history');
+    await page.waitForTimeout(300);
+    check('two finished weeks', (await page.textContent('.hist-streak')).trim(), 'streak · 2 wk');
+    const boundary = await page.evaluate(() => {
+      const t = new Date();
+      return Math.floor(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / 864e5) - 8;
+    });
+    await page.click(`.c-edit[data-dn="${boundary}"]`);
+    await page.waitForTimeout(150);
+    await page.click(`.c-edit[data-dn="${boundary}"]`);
+    await page.waitForTimeout(250);
+    check('the day is cleared', await page.locator(`.c-edit[data-dn="${boundary}"][aria-pressed="false"]`).count(), 1);
+    check('the week it finished is no longer complete',
+      (await page.textContent('.wk-lines')).replace(/\s+/g, ' ').includes('3/4 sessions'), true);
+    check('the streak drops with it', (await page.textContent('.hist-streak')).trim(), 'streak · 1 wk');
+    check('no week record still claims the day', await page.evaluate((b) => {
+      const w = JSON.parse(localStorage.getItem('sams-training-weights'));
+      return Object.values(w.weeks).some((r) => Object.values(r.done).includes(b));
+    }, boundary), false);
+  });
+
   await test('game effort is recorded per week', { date: '2026-07-23T09:00:00' }, async (page) => {
     await page.click('#game-fx .fx-btn[data-e="2"]');
     check('high selected', await page.locator('#game-fx .fx-btn[data-e="2"].on').count(), 1);
