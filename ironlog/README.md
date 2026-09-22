@@ -4,6 +4,9 @@ A local-first strength training tracker built with React, TypeScript, Vite and T
 It needs no accounts, no API keys, no environment variables and no network connection.
 Everything, including a workout you are halfway through, is saved in your browser's `localStorage`.
 
+**Live app:** https://otto-40.github.io/Fitness/ironlog/. The repo's Pages workflow builds `ironlog/` and publishes the output there on every deploy.
+Data is stored per browser, so the live site and `localhost` keep separate logs.
+
 ## Setup
 
 Requires Node.js 20 or newer.

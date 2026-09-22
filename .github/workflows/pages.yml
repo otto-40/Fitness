@@ -27,6 +27,15 @@ jobs:
       - name: Install Chromium for the test run
         run: node node_modules/playwright-core/cli.js install chromium
       - run: npm test
+      - name: Install IronLog dependencies
+        working-directory: ironlog
+        run: npm ci
+      - name: Test IronLog
+        working-directory: ironlog
+        run: npm test
+      - name: Build IronLog
+        working-directory: ironlog
+        run: npm run build
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/workout-routine-ui-gmzbvt'
@@ -41,6 +50,20 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ironlog/package-lock.json
+      - name: Build IronLog
+        working-directory: ironlog
+        run: npm ci && npm run build
+      # Publish IronLog's build output at /ironlog/ in place of its source.
+      - name: Replace IronLog source with its build
+        run: |
+          mv ironlog/dist "$RUNNER_TEMP/ironlog"
+          rm -rf ironlog
+          mv "$RUNNER_TEMP/ironlog" ironlog
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
