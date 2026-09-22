@@ -1,0 +1,124 @@
+import { useEffect, useState } from 'react'
+import { uid } from '../lib/id'
+import { useExerciseList } from '../hooks/useExercises'
+import { useStore } from '../store/useStore'
+import { toast } from '../store/useToast'
+import type { Equipment, Exercise, Muscle } from '../types'
+import { EQUIPMENT, MUSCLES } from '../types'
+import { Button, Chip, Field, Input, Modal, Select, Textarea } from './ui'
+
+export function ExerciseForm({
+  open,
+  onClose,
+  existing,
+  onSaved,
+}: {
+  open: boolean
+  onClose: () => void
+  existing?: Exercise
+  onSaved?: (id: string) => void
+}) {
+  const save = useStore((s) => s.saveExercise)
+  const all = useExerciseList()
+  const [name, setName] = useState('')
+  const [primary, setPrimary] = useState<Muscle>('Chest')
+  const [secondary, setSecondary] = useState<Muscle[]>([])
+  const [equipment, setEquipment] = useState<Equipment>('Barbell')
+  const [cue, setCue] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setName(existing?.name ?? '')
+    setPrimary(existing?.primary ?? 'Chest')
+    setSecondary(existing?.secondary ?? [])
+    setEquipment(existing?.equipment ?? 'Barbell')
+    setCue(existing?.cue ?? '')
+    setError(null)
+  }, [open, existing])
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const n = name.trim().replace(/\s+/g, ' ')
+    if (n.length < 2) return setError('Give the exercise a name (at least 2 characters).')
+    if (n.length > 60) return setError('Keep the name under 60 characters.')
+    if (all.some((x) => x.id !== existing?.id && x.name.toLowerCase() === n.toLowerCase()))
+      return setError('An exercise with this name already exists.')
+    const id = existing?.id ?? uid('cx')
+    save({ id, name: n, primary, secondary: secondary.filter((m) => m !== primary), equipment, cue: cue.trim(), custom: true })
+    toast(existing ? 'Exercise updated' : 'Custom exercise created', { tone: 'success' })
+    onSaved?.(id)
+    onClose()
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={existing ? 'Edit exercise' : 'New exercise'}
+      footer={
+        <>
+          <Button variant="secondary" block onClick={onClose}>
+            Cancel
+          </Button>
+          <Button block type="submit" form="exercise-form">
+            Save
+          </Button>
+        </>
+      }
+    >
+      <form id="exercise-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
+        <Field label="Name" error={error}>
+          {(id, d) => (
+            <Input
+              id={id}
+              data-autofocus
+              aria-describedby={d}
+              aria-invalid={!!error}
+              value={name}
+              maxLength={60}
+              onChange={(e) => {
+                setName(e.target.value)
+                setError(null)
+              }}
+              placeholder="e.g. Meadows Row"
+            />
+          )}
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Primary muscle">
+            {(id) => (
+              <Select id={id} value={primary} onChange={(e) => setPrimary(e.target.value as Muscle)}>
+                {MUSCLES.map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label="Equipment">
+            {(id) => (
+              <Select id={id} value={equipment} onChange={(e) => setEquipment(e.target.value as Equipment)}>
+                {EQUIPMENT.map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        </div>
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium text-ink-2">Secondary muscles</legend>
+          <div className="flex flex-wrap gap-2">
+            {MUSCLES.filter((m) => m !== primary).map((m) => (
+              <Chip key={m} active={secondary.includes(m)} onClick={() => setSecondary((s) => (s.includes(m) ? s.filter((x) => x !== m) : [...s, m]))}>
+                {m}
+              </Chip>
+            ))}
+          </div>
+        </fieldset>
+        <Field label="Form cue" hint="One short reminder you want to see mid-set.">
+          {(id, d) => <Textarea id={id} aria-describedby={d} value={cue} maxLength={200} onChange={(e) => setCue(e.target.value)} placeholder="e.g. Pull to the hip, pause at the top" />}
+        </Field>
+      </form>
+    </Modal>
+  )
+}
