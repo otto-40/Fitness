@@ -3806,13 +3806,18 @@
   /* a day added or removed on the calendar has to reach the week record too,
      or the roll-ups and the streak would keep reading the old count */
   function editSession(dn, on){
-    var rec = weekRec(weekOfDn(dn));
-    if (!rec) return;
-    if (on){
-      if (!Object.keys(rec.done).some(function(k){ return rec.done[k] === dn; })) rec.done['x' + dn] = dn;
-    } else {
-      Object.keys(rec.done).forEach(function(k){ if (rec.done[k] === dn) delete rec.done[k]; });
+    if (!on){
+      /* the day a week was finished is also the day the next one started,
+         so the session stamped there can sit in the earlier week's record —
+         clearing the day clears it from whichever week holds it */
+      Object.keys(wstore.weeks).forEach(function(w){
+        var done = wstore.weeks[w].done;
+        Object.keys(done).forEach(function(k){ if (done[k] === dn) delete done[k]; });
+      });
+      return;
     }
+    var rec = weekRec(weekOfDn(dn));
+    if (rec && !dnClaimed(rec, dn)) rec.done['x' + dn] = dn;
   }
   /* how a logged day should be painted. The session stamped on it decides,
      so a game played on a Friday is a game and a lift caught up on a
