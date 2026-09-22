@@ -2372,6 +2372,59 @@ async function main() {
     check('no longer counted', (await page.textContent('#wb-aero')).trim(), '0/150 min');
   });
 
+  /* Save used to rebuild each exercise without its aerobic flag or minutes,
+     so saving the editor, changed or not, switched the aerobic count off. */
+  await test('saving the program editor keeps the aerobic sessions', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await openRow(page, 'sat-6');
+    await page.click('.wt-panel .wt-sdone[data-i="0"]');
+    await page.waitForTimeout(200);
+    await page.click('#pref-edit');
+    await page.waitForTimeout(250);
+    await page.click('#ed-save');
+    await page.waitForTimeout(500);
+    check('the logged walk still counts', (await page.textContent('#wb-aero')).trim(), '45/150 min');
+    check('every aerobic exercise keeps its flag and minutes', await page.evaluate(() => {
+      const p = JSON.parse(localStorage.getItem('sams-training-weights')).program;
+      return ['mon-6', 'wed-1', 'thu-6', 'sat-6', 'sun-1'].map((id) =>
+        Object.values(p).flat().filter((x) => x.id === id).map((x) => [x.cardio, x.mins])[0]);
+    }), [[true, 20], [true, 60], [true, 20], [true, 45], [true, 30]]);
+
+    await page.click('#pref-edit');
+    await page.waitForTimeout(250);
+    await page.fill('.ed-ex[data-d="d-sun"] .ed-mins', '40');
+    await page.click('#ed-save');
+    await page.waitForTimeout(500);
+    await openRow(page, 'sun-1');
+    check('an edited duration is what the panel offers', await page.inputValue('.wt-panel .cd-mins'), '40');
+  });
+
+  /* Programs saved while that was broken lost the flags already, so the
+     one-time seed runs again for them. */
+  await test('a program the editor stripped gets its walks back', { date: '2026-07-23T09:00:00',
+    seed: new Function(seedHelpers + `
+      localStorage.setItem('sams-training-weights', JSON.stringify({
+        unit: 'kg', variants: {}, bw: [], game: [], weeksDone: [], daysDone: {}, perSet: 1, wt: {},
+        cardioSeeded: 1,
+        program: {
+          'd-mon': [{ id: 'mon-6', name: 'Incline walk', rx: '20 min', sets: 1, rest: 0 }],
+          'd-wed': [], 'd-thu': [], 'd-sat': [], 'd-sun': [],
+        },
+      }));
+    `) }, async (page) => {
+    check('the walk is aerobic again', await page.locator('[data-id="mon-6"][data-cardio]').count(), 1);
+    check('and the band reports the dose', await page.$eval('#wb-aero', (e) => e.hidden), false);
+  });
+
+  /* The day circle ticks every set on the card; for a walk that is the
+     session, so it has to log the minutes the panel's Done button would. */
+  await test('the day circle logs and clears an aerobic session\'s minutes', { date: '2026-07-23T09:00:00' }, async (page) => {
+    await completeDay(page, 'd-sun');
+    check('the prescribed walk counts', (await page.textContent('#wb-aero')).trim(), '30/150 min');
+    await completeDay(page, 'd-sun');           // arms the undo
+    await completeDay(page, 'd-sun');           // confirms it
+    check('undoing the day takes the minutes back', (await page.textContent('#wb-aero')).trim(), '0/150 min');
+  });
+
   await browser.close();
 
   console.log(`\n${pass} passed, ${failures.length} failed`);
