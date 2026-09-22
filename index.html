@@ -2296,8 +2296,11 @@
   /* A program edited before this existed has no cardio flags, so its walks
      would never be counted. Carry the defaults onto the exercises that still
      carry their original ids, once, without touching anything already set. */
+  /* Seed 2 reruns it for programs the editor stripped: Save used to drop
+     the aerobic flag and minutes from every exercise, so one no-op save
+     switched the aerobic count off for good. */
   function seedCardioProgram(){
-    if (wstore.cardioSeeded) return;
+    if (wstore.cardioSeeded >= 2) return;
     if (wstore.program){
       DAY_IDS.forEach(function(d){
         (wstore.program[d] || []).forEach(function(x){
@@ -2308,7 +2311,7 @@
         });
       });
     }
-    wstore.cardioSeeded = 1;
+    wstore.cardioSeeded = 2;
     saveW();
   }
   seedCardioProgram();
@@ -4443,6 +4446,10 @@
         if (x.why && String(x.why).trim()) y.why = String(x.why).trim();
         if (x.wt){ y.wt = true; y.increment = incrementOf(x); }
         if (x.wt && x.reps) y.reps = x.reps;
+        /* written out either way: an absent flag is what the one-time seed
+           reads as "never set", so an unticked walk has to say false */
+        y.cardio = !!x.cardio;
+        if (x.cardio && minutesOf(x) != null) y.mins = minutesOf(x);
         if (x.finisher) y.finisher = true;
         if (x.variants && x.variants.length === 2) y.variants = x.variants;
         return y;
@@ -4816,6 +4823,12 @@
           var n = totalFor(r), flags = [];
           for (var i = 0; i < n; i++) flags.push(!was);
           writeFlags(r.dataset.id, flags);
+          /* the circle ticks an aerobic session as surely as its own Done
+             button does, so it logs the minutes the panel would have */
+          if (r.hasAttribute('data-cardio')){
+            var had = cardioThisWeek(r.dataset.id);
+            writeCardio(r.dataset.id, had ? had.m : minutesOf(exById(r.dataset.id)), !was);
+          }
         });
         save();
         dayRows.forEach(renderRow);
