@@ -172,25 +172,38 @@ belongs to the site, not the tile.
 One palette, two themes, declared as custom properties at the top of the
 stylesheet. Nothing below that block picks a colour of its own.
 
-Each token says what it is *for*, so no colour carries two meanings:
+The neutrals are true greys, so indigo is the only hue on screen that is not
+reporting a state. Each token says what it is *for*, so no colour carries two
+meanings:
 
 | Role | Light | Dark | Used for |
 | --- | --- | --- | --- |
-| `--accent` | `#1A56C4` | `#5B9BF0` | the one thing you can act on — the next set, the weight to beat, the lit tab |
-| `--ok` | `#0F7145` | `#3DB37C` | logged, complete, cleared to add load |
-| `--attn` | `#8A5200` | `#DFA23C` | hold, back off, a week that needs a decision |
-| `--danger` | `#B02A25` | `#F08A80` | destructive, and only destructive — an armed tick, nothing else |
-| `--text` / `--text-muted` | `#0E1B2E` / `#4A5A6F` | `#EAF0F7` / `#9FB2C8` | body and secondary text |
-| `--bg` / `--surface` / `--surface-sunk` | `#F4F6F9` / `#FFFFFF` / `#EDF1F6` | `#0A1728` / `#122336` / `#0F1E2F` | page, cards, a panel inside a card |
+| `--accent` | `#4338CA` | `#9A94FF` | the one thing you can act on — the next set, a logged weight, the lit tab |
+| `--ok` | `#137537` | `#43BF78` | logged, complete, cleared to add load |
+| `--attn` | `#A34A06` | `#F0A64A` | hold, back off, a week that needs a decision |
+| `--danger` | `#B91C1C` | `#F4817B` | destructive, and only destructive — an armed tick, nothing else |
+| `--text` / `--text-muted` | `#18181B` / `#52525B` | `#F4F4F5` / `#A6A6B0` | body and secondary text |
+| `--edge` | `#85858F` | `#6E6E7A` | the border of anything you type into |
+| `--bg` / `--surface` / `--surface-sunk` | `#F4F4F5` / `#FFFFFF` / `#F0F0F3` | `#0E0E11` / `#18181C` / `#131316` | page, cards, a panel inside a card |
 
 Every pairing clears WCAG AA: text at 4.5:1 or better on every surface it
-sits on, control edges and chart marks at 3:1 or better, in both themes.
+sits on, and input edges and chart marks at 3:1 or better, in both themes.
+Game nights on the calendar are ink rather than accent, because accent means
+"tap this".
 
 Colour never carries a meaning on its own. Effort is a shape as well as a
 hue — circle easy, diamond moderate, triangle hard — on the chart, in the
-legend, on the weight chip and on the chosen rating button. A finished lift
-is struck through, a complete week carries a tick, and the warning banners
+legend, on the weight chip and on the chosen rating button. On the chip the
+shape sits in a round corner badge, so a "hard" triangle can't be mistaken
+for a trend arrow. The weight chip's three states differ by border as well
+as colour: logged (accent, heavy), last week's target (neutral, solid),
+nothing yet (dashed "+"). A finished lift is struck through, a complete week
+carries a tick, a game night carries a corner notch, and the warning banners
 carry an icon and a rule.
+
+Type is two faces: Oswald for headings and day names, and the system face
+for everything else. Tabular figures are on for the whole page, so weights,
+reps and the rest timer never shift width as they change.
 
 Sizes come from the same block: `--t-*` for type, `--s1`–`--s7` for a 4px
 spacing scale, `--r-*` for radii, and `--tap: 44px` as the floor for
@@ -204,8 +217,8 @@ to an explicit `data-theme="dark"`; the media query steps aside for
 ## Development
 
 Plain HTML, CSS and JavaScript in a single `index.html` — no build step and
-no runtime dependencies. Fonts are embedded as data URIs so the page renders
-identically offline.
+no runtime dependencies. The heading font is embedded as a data URI so the
+page renders identically offline.
 
 ```bash
 npm install     # playwright-core, for the tests only
