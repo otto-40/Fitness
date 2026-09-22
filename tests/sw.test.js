@@ -24,10 +24,10 @@ function worker({ network, cached, cacheError = false }) {
   vm.runInNewContext(source, context);
   return {
     writes,
-    async navigate() {
+    async navigate(url) {
       let response;
       handlers.fetch({
-        request: { method: 'GET', mode: 'navigate' },
+        request: { method: 'GET', mode: 'navigate', url },
         respondWith: promise => { response = promise; },
         waitUntil: promise => pending.push(promise)
       });
@@ -78,5 +78,13 @@ test('a successful navigation refreshes the fallback for the next offline visit'
 test('cache quota failures do not prevent a successful live page from loading', async () => {
   const sw = worker({ cacheError: true, network: async () => page(200, 'live app') });
   assert.equal((await sw.navigate()).body, 'live app');
+  assert.equal(sw.writes.length, 0);
+});
+
+test('IronLog pages under /ironlog/ are left to the network and never cached', async () => {
+  let fetched = 0;
+  const sw = worker({ cached: page(200, 'training week'), network: async () => { fetched++; return page(200, 'ironlog'); } });
+  assert.equal(await sw.navigate('https://otto-40.github.io/Fitness/ironlog/'), undefined);
+  assert.equal(fetched, 0);
   assert.equal(sw.writes.length, 0);
 });

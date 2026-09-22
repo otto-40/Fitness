@@ -2,7 +2,7 @@
    The page itself is fetched network-first so updates land immediately,
    with the cached copy as the offline fallback. Static assets are
    cache-first. Bump CACHE to invalidate old caches on deploy. */
-var CACHE = 'training-week-v21';
+var CACHE = 'training-week-v22';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -22,6 +22,9 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
+  // IronLog is a separate app published under /ironlog/. Leave its requests to
+  // the network so its pages never replace this app's offline copy.
+  if (req.url && req.url.indexOf('/ironlog/') !== -1) return;
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req).then(function (res) {
