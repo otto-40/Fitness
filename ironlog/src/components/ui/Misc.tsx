@@ -1,5 +1,6 @@
 import { cn as clsx } from '../../lib/cn'
 import type { ReactNode } from 'react'
+import { useId } from 'react'
 
 export function Card({ children, className, id, as: As = 'div' }: { children: ReactNode; className?: string; id?: string; as?: 'div' | 'section' | 'article' | 'li' }) {
   return (
@@ -127,18 +128,35 @@ export function Badge({
   )
 }
 
-/** The Overload mark: a loaded barbell seen end-on. */
+/** The Overload mark: a bigger plate stepping up over a smaller one (progressive overload, and an O). Matches the app icon. */
+export function LogoMark({ className }: { className?: string }) {
+  const id = useId().replace(/:/g, '')
+  return (
+    <svg viewBox="0 0 100 100" className={clsx('size-8 rounded-[9px]', className)} aria-hidden>
+      <defs>
+        <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#5247e6" />
+          <stop offset="1" stopColor="#3730a3" />
+        </linearGradient>
+        <mask id={`${id}-m`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <rect width="100" height="100" fill="#fff" />
+          <circle cx="58" cy="43" r="34" fill="#000" />
+        </mask>
+      </defs>
+      <rect width="100" height="100" fill={`url(#${id}-bg)`} />
+      <g transform="translate(50 50) scale(0.8) translate(-50 -50)">
+        <circle cx="35" cy="63" r="17.5" fill="none" stroke="#b9b4ff" strokeWidth="11" mask={`url(#${id}-m)`} />
+        <circle cx="58" cy="43" r="24" fill="none" stroke="#fff" strokeWidth="14" />
+        <circle cx="58" cy="43" r="5.5" fill="#fff" />
+      </g>
+    </svg>
+  )
+}
+
 export function Logo({ className, withWord = true }: { className?: string; withWord?: boolean }) {
   return (
     <span className={clsx('inline-flex items-center gap-2', className)}>
-      <svg viewBox="0 0 32 32" className="size-8" aria-hidden>
-        <rect width="32" height="32" rx="9" className="fill-hero" />
-        <rect x="5" y="9" width="4" height="14" rx="1.5" fill="var(--hero-accent)" />
-        <rect x="23" y="9" width="4" height="14" rx="1.5" fill="var(--hero-accent)" />
-        <rect x="9" y="11.5" width="2.5" height="9" rx="1" fill="var(--hero-accent)" />
-        <rect x="20.5" y="11.5" width="2.5" height="9" rx="1" fill="var(--hero-accent)" />
-        <rect x="11.5" y="14.75" width="9" height="2.5" rx="1" fill="var(--on-hero)" />
-      </svg>
+      <LogoMark />
       {withWord && (
         <span className="font-display text-[22px] leading-none font-bold tracking-[0.08em] uppercase">
           Over<span className="text-accent">load</span>

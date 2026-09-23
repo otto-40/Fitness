@@ -28,6 +28,10 @@ In short:
   - Red means destructive only.
 - Condensed "stamped" numerals (Barlow Condensed) for the numbers you care about. Inter for everything else.
 - A plate-ring, segment-bar and sparkline vocabulary instead of stock photos or body maps.
+- **App icon.** A bigger weight plate stepping up over a smaller one: progressive overload, and an "O". It's white on the indigo tile.
+  - The master art is `public/icon.svg`.
+  - It is rendered to `apple-touch-icon.png` (iOS home screen), `icon-192.png` and `icon-512.png` (Android and installs; the 512 doubles as the maskable icon, since the mark sits inside the safe zone), plus `favicon.svg` and `favicon-32.png`.
+  - The in-app logo uses the same mark.
 - Large tap targets (52px set cells, 56px primary buttons), a floating tab bar with a mini-player for the running workout, and subtle motion that respects reduced-motion settings.
 
 ## Effort, aerobic minutes and Sam's Weekly Workout
