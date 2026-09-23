@@ -1,9 +1,10 @@
 import { format } from 'date-fns'
-import { Download, Eraser, Monitor, Moon, RotateCcw, Sparkles, Sun, Upload } from 'lucide-react'
+import clsx from 'clsx'
+import { ChevronRight, Download, Eraser, Monitor, Moon, RotateCcw, Ruler, Sparkles, Sun, Timer, Trash2, Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Chip, ConfirmDialog, Field, Input, PageHeader, Segmented, Select, Switch } from '../components/ui'
+import { Card, Chip, ConfirmDialog, Field, Input, ListGroup, ListRow, PageHeader, Segmented, Select, Switch } from '../components/ui'
 import { buildBackup, downloadJson, parseBackup } from '../lib/backup'
 import type { ImportResult } from '../lib/backup'
 import { WEEKDAY_SHORT } from '../lib/dates'
@@ -14,18 +15,7 @@ import type { Equipment, Experience, Goal, ThemePref, Units } from '../types'
 import { EQUIPMENT } from '../types'
 
 const REST = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
-
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  return (
-    <section className="grid gap-4 border-b border-line py-8 first:pt-0 last:border-0 md:grid-cols-[240px_1fr]">
-      <div>
-        <h2 className="font-semibold">{title}</h2>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
-      </div>
-      <div className="flex flex-col gap-5">{children}</div>
-    </section>
-  )
-}
+const GOAL_LABEL: Record<Goal, string> = { strength: 'Strength', muscle: 'Muscle', general: 'General fitness' }
 
 type Pending = { kind: 'reset' | 'erase' | 'sample' | 'onboarding' } | { kind: 'import'; result: ImportResult }
 
@@ -132,147 +122,203 @@ export default function Settings() {
   }
 
   return (
-    <div className="animate-rise max-w-4xl">
+    <div className="animate-rise mx-auto max-w-2xl">
       <PageHeader title="Settings" />
 
-      <Section title="Appearance" description="System follows your device's light or dark mode.">
-        <Segmented<ThemePref>
-          label="Theme"
-          value={settings.theme}
-          onChange={(theme) => store.updateSettings({ theme })}
-          className="w-full sm:w-auto"
-          options={[
-            { value: 'light', label: <span className="inline-flex items-center gap-1.5"><Sun size={15} /> Light</span> },
-            { value: 'dark', label: <span className="inline-flex items-center gap-1.5"><Moon size={15} /> Dark</span> },
-            { value: 'system', label: <span className="inline-flex items-center gap-1.5"><Monitor size={15} /> System</span> },
-          ]}
-        />
-      </Section>
-
-      <Section title="Units" description="Applies everywhere instantly. Your data is stored precisely, so switching back and forth never loses anything.">
-        <Segmented<Units>
-          label="Units"
-          value={settings.units}
-          onChange={(units) => {
-            store.updateSettings({ units })
-            toast(units === 'kg' ? 'Now using kilograms and centimetres' : 'Now using pounds and inches')
-          }}
-          className="w-full sm:w-64"
-          options={[
-            { value: 'kg', label: 'Kilograms (kg)' },
-            { value: 'lb', label: 'Pounds (lb)' },
-          ]}
-        />
-      </Section>
-
-      <Section title="Workouts" description="Used for exercises you add mid-workout or to a routine.">
-        <Field label="Default rest time" className="sm:w-64">
-          {(id) => (
-            <Select id={id} value={settings.defaultRestSec} onChange={(e) => store.updateSettings({ defaultRestSec: Number(e.target.value) })}>
-              {REST.map((r) => (
-                <option key={r} value={r}>
-                  {r < 60 ? `${r} seconds` : `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')} min`}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-        <Switch checked={settings.timerSound} onChange={(timerSound) => store.updateSettings({ timerSound })} label="Rest timer sound" description="A short beep and vibration when rest is over." />
-      </Section>
-
-      <Section title="Profile" description="Used for your greeting, your weekly target and the next-workout schedule.">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Name">
-            {(id) => <Input id={id} value={profile.name} maxLength={30} onChange={(e) => store.updateProfile({ name: e.target.value })} placeholder="Your name" />}
-          </Field>
-          <Field label="Experience">
-            {(id) => (
-              <Select id={id} value={profile.experience} onChange={(e) => store.updateProfile({ experience: e.target.value as Experience })}>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-              </Select>
-            )}
-          </Field>
-          <Field label="Goal">
-            {(id) => (
-              <Select id={id} value={profile.goal} onChange={(e) => store.updateProfile({ goal: e.target.value as Goal })}>
-                <option value="strength">Strength</option>
-                <option value="muscle">Muscle</option>
-                <option value="general">General fitness</option>
-              </Select>
-            )}
-          </Field>
-        </div>
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium text-ink-2">Training days</legend>
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5, 6, 0].map((d) => {
-              const on = profile.trainingDays.includes(d)
-              return (
-                <Chip
-                  key={d}
-                  active={on}
-                  onClick={() => {
-                    const next = on ? profile.trainingDays.filter((x) => x !== d) : [...profile.trainingDays, d].sort()
-                    if (!next.length) return toast('Keep at least one training day', { tone: 'error' })
-                    store.updateProfile({ trainingDays: next, daysPerWeek: next.length })
-                  }}
-                >
-                  {WEEKDAY_SHORT[d]}
-                </Chip>
-              )
-            })}
+      <Card className="mb-8 flex items-center gap-4 p-4 sm:p-5">
+        <span className="stamp flex size-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-2xl text-on-accent">{(profile.name || 'A').slice(0, 1).toUpperCase()}</span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-lg font-semibold">{profile.name || 'Athlete'}</div>
+          <div className="text-sm text-muted">
+            {GOAL_LABEL[profile.goal]} · {profile.experience[0].toUpperCase() + profile.experience.slice(1)} · {profile.trainingDays.length} days a week
           </div>
-        </fieldset>
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium text-ink-2">Available equipment</legend>
-          <div className="flex flex-wrap gap-2">
-            {EQUIPMENT.map((e: Equipment) => {
-              const on = profile.equipment.includes(e)
-              return (
-                <Chip key={e} active={on} onClick={() => store.updateProfile({ equipment: on ? profile.equipment.filter((x) => x !== e) : [...profile.equipment, e] })}>
-                  {e}
-                </Chip>
-              )
-            })}
-          </div>
-        </fieldset>
-        <div>
-          <Button variant="outline" icon={<Sparkles size={16} />} onClick={() => setPending({ kind: 'onboarding' })}>
-            Restart onboarding
-          </Button>
-          <p className="mt-2 text-sm text-muted">Answer the setup questions again to generate a new plan.</p>
         </div>
-      </Section>
+      </Card>
 
-      <Section title="Your data" description={`Everything lives in this browser's local storage (about ${storageKb} KB). Export regularly if you care about it.`}>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" icon={<Download size={16} />} onClick={exportData}>
-            Export JSON
-          </Button>
-          <Button variant="secondary" icon={<Upload size={16} />} onClick={() => fileRef.current?.click()}>
-            Import JSON
-          </Button>
+      <div className="flex flex-col gap-8">
+        <ListGroup title="Appearance" footer="System follows your device’s light or dark mode.">
+          <ListRow
+            stack
+            icon={<Moon size={18} />}
+            title="Theme"
+            control={
+              <Segmented<ThemePref>
+                label="Theme"
+                value={settings.theme}
+                onChange={(theme) => store.updateSettings({ theme })}
+                className="w-full"
+                options={[
+                  { value: 'light', label: <span className="inline-flex items-center gap-1.5"><Sun size={15} /> Light</span> },
+                  { value: 'dark', label: <span className="inline-flex items-center gap-1.5"><Moon size={15} /> Dark</span> },
+                  { value: 'system', label: <span className="inline-flex items-center gap-1.5"><Monitor size={15} /> System</span> },
+                ]}
+              />
+            }
+          />
+          <ListRow
+            stack
+            icon={<Ruler size={18} />}
+            title="Units"
+            description="Applies everywhere instantly, without losing precision."
+            control={
+              <Segmented<Units>
+                label="Units"
+                value={settings.units}
+                onChange={(units) => {
+                  store.updateSettings({ units })
+                  toast(units === 'kg' ? 'Now using kilograms and centimetres' : 'Now using pounds and inches')
+                }}
+                className="w-full"
+                options={[
+                  { value: 'kg', label: 'Kilograms (kg)' },
+                  { value: 'lb', label: 'Pounds (lb)' },
+                ]}
+              />
+            }
+          />
+        </ListGroup>
+
+        <ListGroup title="Workouts" footer="The default rest is used for exercises you add mid-workout or to a routine.">
+          <ListRow
+            icon={<Timer size={18} />}
+            title={<label htmlFor="default-rest">Default rest time</label>}
+            control={
+              <Select id="default-rest" value={settings.defaultRestSec} onChange={(e) => store.updateSettings({ defaultRestSec: Number(e.target.value) })} className="w-36">
+                {REST.map((r) => (
+                  <option key={r} value={r}>
+                    {r < 60 ? `${r} seconds` : `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')} min`}
+                  </option>
+                ))}
+              </Select>
+            }
+          />
+          <div className="px-4 py-3.5">
+            <Switch checked={settings.timerSound} onChange={(timerSound) => store.updateSettings({ timerSound })} label="Rest timer sound" description="A short beep and vibration when rest is over." />
+          </div>
+        </ListGroup>
+
+        <ListGroup title="Profile" footer="Used for your greeting, weekly target and the next-workout schedule.">
+          <div className="grid gap-4 px-4 py-4 sm:grid-cols-3">
+            <Field label="Name">
+              {(id) => <Input id={id} value={profile.name} maxLength={30} onChange={(e) => store.updateProfile({ name: e.target.value })} placeholder="Your name" />}
+            </Field>
+            <Field label="Experience">
+              {(id) => (
+                <Select id={id} value={profile.experience} onChange={(e) => store.updateProfile({ experience: e.target.value as Experience })}>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </Select>
+              )}
+            </Field>
+            <Field label="Goal">
+              {(id) => (
+                <Select id={id} value={profile.goal} onChange={(e) => store.updateProfile({ goal: e.target.value as Goal })}>
+                  <option value="strength">Strength</option>
+                  <option value="muscle">Muscle</option>
+                  <option value="general">General fitness</option>
+                </Select>
+              )}
+            </Field>
+          </div>
+          <fieldset className="px-4 py-4">
+            <legend className="float-left mb-2 w-full text-sm font-medium text-ink-2">Training days</legend>
+            <div className="clear-both grid grid-cols-7 gap-1.5">
+              {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                const on = profile.trainingDays.includes(d)
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      const next = on ? profile.trainingDays.filter((x) => x !== d) : [...profile.trainingDays, d].sort()
+                      if (!next.length) return toast('Keep at least one training day', { tone: 'error' })
+                      store.updateProfile({ trainingDays: next, daysPerWeek: next.length })
+                    }}
+                    className={clsx('flex h-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors', on ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-2 hover:text-ink')}
+                  >
+                    {WEEKDAY_SHORT[d]}
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
+          <fieldset className="px-4 py-4">
+            <legend className="float-left mb-2 w-full text-sm font-medium text-ink-2">Available equipment</legend>
+            <div className="clear-both flex flex-wrap gap-2">
+              {EQUIPMENT.map((e: Equipment) => {
+                const on = profile.equipment.includes(e)
+                return (
+                  <Chip key={e} active={on} onClick={() => store.updateProfile({ equipment: on ? profile.equipment.filter((x) => x !== e) : [...profile.equipment, e] })}>
+                    {e}
+                  </Chip>
+                )
+              })}
+            </div>
+          </fieldset>
+          <button onClick={() => setPending({ kind: 'onboarding' })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
+              <Sparkles size={18} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium">Restart onboarding</span>
+              <span className="block text-sm text-muted">Answer the setup questions again to generate a new plan.</span>
+            </span>
+            <ChevronRight size={18} className="text-muted" />
+          </button>
+        </ListGroup>
+
+        <ListGroup title="Your data" footer={`Everything lives in this browser’s local storage (about ${storageKb} KB). Imports are checked before anything changes; invalid entries are skipped.`}>
+          <button onClick={exportData} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
+              <Download size={18} />
+            </span>
+            <span className="flex-1 text-[15px] font-medium">Export JSON</span>
+            <ChevronRight size={18} className="text-muted" />
+          </button>
+          <button onClick={() => fileRef.current?.click()} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
+              <Upload size={18} />
+            </span>
+            <span className="flex-1 text-[15px] font-medium">Import JSON</span>
+            <ChevronRight size={18} className="text-muted" />
+          </button>
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} aria-label="Choose backup file" />
-        </div>
-        <p className="-mt-2 text-sm text-muted">Imports are checked before anything changes. Invalid entries are skipped and nothing is replaced until you confirm.</p>
-        <div className="flex flex-wrap gap-2 border-t border-line pt-5">
           {hasSample && (
-            <Button variant="outline" icon={<Eraser size={16} />} onClick={() => setPending({ kind: 'sample' })}>
-              Remove sample data
-            </Button>
+            <button onClick={() => setPending({ kind: 'sample' })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
+                <Eraser size={18} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-medium">Remove sample data</span>
+                <span className="block text-sm text-muted">Keeps everything you logged yourself</span>
+              </span>
+              <ChevronRight size={18} className="text-muted" />
+            </button>
           )}
-          <Button variant="outline" icon={<RotateCcw size={16} />} onClick={() => setPending({ kind: 'reset' })}>
-            Reset demo data
-          </Button>
-          <Button variant="danger" onClick={() => setPending({ kind: 'erase' })}>
-            Erase all data
-          </Button>
-        </div>
-      </Section>
+        </ListGroup>
 
-      <p className="pt-4 text-center text-xs text-muted">IronLog 1.0 · local-first · no account, no tracking</p>
+        <ListGroup title="Danger zone">
+          <button onClick={() => setPending({ kind: 'reset' })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-danger-soft text-danger">
+              <RotateCcw size={18} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium">Reset demo data</span>
+              <span className="block text-sm text-muted">Replace your data with the sample set</span>
+            </span>
+          </button>
+          <button onClick={() => setPending({ kind: 'erase' })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-danger hover:bg-danger-soft">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-danger-soft text-danger">
+              <Trash2 size={18} />
+            </span>
+            <span className="text-[15px] font-semibold">Erase all data</span>
+          </button>
+        </ListGroup>
+      </div>
+
+      <p className="pt-8 text-center text-xs text-muted">IronLog 1.0 · local-first · no account, no tracking</p>
 
       {pending && (
         <ConfirmDialog

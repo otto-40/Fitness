@@ -3,7 +3,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTML
 import { forwardRef, useId } from 'react'
 
 export const inputClass =
-  'h-11 w-full rounded-xl border border-line bg-surface px-3 text-[15px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 aria-[invalid=true]:border-danger'
+  'h-11 w-full rounded-xl border border-transparent bg-surface-2 px-3 text-[15px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent/25 aria-[invalid=true]:border-danger'
 
 export function Field({
   label,
@@ -45,7 +45,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={clsx(inputClass, 'appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-9', className)} style={{ backgroundImage: CHEVRON }} {...rest}>
+    <select className={clsx(inputClass, 'appearance-none bg-size-[16px] bg-position-[right_12px_center] bg-no-repeat pr-9', className)} style={{ backgroundImage: CHEVRON }} {...rest}>
       {children}
     </select>
   )
@@ -73,8 +73,18 @@ export function Segmented<T extends string>({
   size?: 'sm' | 'md'
   className?: string
 }) {
+  // Arrow keys move the selection, as in a native radio group.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const i = options.findIndex((o) => o.value === value)
+    const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    const next = options[(i + d + options.length) % options.length]
+    onChange(next.value)
+    requestAnimationFrame(() => (e.currentTarget as HTMLElement).querySelector<HTMLElement>('[aria-checked="true"]')?.focus())
+  }
   return (
-    <div role="radiogroup" aria-label={label} className={clsx('inline-flex rounded-xl bg-surface-2 p-1', className)}>
+    <div role="radiogroup" aria-label={label} onKeyDown={onKeyDown} className={clsx('inline-flex rounded-full bg-surface-2 p-1', className)}>
       {options.map((o) => {
         const active = o.value === value
         return (
@@ -83,11 +93,12 @@ export function Segmented<T extends string>({
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={clsx(
-              'flex-1 rounded-lg px-3 font-medium whitespace-nowrap transition-all',
+              'flex-1 rounded-full px-3.5 font-semibold whitespace-nowrap transition-all',
               size === 'sm' ? 'h-8 text-[13px]' : 'h-9 text-sm',
-              active ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
+              active ? 'bg-surface text-ink shadow-card dark:bg-surface-3' : 'text-muted hover:text-ink',
             )}
           >
             {o.label}
@@ -144,6 +155,77 @@ export function Switch({ checked, onChange, label, description }: { checked: boo
         className={clsx('relative h-7 w-12 shrink-0 rounded-full transition-colors', checked ? 'bg-accent' : 'bg-surface-3')}
       >
         <span className={clsx('absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform', checked && 'translate-x-5')} />
+      </button>
+    </div>
+  )
+}
+
+/** A native select dressed as a filter chip ("All muscles ▾"). Active when a value is chosen. */
+export function DropdownChip({
+  value,
+  onChange,
+  options,
+  placeholder,
+  label,
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: readonly string[]
+  placeholder: string
+  label: string
+}) {
+  const active = value !== ''
+  return (
+    <span className="relative inline-flex shrink-0">
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={clsx(
+          'h-9 appearance-none rounded-full border pr-8 pl-3.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2 hover:border-line-strong',
+        )}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      <svg viewBox="0 0 24 24" className={clsx('pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2', active ? 'text-bg' : 'text-muted')} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+        <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  )
+}
+
+/** − value + control for small integers such as set counts. */
+export function Stepper({
+  value,
+  onChange,
+  min = 0,
+  max = 99,
+  label,
+  className,
+}: {
+  value: number
+  onChange: (v: number) => void
+  min?: number
+  max?: number
+  label: string
+  className?: string
+}) {
+  return (
+    <div className={clsx('flex h-10 items-center rounded-xl bg-surface-2', className)} role="group" aria-label={label}>
+      <button type="button" aria-label={`Decrease ${label}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))} className="flex h-full w-10 items-center justify-center rounded-l-xl text-lg font-semibold text-ink-2 hover:bg-surface-3 disabled:opacity-35">
+        −
+      </button>
+      <span className="stamp min-w-7 flex-1 text-center text-xl" aria-live="polite">
+        {value}
+      </span>
+      <button type="button" aria-label={`Increase ${label}`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))} className="flex h-full w-10 items-center justify-center rounded-r-xl text-lg font-semibold text-ink-2 hover:bg-surface-3 disabled:opacity-35">
+        +
       </button>
     </div>
   )

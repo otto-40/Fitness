@@ -1,8 +1,9 @@
+import clsx from 'clsx'
 import { format, parseISO, subDays } from 'date-fns'
 import { Pencil, Plus, Scale, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { LineTrend } from '../components/charts/Charts'
-import { Button, Card, ConfirmDialog, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionTitle, Segmented, Textarea } from '../components/ui'
+import { Button, Card, ConfirmDialog, EmptyState, Field, HeroCard, IconButton, Input, Modal, PageHeader, SectionTitle, Segmented, Textarea } from '../components/ui'
 import { NumberField } from '../components/workout/NumberField'
 import { uid } from '../lib/id'
 import { formatWeight, fromDisplayLength, fromDisplayWeight, lengthUnit, round, toDisplayLength, toDisplayWeight } from '../lib/units'
@@ -131,34 +132,65 @@ function EntryForm({ open, onClose, existing }: { open: boolean; onClose: () => 
   )
 }
 
+type MetricKey = 'weight' | 'bodyFat' | LengthKey
+const METRICS: { key: MetricKey; label: string }[] = [
+  { key: 'weight', label: 'Bodyweight' },
+  { key: 'bodyFat', label: 'Body fat' },
+  ...LENGTHS.map((k) => ({ key: k as MetricKey, label: LENGTH_LABEL[k] })),
+]
+const RANGES = [
+  { value: '30', label: '30D' },
+  { value: '90', label: '90D' },
+  { value: '365', label: '1Y' },
+  { value: 'all', label: 'All' },
+] as const
+type RangeKey = (typeof RANGES)[number]['value']
+
 export default function Body() {
   const measurements = useStore((s) => s.measurements)
   const units = useStore((s) => s.settings.units)
   const deleteMeasurement = useStore((s) => s.deleteMeasurement)
-  const [range, setRange] = useState<'30' | '90' | 'all'>('90')
+  const [range, setRange] = useState<RangeKey>('90')
+  const [metric, setMetric] = useState<MetricKey>('weight')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Measurement | null>(null)
   const [confirm, setConfirm] = useState<Measurement | null>(null)
+  const [showAll, setShowAll] = useState(false)
 
   const sorted = useMemo(() => [...measurements].sort((a, b) => b.date.localeCompare(a.date)), [measurements])
   const latestWeight = sorted.find((m) => m.weight != null)
-  const latestFat = sorted.find((m) => m.bodyFat != null)
-  const latestWaist = sorted.find((m) => m.waist != null)
   const c30 = changeOver(measurements, 'weight', 30)
   const c90 = changeOver(measurements, 'weight', 90)
 
-  const chart = useMemo(() => {
+  const conv = (key: MetricKey, v: number) => (key === 'weight' ? toDisplayWeight(v, units) : key === 'bodyFat' ? v : toDisplayLength(v, units))
+  const unitFor = (key: MetricKey) => (key === 'weight' ? units : key === 'bodyFat' ? '%' : lengthUnit(units))
+  const metricLabel = METRICS.find((m) => m.key === metric)!.label
+
+  const series = useMemo(() => {
     const cutoff = range === 'all' ? '' : format(subDays(new Date(), Number(range)), 'yyyy-MM-dd')
-    return [...measurements]
-      .filter((m) => m.weight != null && m.date >= cutoff)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((m) => ({ label: format(parseISO(m.date), 'd MMM'), weight: round(toDisplayWeight(m.weight!, units), 1) }))
-  }, [measurements, range, units])
+    return [...measurements].filter((m) => m[metric] != null && m.date >= cutoff).sort((a, b) => a.date.localeCompare(b.date))
+  }, [measurements, range, metric])
+  const chart = series.map((m) => ({ label: format(parseISO(m.date), 'd MMM'), value: round(conv(metric, m[metric] as number), 1) }))
+  const startV = chart[0]?.value
+  const curV = chart.at(-1)?.value
+  const counts = useMemo(() => Object.fromEntries(METRICS.map((m) => [m.key, measurements.filter((x) => x[m.key] != null).length])) as Record<MetricKey, number>, [measurements])
+
+  const months = useMemo(() => {
+    const g = new Map<string, Measurement[]>()
+    for (const m of sorted) g.set(m.date.slice(0, 7), [...(g.get(m.date.slice(0, 7)) ?? []), m])
+    return [...g.entries()]
+  }, [sorted])
 
   const openNew = () => {
     setEditing(null)
     setFormOpen(true)
   }
+  const openEdit = (m: Measurement) => {
+    setEditing(m)
+    setFormOpen(true)
+  }
+
+  const fmtVal = (key: MetricKey, v: number | null | undefined) => (v == null ? '—' : key === 'weight' ? formatWeight(v, units) : `${round(conv(key, v), 1)} ${unitFor(key)}`)
 
   return (
     <div className="animate-rise">
@@ -186,117 +218,119 @@ export default function Body() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <HeroCard className="col-span-2 p-5 lg:col-span-2">
+              <div className="eyebrow text-on-hero-muted">Bodyweight</div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="stamp text-[56px]">{latestWeight ? formatWeight(latestWeight.weight, units, false) : '—'}</span>
+                <span className="text-base text-on-hero-muted">{units}</span>
+              </div>
+              <div className="mt-1 text-xs text-on-hero-muted">{latestWeight ? `Last weigh-in ${format(parseISO(latestWeight.date), 'd MMM yyyy')}` : 'No weigh-ins yet'}</div>
+            </HeroCard>
             <Card className="p-4">
-              <div className="text-xs font-medium tracking-wide text-muted uppercase">Bodyweight</div>
-              <div className="tnum mt-1 font-display text-3xl font-semibold">{latestWeight ? formatWeight(latestWeight.weight, units) : '—'}</div>
-              <div className="mt-1 text-xs text-muted">{latestWeight ? format(parseISO(latestWeight.date), 'd MMM yyyy') : 'No weigh-ins'}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-xs font-medium tracking-wide text-muted uppercase">Last 30 days</div>
-              <div className="mt-1 font-display text-3xl font-semibold">
+              <div className="eyebrow">Last 30 days</div>
+              <div className="stamp mt-2 text-[30px]">
                 <Delta value={c30?.delta} units={units} kind="weight" />
               </div>
               <div className="mt-1 text-xs text-muted">{c30 ? `since ${format(parseISO(c30.since), 'd MMM')}` : 'Needs two weigh-ins'}</div>
             </Card>
             <Card className="p-4">
-              <div className="text-xs font-medium tracking-wide text-muted uppercase">Last 90 days</div>
-              <div className="mt-1 font-display text-3xl font-semibold">
+              <div className="eyebrow">Last 90 days</div>
+              <div className="stamp mt-2 text-[30px]">
                 <Delta value={c90?.delta} units={units} kind="weight" />
               </div>
               <div className="mt-1 text-xs text-muted">{c90 ? `since ${format(parseISO(c90.since), 'd MMM')}` : 'Needs two weigh-ins'}</div>
             </Card>
-            <Card className="p-4">
-              <div className="text-xs font-medium tracking-wide text-muted uppercase">Body fat · Waist</div>
-              <div className="tnum mt-1 font-display text-3xl font-semibold">
-                {latestFat ? `${latestFat.bodyFat}%` : '—'}
-                <span className="text-muted"> · </span>
-                {latestWaist ? `${toDisplayLength(latestWaist.waist!, units)}` : '—'}
-                <span className="ml-1 font-sans text-sm font-medium text-muted">{latestWaist ? lengthUnit(units) : ''}</span>
-              </div>
-              <div className="mt-1 text-xs text-muted">Latest readings</div>
-            </Card>
           </div>
 
           <Card className="mt-4 p-4 sm:p-5">
-            <SectionTitle
-              action={
-                <Segmented
-                  label="Chart range"
-                  size="sm"
-                  value={range}
-                  onChange={setRange}
-                  options={[
-                    { value: '30', label: '30D' },
-                    { value: '90', label: '90D' },
-                    { value: 'all', label: 'All' },
-                  ]}
-                />
-              }
-            >
-              Bodyweight ({units})
-            </SectionTitle>
-            {chart.length < 2 ? (
-              <p className="py-12 text-center text-sm text-muted">Log at least two weigh-ins in this range to see the trend.</p>
-            ) : (
-              <LineTrend data={chart} series={[{ key: 'weight', name: 'Bodyweight' }]} format={(v) => `${v} ${units}`} ariaLabel={`Bodyweight trend, ${chart.length} entries`} />
-            )}
+            <div role="radiogroup" aria-label="Measurement" className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+              {METRICS.map((m) => (
+                <button
+                  key={m.key}
+                  role="radio"
+                  aria-checked={metric === m.key}
+                  onClick={() => setMetric(m.key)}
+                  className={clsx(
+                    'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors',
+                    metric === m.key ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2 hover:text-ink',
+                  )}
+                >
+                  {m.label}
+                  <span className={clsx('tnum text-xs', metric === m.key ? 'opacity-70' : 'text-muted')}>{counts[m.key]}</span>
+                </button>
+              ))}
+            </div>
+
+            <dl className="mt-5 grid grid-cols-3 gap-3 border-b border-line pb-4">
+              <div>
+                <dt className="eyebrow">Start</dt>
+                <dd className="stamp mt-1 text-2xl">{startV ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="eyebrow">Current</dt>
+                <dd className="stamp mt-1 text-2xl">{curV ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="eyebrow">Change</dt>
+                <dd className="stamp mt-1 text-2xl">
+                  {startV != null && curV != null && chart.length > 1 ? `${curV - startV > 0 ? '+' : curV - startV < 0 ? '−' : '±'}${Math.abs(round(curV - startV, 1))}` : '—'}
+                  <span className="ml-1 font-sans text-sm font-medium text-muted">{unitFor(metric)}</span>
+                </dd>
+              </div>
+            </dl>
+
+            <div className="mt-4">
+              {chart.length < 2 ? (
+                <p className="py-12 text-center text-sm text-muted">Log at least two {metricLabel.toLowerCase()} entries in this range to see the trend.</p>
+              ) : (
+                <LineTrend data={chart} series={[{ key: 'value', name: metricLabel }]} format={(v) => `${v} ${unitFor(metric)}`} ariaLabel={`${metricLabel} trend, ${chart.length} entries, from ${startV} to ${curV} ${unitFor(metric)}`} />
+              )}
+            </div>
+            <Segmented label="Chart range" size="sm" value={range} onChange={setRange} options={RANGES.map((r) => ({ value: r.value, label: r.label }))} className="mt-3 flex w-full sm:w-auto" />
           </Card>
 
           <section className="mt-6">
             <SectionTitle>Entries</SectionTitle>
-            <Card className="overflow-hidden">
-              <div className="relative overflow-x-auto">
-                <table className="w-full min-w-[620px] text-sm">
-                  <thead className="bg-surface-2 text-left text-[11px] tracking-wide text-muted uppercase">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Date</th>
-                      <th className="px-3 py-3 font-semibold">Weight</th>
-                      <th className="px-3 py-3 font-semibold">Fat %</th>
-                      {LENGTHS.map((k) => (
-                        <th key={k} className="px-3 py-3 font-semibold">
-                          {LENGTH_LABEL[k]}
-                        </th>
-                      ))}
-                      <th className="px-3 py-3">
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="tnum divide-y divide-line">
-                    {sorted.map((m) => (
-                      <tr key={m.id}>
-                        <td className="px-4 py-2 font-medium whitespace-nowrap">
-                          {format(parseISO(m.date), 'd MMM yyyy')}
-                          {m.note && <div className="max-w-40 truncate text-xs font-normal text-muted">{m.note}</div>}
-                        </td>
-                        <td className="px-3 py-2 font-semibold whitespace-nowrap">{m.weight != null ? formatWeight(m.weight, units) : '—'}</td>
-                        <td className="px-3 py-2">{m.bodyFat ?? '—'}</td>
-                        {LENGTHS.map((k) => (
-                          <td key={k} className="px-3 py-2 text-ink-2">
-                            {m[k] != null ? toDisplayLength(m[k]!, units) : '—'}
-                          </td>
-                        ))}
-                        <td className="px-2 py-1 text-right whitespace-nowrap">
-                          <IconButton
-                            size="sm"
-                            label={`Edit entry for ${m.date}`}
-                            onClick={() => {
-                              setEditing(m)
-                              setFormOpen(true)
-                            }}
-                          >
-                            <Pencil size={15} />
+            <div className="flex flex-col gap-5">
+              {months.slice(0, showAll ? undefined : 2).map(([key, list]) => (
+                <div key={key}>
+                  <h3 className="mb-2 px-1 font-display text-xl font-semibold tracking-[0.04em] uppercase">{format(parseISO(`${key}-01`), 'MMMM yyyy')}</h3>
+                  <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+                    {list.map((m) => {
+                      const extras = [
+                        m.bodyFat != null && `Fat ${m.bodyFat}%`,
+                        ...LENGTHS.map((k) => m[k] != null && `${LENGTH_LABEL[k]} ${toDisplayLength(m[k]!, units)}`),
+                      ].filter(Boolean) as string[]
+                      return (
+                        <li key={m.id} className="flex min-h-16 items-center gap-3 px-4 py-2.5">
+                          <span className="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2 leading-none">
+                            <span className="text-[10px] font-semibold text-muted uppercase">{format(parseISO(m.date), 'EEE')}</span>
+                            <span className="stamp text-lg">{format(parseISO(m.date), 'd')}</span>
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="stamp block text-xl">{m.weight != null ? formatWeight(m.weight, units) : '—'}</span>
+                            <span className="block truncate text-xs text-muted">
+                              {extras.length ? `${extras.join(' · ')}${extras.some((e) => !e.startsWith('Fat')) ? ` ${lengthUnit(units)}` : ''}` : m.note ?? 'Bodyweight only'}
+                            </span>
+                          </span>
+                          <IconButton label={`Edit entry for ${m.date}`} onClick={() => openEdit(m)} className="size-11">
+                            <Pencil size={16} />
                           </IconButton>
-                          <IconButton size="sm" tone="danger" label={`Delete entry for ${m.date}`} onClick={() => setConfirm(m)}>
-                            <Trash2 size={15} />
+                          <IconButton tone="danger" label={`Delete entry for ${m.date}`} onClick={() => setConfirm(m)} className="size-11">
+                            <Trash2 size={16} />
                           </IconButton>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            {months.length > 2 && (
+              <Button variant="secondary" block className="mt-4" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Show recent months only' : `Show all ${sorted.length} entries`}
+              </Button>
+            )}
           </section>
         </>
       )}
@@ -312,7 +346,7 @@ export default function Body() {
           toast('Entry deleted', { action: { label: 'Undo', run: () => useStore.getState().saveMeasurement(snapshot) } })
         }}
         title="Delete entry?"
-        message={confirm ? `Remove the entry for ${format(parseISO(confirm.date), 'd MMMM yyyy')}?` : ''}
+        message={confirm ? `Remove the entry for ${format(parseISO(confirm.date), 'd MMMM yyyy')}? (${fmtVal('weight', confirm.weight)})` : ''}
         confirmLabel="Delete"
       />
     </div>

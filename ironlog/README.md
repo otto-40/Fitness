@@ -7,6 +7,17 @@ Everything, including a workout you are halfway through, is saved in your browse
 **Live app:** https://otto-40.github.io/Fitness/ironlog/. The repo's Pages workflow builds `ironlog/` and publishes the output there on every deploy.
 Data is stored per browser, so the live site and `localhost` keep separate logs.
 
+## Design
+
+The interface uses **Forge**, a design system built for IronLog from a study of real fitness products on Mobbin.
+[`design-research.md`](design-research.md) lists the products and flows examined, the patterns adopted and rejected, the full token set (colour, type, spacing, radii, shadows, motion, charts, forms, accessibility) and the page-by-page redesign plan.
+In short:
+
+- Dark "Forge" and light "Chalk" themes with a single ember accent. Green only marks completed sets, and amber only marks warm-ups.
+- Condensed "stamped" numerals (Barlow Condensed) for the numbers you care about. Inter for everything else.
+- A plate-ring, segment-bar and sparkline vocabulary instead of stock photos or body maps.
+- Large tap targets (52px set cells, 56px primary buttons), a floating tab bar with a mini-player for the running workout, and subtle motion that respects reduced-motion settings.
+
 ## Setup
 
 Requires Node.js 20 or newer.
@@ -51,11 +62,15 @@ src/
     backup.ts           JSON export, plus a validating/sanitising importer
     units.ts, dates.ts  Formatting and conversion helpers
   components/
-    ui/                 Button, Modal/ConfirmDialog (bottom sheet on phones), form controls, cards, toasts
+    ui/                 Button, Modal/ConfirmDialog (bottom sheet on phones), form controls (Segmented, DropdownChip,
+                        Stepper), cards, list groups, Monogram tiles, toasts
+    ui/Viz.tsx          Ring, SegmentBar, Sparkline, MiniBars: small SVG/CSS visuals shared across screens
     charts/Charts.tsx   Recharts wrappers (line/area, columns, labelled rank bars)
-    workout/            ExerciseCard (set table), NumberField, SetTypeBadge, RestDock (rest timer)
-    AppShell.tsx        Sidebar on desktop, tab bar + "More" sheet on mobile, resume-workout pill
+    workout/            ExerciseCard (set table), Keypad (weight/reps number pad), NumberField, SetTypeBadge,
+                        RestDock (rest timer dock + full-screen view)
+    AppShell.tsx        Sidebar on desktop, floating tab bar + "More" sheet on mobile, workout mini-player
     ExercisePicker.tsx, ExerciseForm.tsx, StartWorkout.tsx
+  index.css             Design tokens (light + dark), stamp/eyebrow utilities, motion keyframes
   pages/                One file per screen (Home, Onboarding, Library, ExerciseDetail, Routines, RoutineEditor,
                         LiveWorkout, WorkoutSummary, History, WorkoutDetail, Progress, Body, Settings)
 ```
@@ -75,6 +90,7 @@ Key decisions:
 **Onboarding**
 - [x] Name, units, experience, training days per week (and which days), goal, equipment
 - [x] Generates a personalised plan (full-body / upper-lower / PPL, depending on days) using only available equipment
+- [x] Progress bar and step count, large option tiles, a tappable review summary that jumps back to any step
 - [x] Skippable at every step; repeatable from Settings (replaces the previous generated plan, keeps history)
 
 **Home dashboard**
@@ -84,7 +100,7 @@ Key decisions:
 
 **Exercise library**
 - [x] 98 real exercises with primary/secondary muscles, equipment and a form cue
-- [x] Search, filter by muscle and equipment, favourites and custom-only filters
+- [x] Search, filter by muscle and equipment, favourites and custom-only filters, A–Z or most-used sort, letter sections
 - [x] Create, edit and delete custom exercises. A deleted exercise that appears in history is archived, so past workouts still name it
 - [x] Detail view: best set, estimated 1RM, best volume, session count, progress chart (e1RM / top set / volume), full history
 
@@ -96,25 +112,26 @@ Key decisions:
 
 **Live workout**
 - [x] Running timer, live volume and completed-set count
+- [x] Big-button number pad for weight and reps with plate-step ± buttons, "Reps →" and "Log set" in one flow; the next set to do is highlighted
 - [x] Each set has weight, reps, a completed checkbox and last time's numbers for that same set (tap to copy). Ticking an empty set uses last time's numbers
 - [x] Warm-up, failure and drop sets; add or remove sets; add, remove or reorder exercises mid-workout
-- [x] Automatic rest timer with the routine's rest pre-filled, −15 / +15 / skip, a ring countdown, and a beep plus vibration at zero. Supersets rest after the last exercise of a round
+- [x] Automatic rest timer with the routine's rest pre-filled, −15 / +15 / skip, a ring countdown, a full-screen timer view, and a beep plus vibration at zero. Supersets rest after the last exercise of a round
 - [x] Finish (unticked sets are dropped after confirmation) or discard; summary screen with volume, duration, sets and records broken
-- [x] Survives refreshes, including the rest timer. Keeps the screen awake where supported. Controls sit at the bottom for one-handed use
+- [x] Survives refreshes, including the rest timer. Keeps the screen awake where supported. Controls sit at the bottom for one-handed use, and a mini-player keeps the workout and rest timer one tap away from any page
 
 **History**
-- [x] Month-grouped list and calendar view, monthly totals chart, current and longest streak
+- [x] Month-grouped list (older months load on demand) and calendar view with a day summary, monthly totals chart, current and longest streak
 - [x] Set-by-set breakdown with e1RM; edit (name, time, duration, notes, sets, exercises) or delete with undo
 
 **Progress**
 - [x] Volume per week, workouts per week, muscle-group split (sets or volume)
-- [x] Per-exercise strength progression (e1RM and top set weight)
+- [x] Per-exercise strength progression (e1RM and top set weight) with a sparkline picker for your most-trained lifts
 - [x] Personal records table: best weight, best e1RM, best session volume per exercise
 - [x] 4-week / 12-week / 6-month / all-time ranges, all computed from logged workouts
 
 **Body**
 - [x] Log bodyweight, body fat, waist, chest, arms, thighs and hips by date (edit, delete; logging a date that already has an entry updates it)
-- [x] Bodyweight chart plus 30- and 90-day change
+- [x] Bodyweight chart plus 30- and 90-day change; a chart for every measurement with start / current / change and 30D–All ranges
 
 **Settings**
 - [x] Light / dark / system theme; kg or lb everywhere; default rest; timer sound

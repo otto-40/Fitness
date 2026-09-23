@@ -11,54 +11,70 @@
  * used for action and progress. Status green is reserved for completed sets.
  */
 :root {
-  --bg: #f4f3f0;
+  --bg: #f3f2ee;
   --surface: #ffffff;
-  --surface-2: #efeeea;
-  --surface-3: #e6e4df;
-  --line: #e2e0da;
-  --line-strong: #cfccc4;
-  --ink: #16171a;
-  --ink-2: #4f5057;
+  --surface-2: #eeede8;
+  --surface-3: #e4e2dc;
+  --line: #e1dfd8;
+  --line-strong: #cdcac2;
+  --ink: #15161a;
+  --ink-2: #4d4e55;
   --muted: #636469;
-  --accent: #ff6a2b;
-  --accent-hover: #ff7e45;
-  --accent-ink: #b8400c; /* accent used as text on light surfaces */
-  --accent-soft: #ffe7dc;
-  --on-accent: #16171a;
-  --good: #15803d;
-  --good-soft: #dcf3e3;
+  --accent: #ff6b2c;
+  --accent-hover: #ff7f47;
+  --accent-ink: #b3410f; /* accent used as text on light surfaces */
+  --accent-soft: #ffe6da;
+  --on-accent: #15161a;
+  --good: #157a3c;
+  --good-soft: #dbf2e2;
+  --warn: #a84d08;
+  --warn-soft: #fdf0dc;
+  --hero: #15161a;
+  --hero-2: #202228;
+  --on-hero: #f4f3ef;
+  --on-hero-muted: #a9abb2;
   --danger: #c2261c;
   --danger-soft: #fde4e1;
   --series-1: #eb6834;
   --series-2: #2a78d6;
   --grid: #e8e6e1;
   --shadow: 0 1px 2px rgb(22 23 26 / 0.06), 0 4px 16px rgb(22 23 26 / 0.05);
+  --shadow-float: 0 2px 6px rgb(21 22 26 / 0.08), 0 12px 32px rgb(21 22 26 / 0.14);
+  --shadow-sheet: 0 -4px 24px rgb(21 22 26 / 0.12), 0 24px 64px rgb(21 22 26 / 0.18);
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0e0f11;
-  --surface: #16181b;
-  --surface-2: #1d1f23;
-  --surface-3: #25282d;
-  --line: #26292e;
-  --line-strong: #353940;
-  --ink: #f2f2f0;
-  --ink-2: #b4b6bc;
-  --muted: #8c8f96;
-  --accent: #ff6a2b;
-  --accent-hover: #ff8250;
-  --accent-ink: #ff8a55;
-  --accent-soft: #3a1d10;
-  --on-accent: #16171a;
-  --good: #34c46a;
-  --good-soft: #10291a;
+  --bg: #0b0c0e;
+  --surface: #141619;
+  --surface-2: #1b1e22;
+  --surface-3: #24282d;
+  --line: #24272c;
+  --line-strong: #33373e;
+  --ink: #f4f3ef;
+  --ink-2: #b6b8be;
+  --muted: #8b8e95;
+  --accent: #ff6b2c;
+  --accent-hover: #ff824d;
+  --accent-ink: #ff8b59;
+  --accent-soft: #35190c;
+  --on-accent: #15161a;
+  --good: #35c46b;
+  --good-soft: #0f2a1a;
+  --warn: #f5b454;
+  --warn-soft: #33250f;
+  --hero: #20232a;
+  --hero-2: #2a2e36;
+  --on-hero: #f4f3ef;
+  --on-hero-muted: #a9abb2;
   --danger: #f06a5f;
   --danger-soft: #3a1512;
   --series-1: #d95926;
   --series-2: #3987e5;
   --grid: #24272c;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25);
+  --shadow-float: 0 2px 8px rgb(0 0 0 / 0.5), 0 16px 40px rgb(0 0 0 / 0.45);
+  --shadow-sheet: 0 -4px 24px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.5);
   color-scheme: dark;
 }
 
@@ -81,9 +97,17 @@
   --color-good-soft: var(--good-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-hero: var(--hero);
+  --color-hero-2: var(--hero-2);
+  --color-on-hero: var(--on-hero);
+  --color-on-hero-muted: var(--on-hero-muted);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Barlow Condensed', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --shadow-card: var(--shadow);
+  --shadow-float: var(--shadow-float);
+  --shadow-sheet: var(--shadow-sheet);
 }
 
 @layer base {
@@ -119,6 +143,25 @@
 @layer utilities {
   .tnum {
     font-variant-numeric: tabular-nums;
+  }
+  /* Small-caps section and stat labels. */
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* Stamped numerals: condensed display face with tabular figures. */
+  .stamp {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+  .pb-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 112px);
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
@@ -162,6 +205,23 @@
     opacity: 1;
   }
 }
+@keyframes flash {
+  0% {
+    background-color: color-mix(in oklab, var(--good) 35%, transparent);
+  }
+  100% {
+    background-color: var(--good-soft);
+  }
+}
+@keyframes ring-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 @keyframes fade {
   from {
     opacity: 0;
@@ -178,6 +238,12 @@
 }
 .animate-sheet {
   animation: sheet-up 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.animate-flash {
+  animation: flash 0.6s ease-out both;
+}
+.animate-ring-pulse {
+  animation: ring-pulse 1s ease-in-out infinite;
 }
 .animate-fade {
   animation: fade 0.2s ease-out both;

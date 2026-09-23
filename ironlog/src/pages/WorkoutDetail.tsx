@@ -53,7 +53,7 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
     const exercises = draft.exercises.map((e) => ({ ...e, sets: e.sets.filter((s) => s.completed && (s.reps ?? 0) > 0) })).filter((e) => e.sets.length)
     if (!exercises.length) errs.sets = 'Keep at least one completed set with reps, or delete the workout instead.'
     setErrors(errs)
-    if (Object.keys(errs).length) return
+    if (Object.values(errs).some(Boolean)) return
     saveWorkout({
       ...draft,
       name: name.slice(0, 60),
@@ -67,18 +67,18 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
   }
 
   return (
-    <div className="animate-rise mx-auto max-w-3xl pb-24">
+    <div className="animate-rise mx-auto max-w-3xl pb-32">
       <BackLink />
       <h1 className="mb-6 font-display text-4xl font-semibold tracking-wide uppercase">Edit workout</h1>
       <Card className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
         <Field label="Name" error={errors.name} className="sm:col-span-2">
-          {(id, d) => <Input id={id} aria-describedby={d} aria-invalid={!!errors.name} value={draft.name} maxLength={60} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />}
+          {(id, d) => <Input id={id} aria-describedby={d} aria-invalid={!!errors.name} value={draft.name} maxLength={60} onChange={(e) => { setDraft({ ...draft, name: e.target.value }); setErrors((er) => ({ ...er, name: '' })) }} />}
         </Field>
         <Field label="Started" error={errors.start}>
-          {(id, d) => <Input id={id} aria-describedby={d} aria-invalid={!!errors.start} type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />}
+          {(id, d) => <Input id={id} aria-describedby={d} aria-invalid={!!errors.start} type="datetime-local" value={start} onChange={(e) => { setStart(e.target.value); setErrors((er) => ({ ...er, start: '' })) }} />}
         </Field>
         <Field label="Duration (minutes)" error={errors.minutes}>
-          {(id, d) => <Input id={id} aria-describedby={d} aria-invalid={!!errors.minutes} inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value.replace(/\D/g, '').slice(0, 3))} />}
+          {(id, d) => <Input id={id} aria-describedby={d} aria-invalid={!!errors.minutes} inputMode="numeric" value={minutes} onChange={(e) => { setMinutes(e.target.value.replace(/\D/g, '').slice(0, 3)); setErrors((er) => ({ ...er, minutes: '' })) }} />}
         </Field>
         <Field label="Notes" className="sm:col-span-2">
           {(id) => <Textarea id={id} value={draft.notes ?? ''} maxLength={2000} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} />}
@@ -123,12 +123,12 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
         Add exercise
       </Button>
 
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur lg:left-[248px]">
-        <div className="mx-auto flex max-w-3xl gap-2 px-4 py-3">
-          <Button variant="secondary" block onClick={onDone}>
+      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
+        <div className="mx-auto flex max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
+          <Button variant="secondary" size="lg" block onClick={onDone}>
             Cancel
           </Button>
-          <Button block onClick={save}>
+          <Button size="lg" block onClick={save}>
             Save changes
           </Button>
         </div>
@@ -189,7 +189,7 @@ export default function WorkoutDetail() {
       <BackLink />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl leading-none font-semibold tracking-wide uppercase sm:text-5xl">{w.name}</h1>
+          <h1 className="font-display text-[40px] leading-none font-semibold tracking-[0.03em] uppercase sm:text-5xl">{w.name}</h1>
           <p className="mt-2 text-muted">{format(parseISO(w.startedAt), "EEEE d MMMM yyyy 'at' HH:mm")}</p>
         </div>
         <div className="flex gap-2">
@@ -202,7 +202,7 @@ export default function WorkoutDetail() {
         </div>
       </div>
 
-      <Card className="grid grid-cols-2 p-0 sm:grid-cols-4">
+      <Card className="grid grid-cols-2 gap-y-2 p-1 sm:grid-cols-4">
         {[
           ['Duration', formatDuration(durationMs(w))],
           ['Volume', formatVolume(workoutVolume(w), units)],
@@ -210,8 +210,8 @@ export default function WorkoutDetail() {
           ['Exercises', String(w.exercises.length)],
         ].map(([k, v]) => (
           <div key={k} className="p-4">
-            <div className="text-xs font-semibold tracking-wide text-muted uppercase">{k}</div>
-            <div className="tnum mt-1 font-display text-2xl font-semibold">{v}</div>
+            <div className="eyebrow">{k}</div>
+            <div className="stamp mt-1.5 text-[28px]">{v}</div>
           </div>
         ))}
       </Card>
@@ -256,8 +256,8 @@ export default function WorkoutDetail() {
                         <td className="py-1.5">
                           <SetTypeBadge type={s.type} index={n} className="size-7 text-base" />
                         </td>
-                        <td className="font-medium">{formatWeight(s.weight, units)}</td>
-                        <td className="font-medium">{s.reps}</td>
+                        <td className="stamp text-lg">{formatWeight(s.weight, units)}</td>
+                        <td className="stamp text-lg">{s.reps}</td>
                         <td className="text-right text-muted">{s.weight ? formatEstimate(e1rm(s.weight, s.reps ?? 0), units) : '—'}</td>
                       </tr>
                     )
