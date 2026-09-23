@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { ArrowDown, ArrowUp, Check, Flame, History, Minus, MoreHorizontal, Plus, Timer, Trash2, TrendingDown } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { referenceSet } from '../../store/useStore'
 import type { Effort, Exercise, SetType, Units, WorkoutExercise, WorkoutSet } from '../../types'
@@ -13,6 +13,7 @@ import { Keypad } from './Keypad'
 import type { KeypadField } from './Keypad'
 import { SetTypeBadge } from './SetTypeBadge'
 import { SET_TYPE_META } from './setTypes'
+import { useUi } from '../../store/useUi'
 
 type SetPatch = Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'type' | 'minutes' | 'effort'>>
 
@@ -57,6 +58,18 @@ export function ExerciseCard(p: ExerciseCardProps) {
   const [setMenuFor, setSetMenuFor] = useState<string | null>(null)
   const [pad, setPad] = useState<{ setId: string; field: KeypadField } | null>(null)
   const [flashId, setFlashId] = useState<string | null>(null)
+  const flashFromPanel = useUi((s) => s.flash)
+  // The now panel asks for a set's keypad; this card owns the keypad for its sets.
+  useEffect(
+    () =>
+      useUi.subscribe((st) => {
+        const r = st.padRequest
+        if (r?.exId !== ex.id) return
+        setPad({ setId: r.setId, field: r.field })
+        useUi.setState({ padRequest: null })
+      }),
+    [ex.id],
+  )
   const bodyweight = def?.equipment === 'Bodyweight'
   const aerobic = !!def?.aerobic || ex.sets.some((s) => s.minutes != null)
   const advice = p.mode === 'live' && !aerobic ? effortAdvice(prev, fromDisplayWeight(weightStep(units), units)) : null
@@ -87,7 +100,13 @@ export function ExerciseCard(p: ExerciseCardProps) {
   const padRef = padSet ? refFor(padSet) : undefined
 
   return (
-    <div className={clsx('rounded-2xl border bg-surface transition-colors', allDone ? 'border-good/40' : 'border-line')}>
+    <div
+      id={`ex-${ex.id}`}
+      className={clsx(
+        'card scroll-mt-44 scroll-mb-[360px] transition-shadow duration-300',
+        p.upNextSetId ? 'ring-2 ring-accent/55' : allDone && 'ring-1 ring-good/45',
+      )}
+    >
       <div className="flex items-start gap-3 px-3 pt-3 sm:px-4">
         <button onClick={() => setInfo(true)} className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left" aria-label={`${def?.name ?? 'Exercise'} details`}>
           <Monogram name={def?.name ?? '?'} active={!!p.upNextSetId} />
@@ -105,7 +124,7 @@ export function ExerciseCard(p: ExerciseCardProps) {
             </span>
           </span>
         </button>
-        <span className={clsx('tnum mt-2.5 inline-flex h-6 items-center gap-1 rounded-lg px-2 text-xs font-bold', allDone ? 'bg-good-soft text-good' : 'bg-surface-2 text-muted')}>
+        <span className={clsx('tnum mt-2.5 inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-bold', allDone ? 'bg-good-soft text-good' : 'bg-surface-2 text-muted')}>
           {allDone && <Check size={12} strokeWidth={3} />}
           {done}/{ex.sets.length}
         </span>
@@ -145,7 +164,7 @@ export function ExerciseCard(p: ExerciseCardProps) {
               const mins = s.minutes ?? 0
               const upNext = p.upNextSetId === s.id
               return (
-                <li key={s.id} className={clsx(GRID_AERO, 'relative rounded-xl px-1 py-1 transition-colors', s.completed && 'bg-good-soft', flashId === s.id && 'animate-flash', upNext && 'ring-2 ring-accent ring-inset')}>
+                <li key={s.id} className={clsx(GRID_AERO, 'relative rounded-xl px-1 py-1 transition-colors', s.completed && 'bg-good-soft', (flashId === s.id || flashFromPanel === s.id) && 'animate-flash', upNext && 'ring-2 ring-accent ring-inset')}>
                   <button onClick={() => setSetMenuFor(s.id)} aria-label={`${label}: delete`} className="flex h-11 w-11 items-center justify-center rounded-lg">
                     <SetTypeBadge type="normal" index={ex.sets.indexOf(s) + 1} className="size-10" />
                   </button>
@@ -223,7 +242,7 @@ export function ExerciseCard(p: ExerciseCardProps) {
                 className={clsx(
                   'stamp flex h-[52px] w-full min-w-0 items-center justify-center truncate rounded-xl text-[22px] transition-colors active:scale-[0.97]',
                   s.completed ? 'bg-transparent' : 'bg-surface-2 hover:bg-surface-3',
-                  value == null && 'text-muted/70',
+                  value == null && 'text-muted',
                   field === 'reps' && value == null && placeholder.includes('–') && 'text-base',
                 )}
               >
@@ -237,7 +256,7 @@ export function ExerciseCard(p: ExerciseCardProps) {
                   GRID,
                   'relative rounded-xl px-1 py-1 transition-colors',
                   s.completed && 'bg-good-soft',
-                  flashId === s.id && 'animate-flash',
+                  (flashId === s.id || flashFromPanel === s.id) && 'animate-flash',
                   upNext && 'ring-2 ring-accent ring-inset',
                 )}
               >
@@ -362,7 +381,7 @@ export function ExerciseCard(p: ExerciseCardProps) {
                     key={r}
                     onClick={() => p.onRestChange!(r)}
                     aria-pressed={ex.restSec === r}
-                    className={clsx('tnum h-11 rounded-xl text-sm font-semibold', ex.restSec === r ? 'bg-ink text-bg' : 'bg-surface text-ink-2 hover:text-ink')}
+                    className={clsx('tnum h-11 rounded-xl text-sm font-semibold', ex.restSec === r ? 'bg-accent text-on-accent' : 'bg-surface text-ink-2 hover:text-ink')}
                   >
                     {fmtRest(r)}
                   </button>

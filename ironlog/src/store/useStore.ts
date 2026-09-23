@@ -55,6 +55,8 @@ interface Actions {
   toggleInPlan: (id: string) => void
 
   startWorkout: (routineId: string | null) => void
+  /** Starts a new session with the same exercises, set types and rest as a past workout. */
+  repeatWorkout: (workoutId: string) => void
   renameActive: (name: string) => void
   updateSet: (exId: string, setId: string, patch: SetPatch) => void
   completeSet: (exId: string, setId: string) => { ok: boolean; message?: string }
@@ -271,6 +273,31 @@ export const useStore = create<DataState & Actions>()(
               startedAt: new Date().toISOString(),
               exercises,
               rest: null,
+            },
+          }
+        }),
+      repeatWorkout: (workoutId) =>
+        set((s) => {
+          const w = s.workouts.find((x) => x.id === workoutId)
+          if (!w) return {}
+          return {
+            active: {
+              id: uid('w'),
+              name: w.name,
+              routineId: w.routineId ?? null,
+              startedAt: new Date().toISOString(),
+              rest: null,
+              exercises: w.exercises.map((e) => ({
+                id: uid('we'),
+                exerciseId: e.exerciseId,
+                restSec: e.restSec,
+                repMin: e.repMin,
+                repMax: e.repMax,
+                supersetId: e.supersetId ?? null,
+                note: e.note,
+                // Loads and reps come from last time's matching set, as in any session.
+                sets: e.sets.map((x) => (x.minutes != null ? newAerobicSet(x.minutes) : newSet(x.type))),
+              })),
             },
           }
         }),

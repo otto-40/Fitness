@@ -56,7 +56,7 @@ export default function Routines() {
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3">
-        <button onClick={() => start(null)} className="flex min-h-20 flex-col items-start gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:border-line-strong active:scale-[0.99] sm:flex-row sm:items-center">
+        <button onClick={() => start(null)} className="card flex min-h-20 flex-col items-start gap-3 p-4 text-left transition-transform active:scale-[0.98] sm:flex-row sm:items-center">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent">
             <Play size={18} fill="currentColor" />
           </span>
@@ -65,8 +65,8 @@ export default function Routines() {
             <span className="block text-sm text-muted">Add exercises as you go</span>
           </span>
         </button>
-        <Link to="/routines/new" className="flex min-h-20 flex-col items-start gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong active:scale-[0.99] sm:flex-row sm:items-center">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
+        <Link to="/routines/new" className="card flex min-h-20 flex-col items-start gap-3 p-4 transition-transform active:scale-[0.98] sm:flex-row sm:items-center">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
             <Plus size={20} />
           </span>
           <span>
@@ -78,8 +78,8 @@ export default function Routines() {
 
       {plan.length > 0 && (
         <section className="mb-6" aria-label="Plan rotation">
-          <h2 className="eyebrow mb-3">{weekly ? `This week · ${plan[0].program ?? 'Weekly plan'}` : 'Plan rotation'}</h2>
-          <ol className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+          <h2 className="mb-3 text-[17px] font-semibold tracking-[-0.01em]">{weekly ? 'This week' : 'Plan rotation'}</h2>
+          <ol className="snap-row scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pt-0.5 pb-2 sm:mx-0 sm:flex-wrap sm:px-0">
             {plan.map((r, i) => {
               const up = next?.routine.id === r.id
               return (
@@ -87,8 +87,8 @@ export default function Routines() {
                   <Link
                     to={`/routines/${r.id}`}
                     className={clsx(
-                      'flex h-12 items-center gap-2.5 rounded-full border pr-4 pl-1.5 text-sm font-semibold transition-colors',
-                      up ? 'border-accent bg-accent-soft/60 text-ink' : 'border-line bg-surface text-ink-2 hover:text-ink',
+                      'flex h-12 items-center gap-2.5 rounded-full pr-4 pl-1.5 text-sm font-semibold transition-colors',
+                      up ? 'bg-accent-soft text-ink ring-2 ring-accent ring-inset' : 'bg-surface text-ink-2 shadow-card hover:text-ink',
                     )}
                   >
                     <span className={clsx('stamp flex size-9 items-center justify-center rounded-full', weekly ? 'text-sm' : 'text-lg', up ? 'bg-accent text-on-accent' : 'bg-surface-2')}>
@@ -120,8 +120,8 @@ export default function Routines() {
         <>
           {groups.map((g) => (
           <section key={g.label} className="mb-8" aria-label={g.label}>
-          <h2 className={clsx('eyebrow mb-3', g.program && 'text-accent-ink')}>
-            {g.label} · {g.items.length}
+          <h2 className="mb-3 text-[17px] font-semibold tracking-[-0.01em]">
+            {g.label} <span className="tnum font-medium text-muted">{g.items.length}</span>
           </h2>
           <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {g.items.map((r) => {
@@ -130,10 +130,10 @@ export default function Routines() {
               const sets = r.exercises.reduce((n, e) => n + (e.minutes ? 0 : e.sets), 0)
               const shown = r.exercises.slice(0, 4)
               return (
-                <li key={r.id} className={clsx('flex min-w-0 flex-col rounded-2xl border bg-surface p-4 sm:p-5', isNext ? 'border-accent ring-1 ring-accent' : 'border-line')}>
+                <li key={r.id} className={clsx('card flex min-w-0 flex-col p-4 sm:p-5', isNext && 'ring-2 ring-accent/60')}>
                   <div className="flex items-start gap-2">
                     <Link to={`/routines/${r.id}`} className="flex min-h-11 min-w-0 flex-1 items-center hover:underline">
-                      <h2 className="min-w-0 truncate font-display text-[26px] leading-tight font-semibold tracking-[0.03em] uppercase">{r.name}</h2>
+                      <h2 className="min-w-0 truncate text-[19px] leading-tight font-bold tracking-[-0.015em]">{r.name}</h2>
                     </Link>
                     <IconButton label={`Options for ${r.name}`} onClick={() => setMenuFor(r)} className="-mt-1 -mr-2 size-11">
                       <MoreHorizontal size={20} />
@@ -179,7 +179,7 @@ export default function Routines() {
                     <Button size="lg" variant={isNext ? 'primary' : 'secondary'} icon={<Play size={16} fill="currentColor" />} disabled={!r.exercises.length} onClick={() => start(r.id)} className="flex-1">
                       Start
                     </Button>
-                    <LinkButton to={`/routines/${r.id}`} size="lg" variant="outline" icon={<Pencil size={16} />}>
+                    <LinkButton to={`/routines/${r.id}`} size="lg" variant="secondary" icon={<Pencil size={16} />}>
                       Edit
                     </LinkButton>
                   </div>

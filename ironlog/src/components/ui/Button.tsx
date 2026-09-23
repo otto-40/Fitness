@@ -7,7 +7,7 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'hero'
 type Size = 'sm' | 'md' | 'lg' | 'xl'
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-[background-color,color,transform,box-shadow] duration-150 active:scale-[0.97] disabled:opacity-45 disabled:pointer-events-none select-none whitespace-nowrap'
+  'inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold transition-[background-color,color,transform,box-shadow] duration-150 active:scale-[0.97] disabled:opacity-45 disabled:pointer-events-none select-none whitespace-nowrap'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-accent text-on-accent hover:bg-accent-hover shadow-[inset_0_-2px_0_rgb(0_0_0/0.12)]',
@@ -15,14 +15,14 @@ const variants: Record<Variant, string> = {
   outline: 'border border-line-strong text-ink hover:bg-surface-2',
   ghost: 'text-ink-2 hover:bg-surface-2 hover:text-ink',
   danger: 'bg-danger-soft text-danger hover:brightness-95 dark:hover:brightness-125',
-  hero: 'bg-white/10 text-on-hero hover:bg-white/15',
+  hero: 'bg-white/12 text-on-hero hover:bg-white/20',
 }
 
 const sizes: Record<Size, string> = {
   sm: 'h-9 px-3 text-sm',
   md: 'h-11 px-4 text-[15px]',
   lg: 'h-13 px-6 text-base',
-  xl: 'h-14 rounded-2xl px-6 text-[17px]',
+  xl: 'h-14 rounded-[18px] px-6 text-[17px]',
 }
 
 function buttonClass(variant: Variant = 'primary', size: Size = 'md', extra?: string) {

@@ -123,7 +123,7 @@ export default function RoutineEditor() {
       >
         <ArrowLeft size={16} /> Routines
       </Link>
-      <h1 className="mb-6 font-display text-4xl font-semibold tracking-wide uppercase">{isNew ? 'New routine' : 'Edit routine'}</h1>
+      <h1 className="title-lg mb-6">{isNew ? 'New routine' : 'Edit routine'}</h1>
 
       <Card className="flex flex-col gap-4 p-4 sm:p-5">
         {draft.program && <p className="eyebrow text-accent-ink">{draft.program}</p>}
@@ -147,7 +147,7 @@ export default function RoutineEditor() {
         <Switch checked={draft.inPlan} onChange={(v) => setDraft({ ...draft, inPlan: v })} label="Include in my plan" description="Plan routines rotate on the home screen as your next workout." />
       </Card>
 
-      <div className="sticky top-2 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line bg-surface/95 px-4 py-3 text-sm shadow-card backdrop-blur">
+      <div className="sticky top-2 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 card bg-surface/95 px-4 py-3 text-sm shadow-card backdrop-blur">
         <span className="inline-flex items-center gap-1.5 font-medium">
           <Clock size={16} /> ~{draft.exercises.length ? routineMinutes(draft) : 0} min
         </span>
@@ -175,16 +175,16 @@ export default function RoutineEditor() {
             <li key={e.id} className="flex flex-col">
               <div
                 className={clsx(
-                  'relative rounded-2xl border bg-surface p-3 sm:p-4',
-                  e.supersetId ? 'border-accent/60' : 'border-line',
+                  'card relative p-3 sm:p-4',
+                  e.supersetId && 'ring-2 ring-accent/45',
                   linkedPrev && 'rounded-t-md',
                   linked && 'rounded-b-md',
-                  rowErr && 'border-danger',
+                  rowErr && 'ring-2 ring-danger',
                 )}
               >
                 {e.supersetId && <span className="absolute top-3 bottom-3 left-0 w-1 rounded-r-full bg-accent" aria-hidden />}
                 <div className="flex items-start gap-2">
-                  <span className="tnum mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 font-display text-lg font-semibold">{i + 1}</span>
+                  <span className="tnum mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 stamp text-lg">{i + 1}</span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{def?.name ?? 'Deleted exercise'}</div>
                     <div className="text-sm text-muted">
@@ -280,7 +280,7 @@ export default function RoutineEditor() {
       )}
 
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
-        <div className="mx-auto flex max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
+        <div className="mx-auto flex max-w-3xl gap-2 rounded-[28px] bg-surface p-2 shadow-float ring-1 ring-black/[0.05] dark:bg-surface-2 dark:ring-white/[0.07]">
           <IconButton label="Cancel" size="lg" onClick={leave} className="size-13 bg-surface-2">
             <X size={20} />
           </IconButton>

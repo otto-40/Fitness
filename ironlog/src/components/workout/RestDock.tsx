@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Maximize2, Minimize2, SkipForward } from 'lucide-react'
+import { ArrowRight, Maximize2, Minimize2, SkipForward } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Ring } from '../ui'
 import { useNow } from '../../hooks/useNow'
@@ -31,8 +31,12 @@ function beep() {
   }
 }
 
-/** Countdown shown above the workout action bar while resting. */
-export function RestDock() {
+/**
+ * The now panel while resting: countdown, −15 / +15 / Skip, what comes next, and
+ * the effort rating for the set just done. Expands to a full-screen timer.
+ * Stays mounted while a rest exists so the end-of-rest alert always fires.
+ */
+export function RestDock({ next }: { next?: { name: string; detail: string } | null }) {
   const rest = useStore((s) => s.active?.rest ?? null)
   const sound = useStore((s) => s.settings.timerSound)
   const adjustRest = useStore((s) => s.adjustRest)
@@ -67,10 +71,10 @@ export function RestDock() {
 
   const controls = (big: boolean) => (
     <div className={clsx('flex items-center gap-2', big && 'w-full max-w-sm')}>
-      <button onClick={() => adjustRest(-15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 w-12 text-lg sm:w-auto sm:px-3')} aria-label="Subtract 15 seconds">
+      <button onClick={() => adjustRest(-15)} className={clsx('stamp rounded-2xl bg-white/12 transition-colors hover:bg-white/20 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-14 flex-1 text-xl')} aria-label="Subtract 15 seconds">
         −15
       </button>
-      <button onClick={() => adjustRest(15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 w-12 text-lg sm:w-auto sm:px-3')} aria-label="Add 15 seconds">
+      <button onClick={() => adjustRest(15)} className={clsx('stamp rounded-2xl bg-white/12 transition-colors hover:bg-white/20 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-14 flex-1 text-xl')} aria-label="Add 15 seconds">
         +15
       </button>
       <button
@@ -78,35 +82,49 @@ export function RestDock() {
           skipRest()
           setExpanded(false)
         }}
-        className={clsx('flex items-center justify-center gap-1.5 rounded-2xl bg-accent font-bold text-on-accent hover:bg-accent-hover active:scale-95', big ? 'h-16 flex-[1.4] text-lg' : 'h-12 px-3.5 text-sm max-[379px]:w-12 max-[379px]:px-0')}
+        className={clsx('flex items-center justify-center gap-1.5 rounded-2xl bg-accent font-bold text-on-accent transition-colors hover:bg-accent-hover active:scale-95', big ? 'h-16 flex-[1.4] text-lg' : 'h-14 flex-[1.3] text-base')}
         aria-label="Skip rest"
       >
-        <SkipForward size={big ? 20 : 16} /> <span className={big ? undefined : 'max-[379px]:hidden'}>Skip</span>
+        <SkipForward size={big ? 20 : 18} /> Skip
       </button>
     </div>
   )
 
+  const nextLine = next && (
+    <p className="flex min-w-0 items-center gap-2 text-sm">
+      <span className="shrink-0 text-[11px] font-semibold tracking-[0.12em] text-accent-ink uppercase">Next</span>
+      <ArrowRight size={14} className="shrink-0 text-on-hero-muted" aria-hidden />
+      <span className="min-w-0 truncate">
+        {/* The exercise name only when the next set moves on to a different exercise. */}
+        {next.name !== rest.label && <span className="font-semibold">{next.name} · </span>}
+        <span className="tnum text-on-hero-muted">{next.detail}</span>
+      </span>
+    </p>
+  )
+
   return (
     <>
-      <div className="animate-sheet mx-auto mb-2 w-full max-w-3xl rounded-3xl bg-hero p-2.5 text-on-hero shadow-float">
-      <div className="flex items-center gap-3" role="timer" aria-live="off" aria-label={label}>
-        <button onClick={() => setExpanded(true)} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl text-left" aria-label="Expand rest timer">
-          <Ring value={pct} size={52} stroke={5} trackClass="text-white/15">
-            <Maximize2 size={14} className="text-on-hero-muted" />
-          </Ring>
-          <span className="min-w-0">
-            <span className="stamp block text-[34px] sm:text-[40px]">{clock(remaining)}</span>
-            <span className="mt-0.5 block truncate text-xs text-on-hero-muted">Rest · after {rest.label}</span>
-          </span>
-        </button>
-        {controls(false)}
-      </div>
-      {canRate && (
-        <div className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2">
-          <span className="w-16 shrink-0 text-xs leading-tight text-on-hero-muted">How did it feel?</span>
-          <EffortPicker value={ratedSet.effort} onChange={rate} className="flex-1 gap-1.5" label="How did that set feel?" />
+      <div className="animate-swap rounded-[28px] bg-hero p-3 text-on-hero shadow-float">
+        <div className="flex items-center gap-3 px-1" role="timer" aria-live="off" aria-label={label}>
+          <button onClick={() => setExpanded(true)} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl text-left" aria-label="Expand rest timer">
+            <Ring value={pct} size={60} stroke={5} trackClass="text-white/15">
+              <Maximize2 size={15} className="text-on-hero-muted" />
+            </Ring>
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold tracking-[0.12em] text-on-hero-muted uppercase">Rest</span>
+              <span className="stamp block text-[44px] leading-[0.95]">{clock(remaining)}</span>
+              <span className="block truncate text-xs text-on-hero-muted">after {rest.label}</span>
+            </span>
+          </button>
         </div>
-      )}
+        {nextLine && <div className="mt-2.5 rounded-2xl bg-white/8 px-3 py-2">{nextLine}</div>}
+        {canRate && (
+          <div className="mt-2.5 flex items-center gap-2">
+            <span className="w-14 shrink-0 text-xs leading-tight text-on-hero-muted">How did it feel?</span>
+            <EffortPicker value={ratedSet.effort} onChange={rate} className="flex-1 gap-1.5" label="How did that set feel?" />
+          </div>
+        )}
+        <div className="mt-2.5">{controls(false)}</div>
       </div>
 
       {expanded && (
@@ -123,6 +141,7 @@ export function RestDock() {
               <span className="mt-2 max-w-48 truncate text-sm text-on-hero-muted">after {rest.label}</span>
             </Ring>
             <p className="mt-6 text-sm text-on-hero-muted">of {clock(rest.duration * 1000)} rest</p>
+            {nextLine && <div className="mt-4 max-w-sm rounded-2xl bg-white/8 px-4 py-2.5">{nextLine}</div>}
           </div>
           <div className="flex w-full max-w-sm flex-col gap-3">
             {canRate && <EffortPicker value={ratedSet.effort} onChange={rate} label="How did that set feel?" />}

@@ -1,10 +1,12 @@
-import { ChevronDown, Dumbbell, Flag, Link2, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import clsx from 'clsx'
+import { ChevronDown, Dumbbell, Link2, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Modal, Textarea } from '../components/ui'
 import { ExerciseCard } from '../components/workout/ExerciseCard'
-import { RestDock } from '../components/workout/RestDock'
+import { NowPanel } from '../components/workout/NowPanel'
+import { nextUp } from '../lib/supersets'
 import { useExerciseMap } from '../hooks/useExercises'
 import { useNow } from '../hooks/useNow'
 import { aerobicMinutes, completedSetCount, previousSets, workoutVolume } from '../lib/calc'
@@ -60,6 +62,17 @@ export default function LiveWorkout() {
   const [confirmFinish, setConfirmFinish] = useState(false)
   const [editName, setEditName] = useState<string | null>(null)
   useWakeLock()
+  const up = active ? nextUp(active.exercises) : null
+  // Bring the next exercise into view when the session moves on to it (not on every set).
+  const lastUpEx = useRef<string | null>(null)
+  useEffect(() => {
+    const id = up?.exId ?? null
+    if (id && lastUpEx.current && id !== lastUpEx.current) {
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      document.getElementById(`ex-${id}`)?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+    }
+    lastUpEx.current = id
+  }, [up?.exId])
 
   const prevByExercise = useMemo(() => {
     const m = new Map<string, ReturnType<typeof previousSets>>()
@@ -98,8 +111,6 @@ export default function LiveWorkout() {
   const tickedSets = active.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0)
   const pending = totalSets - tickedSets
   const groups = groupSupersets(active.exercises)
-  const upNextEx = active.exercises.find((e) => e.sets.some((s) => !s.completed))
-  const upNextSetId = upNextEx?.sets.find((s) => !s.completed)?.id ?? null
 
   const finish = () => {
     const id = useStore.getState().finishWorkout()
@@ -119,16 +130,16 @@ export default function LiveWorkout() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* Header */}
-      <div className="sticky top-0 z-30 -mx-4 border-b border-line bg-bg/95 px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+      {/* Header: minimise, name + clock, options, and Finish kept at the top, away from the thumb. */}
+      <div className="sticky top-0 z-30 -mx-4 bg-bg/90 px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
         <div className="flex items-center gap-1">
           <IconButton label="Minimise workout" onClick={() => navigate('/')} className="-ml-2 size-11">
             <ChevronDown size={24} />
           </IconButton>
           <h1 className="min-w-0 flex-1">
             <button onClick={() => setEditName(active.name)} className="group w-full min-w-0 text-left" aria-label={`Workout name: ${active.name}. Tap to rename.`}>
-              <span className="eyebrow block truncate">{active.name}</span>
-              <span className="stamp block text-[34px]" role="timer" aria-label={`Elapsed ${clock(elapsed)}`}>
+              <span className="block truncate text-[13px] font-semibold text-muted">{active.name}</span>
+              <span className="stamp block text-[32px] leading-none" role="timer" aria-label={`Elapsed ${clock(elapsed)}`}>
                 {clock(elapsed)}
               </span>
             </button>
@@ -136,19 +147,21 @@ export default function LiveWorkout() {
           <IconButton label="Workout options" onClick={() => setMenu(true)} className="size-11">
             <MoreHorizontal size={22} />
           </IconButton>
-          <Button size="sm" onClick={onFinishClick} className="max-sm:hidden">
+          <Button size="sm" onClick={onFinishClick} className="h-11 px-4">
             Finish
           </Button>
         </div>
-        <div
-          className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3"
-          role="progressbar"
-          aria-label="Sets completed"
-          aria-valuemin={0}
-          aria-valuemax={totalSets}
-          aria-valuenow={tickedSets}
-        >
-          <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${totalSets ? (tickedSets / totalSets) * 100 : 0}%` }} />
+        {/* One segment per exercise, filled by its logged sets (Peloton-style block progress). */}
+        <div className="mt-2.5 flex gap-1" role="progressbar" aria-label="Sets completed" aria-valuemin={0} aria-valuemax={totalSets} aria-valuenow={tickedSets}>
+          {active.exercises.map((e) => {
+            const d = e.sets.filter((x) => x.completed).length
+            return (
+              <span key={e.id} className="h-1.5 min-w-2 overflow-hidden rounded-full bg-surface-3" style={{ flexGrow: Math.max(1, e.sets.length) }}>
+                <span className={clsx('block h-full rounded-full transition-[width] duration-300', d === e.sets.length && d > 0 ? 'bg-good' : 'bg-accent')} style={{ width: `${e.sets.length ? (d / e.sets.length) * 100 : 0}%` }} />
+              </span>
+            )
+          })}
+          {!active.exercises.length && <span className="h-1.5 flex-1 rounded-full bg-surface-3" />}
         </div>
         <dl className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm whitespace-nowrap">
           {(!hasAerobic || active.exercises.some((e) => e.sets.some((x) => x.minutes == null))) && (
@@ -209,7 +222,7 @@ export default function LiveWorkout() {
                   mode="live"
                   isFirst={idx === 0}
                   isLast={idx === active.exercises.length - 1}
-                  upNextSetId={ex.id === upNextEx?.id ? upNextSetId : null}
+                  upNextSetId={ex.id === up?.exId ? up.setId : null}
                   onSetChange={(setId, patch) => a.updateSet(ex.id, setId, patch)}
                   onToggle={(setId) => {
                     const r = useStore.getState().completeSet(ex.id, setId)
@@ -235,7 +248,7 @@ export default function LiveWorkout() {
             )
           })
           return isSuperset ? (
-            <section key={g.id} aria-label="Superset" className="relative -mx-2 rounded-3xl border border-accent/40 bg-accent-soft/30 p-1 pl-2.5 sm:mx-0 sm:p-1.5 sm:pl-3">
+            <section key={g.id} aria-label="Superset" className="relative -mx-2 rounded-[26px] bg-accent-soft/50 p-1 pl-2.5 sm:mx-0 sm:p-1.5 sm:pl-3">
               <span className="absolute top-4 bottom-4 left-1 w-1 rounded-full bg-accent" aria-hidden />
               <div className="flex items-center gap-2 px-1.5 pt-1 pb-2 text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">
                 <Link2 size={14} /> Superset · rest after the last exercise
@@ -246,20 +259,18 @@ export default function LiveWorkout() {
             cards
           )
         })}
+        {active.exercises.length > 0 && (
+          <button
+            onClick={() => setPicker(true)}
+            className="flex h-14 items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-line-strong text-[15px] font-semibold text-ink-2 transition-colors hover:border-accent hover:text-accent-ink"
+          >
+            <Plus size={19} /> Add exercise
+          </button>
+        )}
       </div>
 
-      {/* Bottom dock: rest timer + thumb-reach actions */}
-      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
-        <RestDock />
-        <div className="mx-auto flex w-full max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
-          <Button variant="secondary" size="xl" className="flex-1" icon={<Plus size={20} />} onClick={() => setPicker(true)}>
-            Exercise
-          </Button>
-          <Button size="xl" className="flex-1" icon={<Flag size={18} />} onClick={onFinishClick}>
-            Finish
-          </Button>
-        </div>
-      </div>
+      {/* Thumb zone: log the next set, rest, or wrap up. */}
+      <NowPanel onAddExercise={() => setPicker(true)} onFinish={onFinishClick} />
 
       <ExercisePicker open={picker} onClose={() => setPicker(false)} onPick={(ids) => a.addExercisesToActive(ids)} />
 

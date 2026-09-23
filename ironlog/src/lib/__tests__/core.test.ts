@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { computePrEvents, e1rm, exerciseRecords, previousSets, workoutVolume } from '../calc'
-import { applyLinks, linkedToNext, toggleLink } from '../supersets'
+import { applyLinks, linkedToNext, nextUp, toggleLink } from '../supersets'
 import { parseBackup } from '../backup'
 import { generateProgram } from '../programGen'
 import { generateSeed, snapDemoToUnits } from '../../data/seed'
@@ -67,6 +67,25 @@ describe('units', () => {
 })
 
 describe('supersets', () => {
+  it('picks the next set in order, alternating rounds inside a superset', () => {
+    const s = (id: string, completed = false) => ({ id, completed })
+    const list = [
+      { id: 'a', sets: [s('a1', true), s('a2', true)] },
+      { id: 'b', supersetId: 'x', sets: [s('b1', true), s('b2'), s('b3')] },
+      { id: 'c', supersetId: 'x', sets: [s('c1', true), s('c2')] },
+      { id: 'd', sets: [s('d1')] },
+    ]
+    expect(nextUp(list)).toEqual({ exId: 'b', setId: 'b2' })
+    list[1].sets[1].completed = true
+    expect(nextUp(list)).toEqual({ exId: 'c', setId: 'c2' })
+    list[2].sets[1].completed = true
+    expect(nextUp(list)).toEqual({ exId: 'b', setId: 'b3' })
+    list[1].sets[2].completed = true
+    expect(nextUp(list)).toEqual({ exId: 'd', setId: 'd1' })
+    list[3].sets[0].completed = true
+    expect(nextUp(list)).toBeNull()
+  })
+
   it('links and unlinks neighbours without leaving singletons', () => {
     let list = [{ supersetId: null as string | null }, { supersetId: null }, { supersetId: null }]
     list = toggleLink(list, 0)

@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ColumnTrend, LineTrend } from '../components/charts/Charts'
 import { ExerciseForm } from '../components/ExerciseForm'
-import { Badge, Button, Card, ConfirmDialog, EmptyState, IconButton, Monogram, MuscleTag, SectionTitle, Segmented, Stat } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, EmptyState, IconButton, Monogram, MuscleTag, SectionTitle, Segmented, Stat, HeroCard } from '../components/ui'
 import { SetTypeBadge } from '../components/workout/SetTypeBadge'
 import { EffortLegend, EffortShape } from '../components/workout/Effort'
 import { EFFORT_META } from '../components/workout/effortMeta'
@@ -78,7 +78,7 @@ export default function ExerciseDetail() {
       <div className="mb-5 flex items-start gap-4">
         <Monogram name={ex.name} size="lg" active />
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-[34px] leading-none font-semibold tracking-[0.03em] uppercase sm:text-[44px]">{ex.name}</h1>
+          <h1 className="title-lg">{ex.name}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5">
             <Badge tone="accent" className="h-7 rounded-full px-2.5">
               {ex.primary}
@@ -115,7 +115,7 @@ export default function ExerciseDetail() {
       </div>
 
       {ex.cue && (
-        <blockquote className="mb-5 rounded-2xl border border-line bg-surface p-4 text-[15px] text-ink-2">
+        <blockquote className="mb-5 card p-4 text-[15px] text-ink-2">
           <span className="eyebrow mb-1 block text-accent-ink">Form cue</span>
           {ex.cue}
         </blockquote>
@@ -127,7 +127,7 @@ export default function ExerciseDetail() {
         <EmptyState icon={<ChartIcon size={22} />} title="No history yet" body="Log this exercise in a workout and its best set, estimated 1RM and progress chart will appear here." />
       ) : (
         <>
-          <Card className="grid grid-cols-2 gap-5 p-4 sm:grid-cols-4 sm:p-5">
+          <HeroCard className="grid grid-cols-2 gap-5 p-5 sm:grid-cols-4 sm:p-6">
             <Stat
               size="lg"
               label={weighted ? 'Est. 1RM' : 'Best reps'}
@@ -144,12 +144,12 @@ export default function ExerciseDetail() {
             />
             <Stat label="Best volume" value={record?.bestVolume ? formatVolume(record.bestVolume.value, units, false) : '—'} unit={record?.bestVolume ? units : undefined} sub="in one session" />
             <Stat label="Sessions" value={history.length} sub={`Last: ${friendlyDay(history.at(-1)!.date)}`} />
-          </Card>
+          </HeroCard>
 
           <Card className="mt-4 p-4 sm:p-5">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <div className="eyebrow">{metricName}</div>
+                <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{metricName}</h2>
                 {trend !== null && (
                   <div className="mt-1 text-sm text-muted">
                     <span className={clsx('font-semibold', trend > 0 ? 'text-good' : 'text-ink-2')}>
@@ -191,7 +191,7 @@ export default function ExerciseDetail() {
 
           <section className="mt-6">
             <SectionTitle>Personal records</SectionTitle>
-            <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+            <ul className="divide-y divide-line overflow-hidden card">
               {records.map((r) => (
                 <li key={r.label} className="flex min-h-16 items-center gap-3 px-4 py-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
@@ -216,7 +216,7 @@ export default function ExerciseDetail() {
                 let n = 0
                 return (
                   <li key={h.workoutId}>
-                    <Link to={`/history/${h.workoutId}`} className="block rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong">
+                    <Link to={`/history/${h.workoutId}`} className="block card p-4 transition-colors hover:bg-surface-2/40">
                       <div className="flex items-baseline justify-between gap-3">
                         <span className="inline-flex items-center gap-2 font-semibold">
                           {format(parseISO(h.date), 'EEE d MMM yyyy')}
@@ -308,7 +308,7 @@ function AerobicHistory({ exerciseId }: { exerciseId: string }) {
         <ul className="grid gap-2 md:grid-cols-2">
           {[...sessions].reverse().slice(0, 12).map((x) => (
             <li key={x.workoutId}>
-              <Link to={`/history/${x.workoutId}`} className="flex min-h-14 items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 transition-colors hover:border-line-strong">
+              <Link to={`/history/${x.workoutId}`} className="flex min-h-14 items-center justify-between card px-4 py-3 transition-colors hover:bg-surface-2/40">
                 <span className="font-semibold">{format(parseISO(x.date), 'EEE d MMM yyyy')}</span>
                 <span className="stamp text-xl">
                   {x.minutes}

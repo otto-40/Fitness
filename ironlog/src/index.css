@@ -7,19 +7,20 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Overload palette, adopted from Sam's Training Week ("Longevity"): true-grey
+ * Forge 2. Overload palette from Sam's Training Week ("Longevity"): true-grey
  * neutrals so indigo is the only hue that is not reporting a state. Each role
- * means one thing: accent = act on this, good = logged/complete, warn = hold or
- * warm-up, danger = destructive only. Hero surfaces stay dark in both themes and
- * carry their own lighter accent so rings and highlights keep their contrast.
+ * means one thing: accent = act on this, good = logged/complete/aerobic,
+ * warn = hold or warm-up, danger = destructive only. Cards are separated by
+ * elevation (light) or tone plus an inner highlight (dark), not borders. The one
+ * hero surface per screen is a deep indigo gradient that matches the app icon.
  */
 :root {
-  --bg: #f4f4f5;
+  --bg: #f2f2f6;
   --surface: #ffffff;
-  --surface-2: #f0f0f3;
-  --surface-3: #e4e4e9;
-  --line: #dcdce1;
-  --line-strong: #c4c4cc;
+  --surface-2: #f1f1f5;
+  --surface-3: #e6e6ec;
+  --line: #e7e7ed;
+  --line-strong: #cfcfd8;
   --ink: #18181b;
   --ink-2: #3f3f46;
   --muted: #52525b;
@@ -33,30 +34,34 @@
   --on-good: #ffffff;
   --warn: #a34a06;
   --warn-soft: #fcefe0;
-  --hero: #18181b;
-  --hero-2: #232329;
-  --on-hero: #f4f4f5;
-  --on-hero-muted: #b4b4bd;
-  --hero-accent: #b3aeff;
-  --hero-ok: #5cd08f;
+  --hero-from: #2e2a7a;
+  --hero-to: #1b1846;
+  --hero: #25216a;
+  --hero-2: #332f86;
+  --on-hero: #ffffff;
+  --on-hero-muted: #c9c6f2;
+  --hero-accent: #c7c3ff;
+  --hero-ok: #6ee7a0;
   --danger: #b91c1c;
   --danger-soft: #fbe9e9;
   --series-1: #4338ca;
   --series-2: #0f766e;
-  --grid: #ebebef;
-  --shadow: 0 1px 2px rgb(24 24 27 / 0.05), 0 4px 16px rgb(24 24 27 / 0.04);
-  --shadow-float: 0 2px 6px rgb(9 9 11 / 0.08), 0 12px 32px rgb(9 9 11 / 0.16);
-  --shadow-sheet: 0 -4px 24px rgb(9 9 11 / 0.12), 0 24px 64px rgb(9 9 11 / 0.24);
+  --grid: #ececf1;
+  --card-ring: transparent;
+  --shadow: 0 1px 2px rgb(16 16 40 / 0.04), 0 8px 24px -12px rgb(16 16 40 / 0.14);
+  --shadow-float: 0 2px 6px rgb(9 9 11 / 0.06), 0 16px 40px -8px rgb(9 9 11 / 0.2);
+  --shadow-sheet: 0 -4px 24px rgb(9 9 11 / 0.1), 0 24px 64px rgb(9 9 11 / 0.22);
+  --shadow-hero: 0 14px 34px -14px rgb(46 42 122 / 0.6);
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0e0e11;
-  --surface: #18181c;
-  --surface-2: #212127;
-  --surface-3: #2c2c33;
-  --line: #2e2e35;
-  --line-strong: #45454e;
+  --bg: #0b0b0f;
+  --surface: #17171c;
+  --surface-2: #212128;
+  --surface-3: #2b2b33;
+  --line: #26262e;
+  --line-strong: #3d3d47;
   --ink: #f4f4f5;
   --ink-2: #cacad1;
   --muted: #a6a6b0;
@@ -70,20 +75,16 @@
   --on-good: #06170d;
   --warn: #f0a64a;
   --warn-soft: #2e2210;
-  --hero: #232329;
-  --hero-2: #2c2c33;
-  --on-hero: #f4f4f5;
-  --on-hero-muted: #b4b4bd;
-  --hero-accent: #b3aeff;
-  --hero-ok: #5cd08f;
   --danger: #f4817b;
   --danger-soft: #361716;
   --series-1: #9a94ff;
   --series-2: #2dd4bf;
-  --grid: #232328;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25);
+  --grid: #24242b;
+  --card-ring: rgb(255 255 255 / 0.05);
+  --shadow: 0 0 0 transparent;
   --shadow-float: 0 2px 8px rgb(0 0 0 / 0.5), 0 16px 40px rgb(0 0 0 / 0.5);
   --shadow-sheet: 0 -4px 24px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.55);
+  --shadow-hero: 0 14px 34px -16px rgb(0 0 0 / 0.8);
   color-scheme: dark;
 }
 
@@ -120,24 +121,37 @@
   --shadow-card: var(--shadow);
   --shadow-float: var(--shadow-float);
   --shadow-sheet: var(--shadow-sheet);
+  --shadow-hero: var(--shadow-hero);
 }
 
 @layer base {
-  /* Dark hero surfaces (hero cards, rest timer, mini-player) swap in the lighter
-     hero indigo, so anything accented on them keeps its contrast in both themes. */
+  /* The hero surface (hero cards, rest timer, mini player, now panel at rest) is a
+     deep indigo gradient in both themes. Tokens are re-scoped inside it: the accent
+     turns white so primary buttons and rings read as the brightest thing, accent
+     text turns lavender, and good turns mint, all at 7:1 or better. */
   .bg-hero {
-    --accent: var(--hero-accent);
-    --accent-hover: #c9c5ff;
+    background-color: var(--hero);
+    background-image: radial-gradient(120% 90% at 0% 0%, rgb(255 255 255 / 0.07), transparent 55%), linear-gradient(160deg, var(--hero-from), var(--hero-to));
+    color: var(--on-hero);
+    --accent: #ffffff;
+    --accent-hover: #ecebfc;
     --accent-ink: var(--hero-accent);
-    --accent-soft: rgb(179 174 255 / 0.16);
-    --on-accent: #18181b;
+    --accent-soft: rgb(255 255 255 / 0.14);
+    --on-accent: #2b2780;
     --good: var(--hero-ok);
-    --warn: #f0a64a;
-    --warn-soft: rgb(240 166 74 / 0.16);
-    --good-soft: rgb(92 208 143 / 0.16);
-    --surface-2: rgb(255 255 255 / 0.1);
+    --on-good: #06170d;
+    --warn: #f7b56a;
+    --warn-soft: rgb(247 181 106 / 0.16);
+    --good-soft: rgb(110 231 160 / 0.16);
+    --surface: rgb(255 255 255 / 0.08);
+    --surface-2: rgb(255 255 255 / 0.12);
+    --surface-3: rgb(255 255 255 / 0.18);
+    --line: rgb(255 255 255 / 0.14);
+    --line-strong: rgb(255 255 255 / 0.3);
     --ink: var(--on-hero);
     --ink-2: var(--on-hero);
+    --muted: var(--on-hero-muted);
+    --series-1: #ffffff;
   }
   /* Native option lists never inherit a chip's inverted text colour. */
   option {
@@ -174,6 +188,26 @@
 }
 
 @layer utilities {
+  /* Forge 2 card: elevated on the light canvas, tonal with an inner highlight in dark. */
+  .card {
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: var(--shadow), inset 0 0 0 1px var(--card-ring);
+  }
+  .shadow-hero {
+    box-shadow: var(--shadow-hero);
+  }
+  .title-lg {
+    font-size: 30px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+  }
+  @media (min-width: 640px) {
+    .title-lg {
+      font-size: 34px;
+    }
+  }
   .tnum {
     font-variant-numeric: tabular-nums;
   }
@@ -204,6 +238,13 @@
   }
   .pb-nav {
     padding-bottom: calc(env(safe-area-inset-bottom) + 112px);
+  }
+  .snap-row {
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+  }
+  .snap-row > * {
+    scroll-snap-align: start;
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
@@ -264,6 +305,26 @@
     opacity: 1;
   }
 }
+@keyframes swap {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tick {
+  0% {
+    transform: translateY(-3px);
+    opacity: 0.4;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
 @keyframes fade {
   from {
     opacity: 0;
@@ -286,6 +347,12 @@
 }
 .animate-ring-pulse {
   animation: ring-pulse 1s ease-in-out infinite;
+}
+.animate-swap {
+  animation: swap 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.animate-tick {
+  animation: tick 0.16s ease-out;
 }
 .animate-fade {
   animation: fade 0.2s ease-out both;

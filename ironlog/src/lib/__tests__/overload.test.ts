@@ -153,6 +153,30 @@ describe('live workout', () => {
     expect(aerobicMinutes(a)).toBe(45)
   })
 
+  it('repeats a past workout: same exercises, set types, rest and supersets, with fresh unlogged sets', () => {
+    const past: Workout = {
+      ...workout('p', '2026-09-20T10:00:00', [
+        ['bench-press', [set(60, 8, null, { type: 'warmup' }), set(100, 5, 'hard'), set(80, 8, null, { type: 'drop' })]],
+        ['incline-walk', [walk(25)]],
+      ]),
+      routineId: 'sam-mon',
+    }
+    past.exercises[0].supersetId = null
+    useStore.setState({ workouts: [past] })
+    useStore.getState().repeatWorkout('p')
+    const a = useStore.getState().active!
+    expect(a.name).toBe('p')
+    expect(a.routineId).toBe('sam-mon')
+    expect(a.exercises.map((e) => e.exerciseId)).toEqual(['bench-press', 'incline-walk'])
+    expect(a.exercises[0].sets.map((x) => [x.type, x.weight, x.reps, x.completed])).toEqual([
+      ['warmup', null, null, false],
+      ['normal', null, null, false],
+      ['drop', null, null, false],
+    ])
+    expect(a.exercises[1].sets[0]).toMatchObject({ minutes: 25, completed: false })
+    expect(a.exercises[0].restSec).toBe(90)
+  })
+
   it('rating an unlogged set logs it; clearing the rating keeps it logged', () => {
     useStore.getState().startWorkout('sam-mon')
     const ex = useStore.getState().active!.exercises[0]
