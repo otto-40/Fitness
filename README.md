@@ -5,7 +5,7 @@ accounts, no network needed once installed.
 
 **Live app:** https://otto-40.github.io/Fitness/
 
-> **IronLog**, a separate full strength-training tracker (React + TypeScript + Vite),
+> **Overload** (formerly IronLog), a separate full strength-training tracker (React + TypeScript + Vite),
 > lives in [`ironlog/`](ironlog/README.md) and is published at
 > https://otto-40.github.io/Fitness/ironlog/. Run it locally with `cd ironlog && npm install && npm run dev`.
 

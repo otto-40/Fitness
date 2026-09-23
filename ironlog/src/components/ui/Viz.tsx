@@ -10,7 +10,10 @@ export function Ring({
   className,
   trackClass = 'text-surface-3',
   label,
+  color = 'var(--accent)',
 }: {
+  /** Stroke colour of the progress arc. */
+  color?: string
   /** 0–1 */
   value: number
   size?: number
@@ -32,7 +35,7 @@ export function Ring({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="var(--accent)"
+          stroke={color}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}

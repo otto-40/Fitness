@@ -4,7 +4,8 @@ import { ArrowDownRight, ArrowUpRight, ChartNoAxesColumn, Minus, Search } from '
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ColumnTrend, LineTrend, RankBars } from '../components/charts/Charts'
-import { Card, EmptyState, HeroCard, Input, LinkButton, PageHeader, SectionTitle, Segmented, Select, Sparkline } from '../components/ui'
+import { Card, EmptyState, HeroCard, Input, LinkButton, PageHeader, Ring, SectionTitle, Segmented, Select, Sparkline } from '../components/ui'
+import { EffortLegend } from '../components/workout/Effort'
 import { useExerciseMap } from '../hooks/useExercises'
 import { byDateAsc, completedSetCount, durationMs, exerciseHistory, exerciseRecords, workoutVolume } from '../lib/calc'
 import { formatDuration, friendlyDay, WEEK_OPTS } from '../lib/dates'
@@ -22,7 +23,7 @@ function Delta({ cur, prev, className, label, onHero }: { cur: number; prev: num
   const up = pct >= 0.5
   const down = pct <= -0.5
   return (
-    <div className={clsx('flex items-center gap-1 text-xs font-semibold', up ? (onHero ? 'text-[#5fdc8f]' : 'text-good') : onHero ? 'text-on-hero-muted' : 'text-ink-2', className)}>
+    <div className={clsx('flex items-center gap-1 text-xs font-semibold', up ? (onHero ? 'text-hero-ok' : 'text-good') : onHero ? 'text-on-hero-muted' : 'text-ink-2', className)}>
       {up ? <ArrowUpRight size={14} /> : down ? <ArrowDownRight size={14} /> : <Minus size={14} />}
       {Math.abs(pct).toFixed(0)}%{label && <span className={clsx('font-normal', onHero ? 'text-on-hero-muted' : 'text-muted')}> {label}</span>}
     </div>
@@ -32,6 +33,7 @@ function Delta({ cur, prev, className, label, onHero }: { cur: number; prev: num
 export default function Progress() {
   const workouts = useStore((s) => s.workouts)
   const units = useStore((s) => s.settings.units)
+  const aerobicTarget = useStore((s) => s.settings.aerobicTargetMin ?? 150)
   const map = useExerciseMap()
   const { hash } = useLocation()
   const [range, setRange] = useState<Range>('12')
@@ -39,7 +41,7 @@ export default function Progress() {
   const [recordQuery, setRecordQuery] = useState('')
 
   useEffect(() => {
-    if (hash === '#records') setTimeout(() => document.getElementById('records')?.scrollIntoView({ behavior: 'smooth' }), 50)
+    if (hash === '#records' || hash === '#aerobic') setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 50)
   }, [hash])
 
   const weeks = useMemo(() => {
@@ -65,7 +67,7 @@ export default function Progress() {
     const count = new Map<string, number>()
     for (const w of workouts) for (const e of w.exercises) count.set(e.exerciseId, (count.get(e.exerciseId) ?? 0) + 1)
     return [...count.entries()]
-      .filter(([id]) => map.has(id))
+      .filter(([id]) => map.has(id) && !map.get(id)!.aerobic)
       .sort((a, b) => b[1] - a[1])
       .map(([id, n]) => ({ id, n, name: map.get(id)!.name }))
   }, [workouts, map])
@@ -114,6 +116,11 @@ export default function Progress() {
   const prevSets = prevRange.reduce((s, w) => s + completedSetCount(w), 0)
   const volData = buckets.map((b) => ({ label: b.label, volume: Math.round(toDisplayWeight(b.volume, units)) }))
   const countData = buckets.map((b) => ({ label: b.label, workouts: b.workouts }))
+  const aerobicData = buckets.map((b) => ({ label: b.label, minutes: b.aerobic }))
+  const aerobicThisWeek = buckets.at(-1)?.aerobic ?? 0
+  const pastWeeks = buckets.slice(0, -1)
+  const weeksMet = pastWeeks.filter((b) => b.aerobic >= aerobicTarget).length
+  const avgAerobic = pastWeeks.length ? Math.round(pastWeeks.reduce((n, b) => n + b.aerobic, 0) / pastWeeks.length) : 0
   const exData = exHistory.map((h) => ({
     label: format(parseISO(h.date), 'd MMM'),
     e1rm: round(toDisplayWeight(h.e1rm, units), 1),
@@ -193,6 +200,47 @@ export default function Progress() {
           />
         </Card>
 
+        <Card id="aerobic" className="scroll-mt-6 p-4 sm:p-5 lg:col-span-2">
+          <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
+            <div>
+              <SectionTitle>Aerobic minutes</SectionTitle>
+              <div className="flex items-center gap-4">
+                <Ring value={aerobicThisWeek / aerobicTarget} size={84} stroke={8} color="var(--good)" label={`${aerobicThisWeek} of ${aerobicTarget} minutes this week`}>
+                  <span className="stamp text-2xl">{aerobicThisWeek}</span>
+                  <span className="text-[10px] font-semibold text-muted">of {aerobicTarget}</span>
+                </Ring>
+                <dl className="grid gap-2 text-sm">
+                  <div>
+                    <dt className="eyebrow">Weeks at target</dt>
+                    <dd className="stamp text-xl">
+                      {weeksMet}
+                      <span className="font-sans text-sm font-normal text-muted"> of {pastWeeks.length}</span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="eyebrow">Weekly average</dt>
+                    <dd className="stamp text-xl">
+                      {avgAerobic}
+                      <span className="font-sans text-sm font-normal text-muted"> min</span>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+              <p className="mt-3 text-xs text-muted">
+                {aerobicTarget} min a week of moderate activity is the WHO and AHA adult guideline. Vigorous work such as basketball counts double toward it; this total doesn’t double it for you.
+              </p>
+            </div>
+            <ColumnTrend
+              data={aerobicData}
+              series={[{ key: 'minutes', name: 'Aerobic minutes', color: 'var(--good)' }]}
+              format={(v) => `${v} min`}
+              yWidth={32}
+              highlightLast
+              ariaLabel={`Aerobic minutes per week over the last ${weeks} weeks, against a ${aerobicTarget}-minute target`}
+            />
+          </div>
+        </Card>
+
         <Card className="p-4 sm:p-5 lg:col-span-2">
           <SectionTitle
             action={
@@ -269,10 +317,12 @@ export default function Progress() {
                 ]}
                 format={(v) => `${v} ${units}`}
                 ariaLabel={`Estimated one-rep max and top set weight for ${map.get(selected)?.name}`}
+                effort={exHistory.map((h) => h.effort)}
               />
             ) : (
-              <LineTrend data={exData} series={[{ key: 'reps', name: 'Most reps' }]} format={(v) => `${v} reps`} ariaLabel={`Most reps per session for ${map.get(selected)?.name}`} />
+              <LineTrend data={exData} series={[{ key: 'reps', name: 'Most reps' }]} format={(v) => `${v} reps`} ariaLabel={`Most reps per session for ${map.get(selected)?.name}`} effort={exHistory.map((h) => h.effort)} />
             )}
+            {exData.length >= 2 && <EffortLegend className="mt-2" />}
             {selected && (
               <Link to={`/library/${selected}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-accent-ink hover:underline">
                 Full exercise history

@@ -1,10 +1,15 @@
 import { format, parseISO } from 'date-fns'
-import { Check, Clock, ListChecks, Medal, Trophy, Weight } from 'lucide-react'
+import { Check, Clock, Footprints, ListChecks, Medal, Trophy, Weight } from 'lucide-react'
 import { useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Card, EmptyState, LinkButton, MuscleTag, SectionTitle } from '../components/ui'
 import { useExerciseMap } from '../hooks/useExercises'
-import { completedSetCount, durationMs, PR_LABEL, prsForWorkout, summariseSets, workoutVolume } from '../lib/calc'
+import { aerobicMinutes, completedSetCount, durationMs, isWorking, PR_LABEL, prsForWorkout, summariseSets, workoutVolume } from '../lib/calc'
+import { weekAerobicMinutes } from '../lib/stats'
+import { EffortShape } from '../components/workout/Effort'
+import { EFFORT_META } from '../components/workout/effortMeta'
+import { EFFORTS } from '../types'
 import { prValue, plural } from '../lib/format'
 import { formatDuration } from '../lib/dates'
 import { formatVolume, formatWeight } from '../lib/units'
@@ -14,6 +19,7 @@ export default function WorkoutSummary() {
   const { id } = useParams()
   const workouts = useStore((s) => s.workouts)
   const units = useStore((s) => s.settings.units)
+  const aerobicTarget = useStore((s) => s.settings.aerobicTargetMin ?? 150)
   const map = useExerciseMap()
   const w = workouts.find((x) => x.id === id)
   const prs = useMemo(() => (w ? prsForWorkout(workouts, w) : []), [w, workouts])
@@ -32,10 +38,17 @@ export default function WorkoutSummary() {
   const muscleCounts = new Map<string, number>()
   for (const e of w.exercises) {
     const m = map.get(e.exerciseId)?.primary
-    if (m) muscleCounts.set(m, (muscleCounts.get(m) ?? 0) + e.sets.filter((s) => s.type !== 'warmup').length)
+    const working = e.sets.filter(isWorking).length
+    if (m && working) muscleCounts.set(m, (muscleCounts.get(m) ?? 0) + working)
   }
   const muscles = [...muscleCounts.entries()].sort((a, b) => b[1] - a[1])
   const count = workouts.filter((o) => o.startedAt <= w.startedAt).length
+  const aerobic = aerobicMinutes(w)
+  const volume = workoutVolume(w)
+  const aerobicWeek = weekAerobicMinutes(workouts, parseISO(w.startedAt))
+  const rated = w.exercises.flatMap((e) => e.sets).filter((x) => isWorking(x))
+  const effortCounts = EFFORTS.map((e) => [e, rated.filter((x) => x.effort === e).length] as const)
+  const ratedCount = effortCounts.reduce((n, [, c]) => n + c, 0)
   const firstTimers = w.exercises.filter((e) => !workouts.some((o) => o.id !== w.id && o.startedAt < w.startedAt && o.exercises.some((x) => x.exerciseId === e.exerciseId)))
 
   return (
@@ -53,10 +66,12 @@ export default function WorkoutSummary() {
         {(
           [
             [<Clock size={18} key="c" />, 'Duration', formatDuration(durationMs(w))],
-            [<Weight size={18} key="w" />, 'Volume', formatVolume(workoutVolume(w), units)],
+            aerobic > 0 && volume === 0
+              ? [<Footprints size={18} key="w" />, 'Aerobic', `${aerobic} min`]
+              : [<Weight size={18} key="w" />, 'Volume', formatVolume(volume, units)],
             [<ListChecks size={18} key="s" />, 'Sets', String(completedSetCount(w))],
             [<Medal size={18} key="m" />, 'Records', String(prs.length)],
-          ] as const
+          ] as [ReactNode, string, string][]
         ).map(([icon, k, v]) => (
           <Card key={k} className="p-4">
             <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 text-accent-ink">{icon}</span>
@@ -65,6 +80,40 @@ export default function WorkoutSummary() {
           </Card>
         ))}
       </div>
+
+      {aerobic > 0 && (
+        <Card className="mt-3 p-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="eyebrow">Aerobic this week</span>
+            <span className="tnum text-sm text-muted">+{aerobic} min today</span>
+          </div>
+          <div className="stamp mt-1 text-[28px]">
+            {aerobicWeek}
+            <span className="font-sans text-base font-medium text-muted"> / {aerobicTarget} min</span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="Aerobic minutes this week" aria-valuemin={0} aria-valuemax={aerobicTarget} aria-valuenow={aerobicWeek}>
+            <div className="h-full rounded-full bg-good" style={{ width: `${Math.min(100, (aerobicWeek / aerobicTarget) * 100)}%` }} />
+          </div>
+        </Card>
+      )}
+
+      {ratedCount > 0 && (
+        <section className="mt-8">
+          <SectionTitle>How it felt · {plural(ratedCount, 'rated set')}</SectionTitle>
+          <div className="grid grid-cols-3 gap-2">
+            {effortCounts.map(([e, n]) => (
+              <Card key={e} className="flex items-center gap-3 p-3">
+                <EffortShape effort={e} size={16} />
+                <span>
+                  <span className="stamp block text-2xl">{n}</span>
+                  <span className="text-xs text-muted">{EFFORT_META[e].label}</span>
+                </span>
+              </Card>
+            ))}
+          </div>
+          {ratedCount < rated.length && <p className="mt-2 text-sm text-muted">{plural(rated.length - ratedCount, 'working set')} not rated.</p>}
+        </section>
+      )}
 
       {muscles.length > 0 && (
         <section className="mt-8">
@@ -109,17 +158,18 @@ export default function WorkoutSummary() {
           <ul className="divide-y divide-line">
             {w.exercises.map((e) => {
               const s = summariseSets(e.sets)
+              const mins = e.sets.reduce((n, x) => n + (x.completed && x.minutes != null ? x.minutes : 0), 0)
               return (
                 <li key={e.id} className="flex items-center justify-between gap-3 p-4">
                   <div className="min-w-0">
                     <Link to={`/library/${e.exerciseId}`} className="block truncate font-medium hover:underline">
                       {map.get(e.exerciseId)?.name ?? 'Deleted exercise'}
                     </Link>
-                    <div className="text-sm text-muted">{plural(e.sets.length, 'set')}</div>
+                    <div className="text-sm text-muted">{mins ? 'Aerobic' : plural(e.sets.length, 'set')}</div>
                   </div>
                   <div className="text-right">
-                    <div className="stamp text-xl">{s.bestSet ? `${formatWeight(s.bestSet.weight, units)} × ${s.bestSet.reps}` : '—'}</div>
-                    <div className="text-xs text-muted">best set</div>
+                    <div className="stamp text-xl">{mins ? `${mins} min` : s.bestSet ? `${formatWeight(s.bestSet.weight, units)} × ${s.bestSet.reps}` : '—'}</div>
+                    <div className="text-xs text-muted">{mins ? 'logged' : 'best set'}</div>
                   </div>
                 </li>
               )

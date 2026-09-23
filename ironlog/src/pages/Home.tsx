@@ -1,15 +1,15 @@
 import clsx from 'clsx'
 import { addDays, format, isSameDay, isToday, isTomorrow, parseISO, subDays } from 'date-fns'
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Check, Clock, Dumbbell, Flame, Medal, Play, Plus, Scale } from 'lucide-react'
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Check, Clock, Dumbbell, Flame, Footprints, Medal, Play, Plus, Scale } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useStartWorkout } from '../components/StartWorkout'
 import { Badge, Button, Card, EmptyState, HeroCard, LinkButton, MiniBars, Ring, SectionTitle, SegmentBar } from '../components/ui'
 import { exerciseName, useExerciseMap } from '../hooks/useExercises'
-import { byDateDesc, completedSetCount, computePrEvents, durationMs, PR_LABEL, workoutVolume } from '../lib/calc'
+import { aerobicMinutes, byDateDesc, completedSetCount, computePrEvents, durationMs, PR_LABEL, workoutVolume } from '../lib/calc'
 import type { PrEvent } from '../lib/calc'
 import { formatDuration, friendlyDay, weekStart } from '../lib/dates'
-import { nextWorkout, routineMinutes, routineMuscles, weekStreaks, weekVolume, weeklyBuckets } from '../lib/stats'
+import { nextWorkout, routineMinutes, routineMuscles, weekAerobicMinutes, weeklyPlan, weekStreaks, weekVolume, weeklyBuckets } from '../lib/stats'
 import { formatEstimate, formatVolume, formatWeight } from '../lib/units'
 import { useStore } from '../store/useStore'
 import { plural } from '../lib/format'
@@ -23,7 +23,9 @@ const MILESTONES = [2, 4, 8, 12, 26, 52, 104]
 
 function WeekStrip() {
   const workouts = useStore((s) => s.workouts)
-  const trainingDays = useStore((s) => s.profile.trainingDays)
+  const profileDays = useStore((s) => s.profile.trainingDays)
+  const routines = useStore((s) => s.routines)
+  const trainingDays = weeklyPlan(routines)?.days ?? profileDays
   const start = weekStart(new Date())
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i))
   return (
@@ -88,7 +90,9 @@ export default function Home() {
   const lastWeek = weekVolume(workouts, subDays(now, 7))
   const change = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : null
   const weekCount = workouts.filter((w) => parseISO(w.startedAt) >= weekStart(now)).length
-  const target = Math.max(1, profile.trainingDays.length || profile.daysPerWeek)
+  const target = weeklyPlan(routines)?.target ?? Math.max(1, profile.trainingDays.length || profile.daysPerWeek)
+  const aerobicTarget = settings.aerobicTargetMin ?? 150
+  const aerobicWeek = weekAerobicMinutes(workouts, now)
   const buckets = useMemo(() => weeklyBuckets(workouts, 6), [workouts])
   const milestone = MILESTONES.find((m) => m > streak.current) ?? streak.current + 4
 
@@ -153,7 +157,7 @@ export default function Home() {
           <HeroCard className="p-5 sm:p-6">
             <div className="flex items-center gap-2">
               <Badge tone="solid">{nextLabel}</Badge>
-              <span className="text-sm text-on-hero-muted">Next in your plan</span>
+              <span className="truncate text-sm text-on-hero-muted">{next.routine.program ?? 'Next in your plan'}</span>
             </div>
             <h2 className="mt-4 font-display text-[44px] leading-[0.95] font-semibold tracking-[0.03em] uppercase">{next.routine.name}</h2>
             <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-on-hero-muted">
@@ -184,7 +188,7 @@ export default function Home() {
           <EmptyState
             icon={<Dumbbell size={22} />}
             title="No plan yet"
-            body="Add routines to your plan and IronLog will line up your next session here."
+            body="Add routines to your plan and Overload will line up your next session here."
             action={
               <div className="flex gap-2">
                 <LinkButton to="/routines" variant="secondary">
@@ -231,6 +235,24 @@ export default function Home() {
               {milestone - streak.current} more to a {milestone}-week streak · best {streak.longest}
             </p>
           </Card>
+          <Link to="/progress#aerobic" className="col-span-2 block lg:col-span-1">
+            <Card className="flex items-center gap-4 p-4 transition-colors hover:border-line-strong lg:p-5">
+              <Ring value={aerobicWeek / aerobicTarget} size={64} stroke={7} color="var(--good)" label={`${aerobicWeek} of ${aerobicTarget} aerobic minutes this week`}>
+                <Footprints size={20} className="text-good" />
+              </Ring>
+              <div className="min-w-0 flex-1">
+                <div className="eyebrow">Aerobic this week</div>
+                <div className="mt-0.5 flex items-baseline gap-1">
+                  <span className="stamp text-[30px]">{aerobicWeek}</span>
+                  <span className="text-sm text-muted">/ {aerobicTarget} min</span>
+                </div>
+                <div className="text-xs text-muted">
+                  {aerobicWeek >= aerobicTarget ? 'Weekly guideline met' : `${aerobicTarget - aerobicWeek} min to the weekly guideline`}
+                </div>
+              </div>
+              <ArrowRight size={18} className="text-muted" />
+            </Card>
+          </Link>
         </div>
       </div>
 
@@ -305,7 +327,7 @@ export default function Home() {
                         {friendlyDay(w.startedAt)} · {formatDuration(durationMs(w))}
                       </span>
                     </span>
-                    <span className="stamp text-lg text-ink-2">{formatVolume(workoutVolume(w), units)}</span>
+                    <span className="stamp text-lg text-ink-2">{workoutVolume(w) > 0 || !aerobicMinutes(w) ? formatVolume(workoutVolume(w), units) : `${aerobicMinutes(w)} min`}</span>
                   </Link>
                 </li>
               ))}

@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import clsx from 'clsx'
-import { ChevronRight, Download, Eraser, Monitor, Moon, RotateCcw, Ruler, Sparkles, Sun, Timer, Trash2, Upload } from 'lucide-react'
+import { ChevronRight, Download, Eraser, Footprints, Monitor, Moon, RotateCcw, Ruler, Sparkles, Sun, Timer, Trash2, Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -42,13 +42,13 @@ export default function Settings() {
       measurements: s.measurements,
       active: s.active,
     }
-    downloadJson(`ironlog-backup-${format(new Date(), 'yyyy-MM-dd')}.json`, buildBackup(data))
+    downloadJson(`overload-backup-${format(new Date(), 'yyyy-MM-dd')}.json`, buildBackup(data))
     toast('Backup downloaded', { tone: 'success' })
   }
 
   const onFile = async (file: File | undefined) => {
     if (!file) return
-    if (file.size > 20 * 1024 * 1024) return toast('That file is too large to be an IronLog backup.', { tone: 'error' })
+    if (file.size > 20 * 1024 * 1024) return toast('That file is too large to be an Overload backup.', { tone: 'error' })
     try {
       const result = parseBackup(await file.text())
       setPending({ kind: 'import', result })
@@ -180,7 +180,10 @@ export default function Settings() {
           />
         </ListGroup>
 
-        <ListGroup title="Workouts" footer="The default rest is used for exercises you add mid-workout or to a routine.">
+        <ListGroup
+          title="Workouts"
+          footer="The default rest is used for exercises you add mid-workout or to a routine. 150 aerobic minutes a week is the WHO and AHA adult guideline."
+        >
           <ListRow
             icon={<Timer size={18} />}
             title={<label htmlFor="default-rest">Default rest time</label>}
@@ -189,6 +192,19 @@ export default function Settings() {
                 {REST.map((r) => (
                   <option key={r} value={r}>
                     {r < 60 ? `${r} seconds` : `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')} min`}
+                  </option>
+                ))}
+              </Select>
+            }
+          />
+          <ListRow
+            icon={<Footprints size={18} />}
+            title={<label htmlFor="aerobic-target">Weekly aerobic target</label>}
+            control={
+              <Select id="aerobic-target" value={settings.aerobicTargetMin ?? 150} onChange={(e) => store.updateSettings({ aerobicTargetMin: Number(e.target.value) })} className="w-36">
+                {[60, 90, 120, 150, 180, 210, 240, 300].map((m) => (
+                  <option key={m} value={m}>
+                    {m} min
                   </option>
                 ))}
               </Select>
@@ -320,7 +336,7 @@ export default function Settings() {
         </ListGroup>
       </div>
 
-      <p className="pt-8 text-center text-xs text-muted">IronLog 1.0 · local-first · no account, no tracking</p>
+      <p className="pt-8 text-center text-xs text-muted">Overload 1.1 · local-first · no account, no tracking</p>
 
       {pending && (
         <ConfirmDialog

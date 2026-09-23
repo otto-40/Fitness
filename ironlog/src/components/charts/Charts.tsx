@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import type { Effort } from '../../types'
+import { EFFORT_META } from '../workout/effortMeta'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 export interface Point {
@@ -62,6 +64,22 @@ interface ChartProps {
   yWidth?: number
   ariaLabel: string
   tickFormat?: (v: number) => string
+  /** Colours and shapes each point of the first series by how that session felt. */
+  effort?: (Effort | null)[]
+}
+
+/** Circle easy, diamond moderate, triangle hard; hollow when not rated. Haloed so it lifts off the line. */
+function effortDot(effort: (Effort | null)[]) {
+  return function EffortDot(props: unknown) {
+    const { cx, cy, index } = props as { cx?: number; cy?: number; index: number }
+    if (cx == null || cy == null) return <g key={index} />
+    const e = effort[index]
+    const fill = e ? EFFORT_META[e].cssVar : 'var(--surface)'
+    const common = { fill, stroke: e ? 'var(--surface)' : 'var(--muted)', strokeWidth: e ? 2 : 1.5 }
+    if (e === 'moderate') return <rect key={index} x={cx - 4.5} y={cy - 4.5} width={9} height={9} transform={`rotate(45 ${cx} ${cy})`} {...common} />
+    if (e === 'hard') return <path key={index} d={`M${cx} ${cy - 6} L${cx + 6} ${cy + 4.5} L${cx - 6} ${cy + 4.5} Z`} strokeLinejoin="round" {...common} />
+    return <circle key={index} cx={cx} cy={cy} r={e ? 5 : 3.5} {...common} />
+  }
 }
 
 function Frame({ ariaLabel, height, children, series }: { ariaLabel: string; height: number; children: ReactNode; series: Series[] }) {
@@ -75,7 +93,7 @@ function Frame({ ariaLabel, height, children, series }: { ariaLabel: string; hei
   )
 }
 
-export function LineTrend({ data, series, format, height = 220, yWidth = 44, ariaLabel, tickFormat }: ChartProps) {
+export function LineTrend({ data, series, format, height = 220, yWidth = 44, ariaLabel, tickFormat, effort }: ChartProps) {
   const single = series.length === 1
   return (
     <Frame ariaLabel={ariaLabel} height={height} series={series}>
@@ -99,7 +117,7 @@ export function LineTrend({ data, series, format, height = 220, yWidth = 44, ari
               stroke={series[0].color ?? 'var(--series-1)'}
               strokeWidth={2}
               fill={`url(#fill-${series[0].key})`}
-              dot={data.length < 16 ? { r: 3.5, strokeWidth: 2, stroke: 'var(--surface)', fill: series[0].color ?? 'var(--series-1)' } : false}
+              dot={effort ? effortDot(effort) : data.length < 16 ? { r: 3.5, strokeWidth: 2, stroke: 'var(--surface)', fill: series[0].color ?? 'var(--series-1)' } : false}
               activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }}
               connectNulls
               isAnimationActive={false}
@@ -119,7 +137,7 @@ export function LineTrend({ data, series, format, height = 220, yWidth = 44, ari
                 name={s.name}
                 stroke={s.color ?? `var(--series-${i + 1})`}
                 strokeWidth={2}
-                dot={data.length < 16 ? { r: 3.5, strokeWidth: 2, stroke: 'var(--surface)', fill: s.color ?? `var(--series-${i + 1})` } : false}
+                dot={effort && i === 0 ? effortDot(effort) : data.length < 16 ? { r: 3.5, strokeWidth: 2, stroke: 'var(--surface)', fill: s.color ?? `var(--series-${i + 1})` } : false}
                 activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }}
                 connectNulls
                 isAnimationActive={false}

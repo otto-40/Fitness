@@ -7,74 +7,83 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * IronLog palette: warm stone surfaces, graphite ink, and one "hot iron" orange
- * used for action and progress. Status green is reserved for completed sets.
+ * Overload palette, adopted from Sam's Training Week ("Longevity"): true-grey
+ * neutrals so indigo is the only hue that is not reporting a state. Each role
+ * means one thing: accent = act on this, good = logged/complete, warn = hold or
+ * warm-up, danger = destructive only. Hero surfaces stay dark in both themes and
+ * carry their own lighter accent so rings and highlights keep their contrast.
  */
 :root {
-  --bg: #f3f2ee;
+  --bg: #f4f4f5;
   --surface: #ffffff;
-  --surface-2: #eeede8;
-  --surface-3: #e4e2dc;
-  --line: #e1dfd8;
-  --line-strong: #cdcac2;
-  --ink: #15161a;
-  --ink-2: #4d4e55;
-  --muted: #636469;
-  --accent: #ff6b2c;
-  --accent-hover: #ff7f47;
-  --accent-ink: #b3410f; /* accent used as text on light surfaces */
-  --accent-soft: #ffe6da;
-  --on-accent: #15161a;
-  --good: #157a3c;
-  --good-soft: #dbf2e2;
-  --warn: #a84d08;
-  --warn-soft: #fdf0dc;
-  --hero: #15161a;
-  --hero-2: #202228;
-  --on-hero: #f4f3ef;
-  --on-hero-muted: #a9abb2;
-  --danger: #c2261c;
-  --danger-soft: #fde4e1;
-  --series-1: #eb6834;
-  --series-2: #2a78d6;
-  --grid: #e8e6e1;
-  --shadow: 0 1px 2px rgb(22 23 26 / 0.06), 0 4px 16px rgb(22 23 26 / 0.05);
-  --shadow-float: 0 2px 6px rgb(21 22 26 / 0.08), 0 12px 32px rgb(21 22 26 / 0.14);
-  --shadow-sheet: 0 -4px 24px rgb(21 22 26 / 0.12), 0 24px 64px rgb(21 22 26 / 0.18);
+  --surface-2: #f0f0f3;
+  --surface-3: #e4e4e9;
+  --line: #dcdce1;
+  --line-strong: #c4c4cc;
+  --ink: #18181b;
+  --ink-2: #3f3f46;
+  --muted: #52525b;
+  --accent: #4338ca;
+  --accent-hover: #3730a3;
+  --accent-ink: #4338ca; /* accent used as text: 7.9:1 on a card */
+  --accent-soft: #ecebfc;
+  --on-accent: #ffffff;
+  --good: #137537;
+  --good-soft: #e6f4ea;
+  --on-good: #ffffff;
+  --warn: #a34a06;
+  --warn-soft: #fcefe0;
+  --hero: #18181b;
+  --hero-2: #232329;
+  --on-hero: #f4f4f5;
+  --on-hero-muted: #b4b4bd;
+  --hero-accent: #b3aeff;
+  --hero-ok: #5cd08f;
+  --danger: #b91c1c;
+  --danger-soft: #fbe9e9;
+  --series-1: #4338ca;
+  --series-2: #0f766e;
+  --grid: #ebebef;
+  --shadow: 0 1px 2px rgb(24 24 27 / 0.05), 0 4px 16px rgb(24 24 27 / 0.04);
+  --shadow-float: 0 2px 6px rgb(9 9 11 / 0.08), 0 12px 32px rgb(9 9 11 / 0.16);
+  --shadow-sheet: 0 -4px 24px rgb(9 9 11 / 0.12), 0 24px 64px rgb(9 9 11 / 0.24);
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0b0c0e;
-  --surface: #141619;
-  --surface-2: #1b1e22;
-  --surface-3: #24282d;
-  --line: #24272c;
-  --line-strong: #33373e;
-  --ink: #f4f3ef;
-  --ink-2: #b6b8be;
-  --muted: #8b8e95;
-  --accent: #ff6b2c;
-  --accent-hover: #ff824d;
-  --accent-ink: #ff8b59;
-  --accent-soft: #35190c;
-  --on-accent: #15161a;
-  --good: #35c46b;
-  --good-soft: #0f2a1a;
-  --warn: #f5b454;
-  --warn-soft: #33250f;
-  --hero: #20232a;
-  --hero-2: #2a2e36;
-  --on-hero: #f4f3ef;
-  --on-hero-muted: #a9abb2;
-  --danger: #f06a5f;
-  --danger-soft: #3a1512;
-  --series-1: #d95926;
-  --series-2: #3987e5;
-  --grid: #24272c;
+  --bg: #0e0e11;
+  --surface: #18181c;
+  --surface-2: #212127;
+  --surface-3: #2c2c33;
+  --line: #2e2e35;
+  --line-strong: #45454e;
+  --ink: #f4f4f5;
+  --ink-2: #cacad1;
+  --muted: #a6a6b0;
+  --accent: #9a94ff;
+  --accent-hover: #aea9ff;
+  --accent-ink: #9a94ff;
+  --accent-soft: #25234a;
+  --on-accent: #0e0e11;
+  --good: #43bf78;
+  --good-soft: #12291b;
+  --on-good: #06170d;
+  --warn: #f0a64a;
+  --warn-soft: #2e2210;
+  --hero: #232329;
+  --hero-2: #2c2c33;
+  --on-hero: #f4f4f5;
+  --on-hero-muted: #b4b4bd;
+  --hero-accent: #b3aeff;
+  --hero-ok: #5cd08f;
+  --danger: #f4817b;
+  --danger-soft: #361716;
+  --series-1: #9a94ff;
+  --series-2: #2dd4bf;
+  --grid: #232328;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25);
-  --shadow-float: 0 2px 8px rgb(0 0 0 / 0.5), 0 16px 40px rgb(0 0 0 / 0.45);
-  --shadow-sheet: 0 -4px 24px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.5);
+  --shadow-float: 0 2px 8px rgb(0 0 0 / 0.5), 0 16px 40px rgb(0 0 0 / 0.5);
+  --shadow-sheet: 0 -4px 24px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.55);
   color-scheme: dark;
 }
 
@@ -95,6 +104,7 @@
   --color-on-accent: var(--on-accent);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
+  --color-on-good: var(--on-good);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warn: var(--warn);
@@ -103,6 +113,8 @@
   --color-hero-2: var(--hero-2);
   --color-on-hero: var(--on-hero);
   --color-on-hero-muted: var(--on-hero-muted);
+  --color-hero-accent: var(--hero-accent);
+  --color-hero-ok: var(--hero-ok);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Barlow Condensed', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --shadow-card: var(--shadow);
@@ -111,6 +123,22 @@
 }
 
 @layer base {
+  /* Dark hero surfaces (hero cards, rest timer, mini-player) swap in the lighter
+     hero indigo, so anything accented on them keeps its contrast in both themes. */
+  .bg-hero {
+    --accent: var(--hero-accent);
+    --accent-hover: #c9c5ff;
+    --accent-ink: var(--hero-accent);
+    --accent-soft: rgb(179 174 255 / 0.16);
+    --on-accent: #18181b;
+    --good: var(--hero-ok);
+    --warn: #f0a64a;
+    --warn-soft: rgb(240 166 74 / 0.16);
+    --good-soft: rgb(92 208 143 / 0.16);
+    --surface-2: rgb(255 255 255 / 0.1);
+    --ink: var(--on-hero);
+    --ink-2: var(--on-hero);
+  }
   /* Native option lists never inherit a chip's inverted text colour. */
   option {
     color: var(--ink);

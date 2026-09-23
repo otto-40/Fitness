@@ -1,5 +1,7 @@
 # IronLog final audit
 
+> Historical record. This audit was run before the app was renamed **Overload** and gained effort ratings, aerobic minutes and Sam's Weekly Workout. Those later changes were checked with the same audit suites, extended to cover them.
+
 This audit covers product, functionality, responsiveness and code quality. The sources of truth were:
 - the original build brief: onboarding, home, a library of 80+ exercises, routines, live workout, history, progress, body, settings, local-only data and the demo seed
 - [`design-research.md`](design-research.md): the Forge design system, including 44px minimum touch targets, a visible focus ring, and a keypad that accepts physical keys

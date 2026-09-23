@@ -1,4 +1,7 @@
-# IronLog design research and redesign plan
+# Overload design research and redesign plan
+
+> **Update:** the app has since been renamed **Overload**. It now uses the colour palette from Sam's Training Week ("Longevity"): indigo replaces the ember accent throughout.
+> The colour table below is current. Elsewhere, "ember" or "orange" in this document now means the accent colour, indigo. The research, patterns and page plan are unchanged.
 
 Research was done on Mobbin (iOS) across eight areas. The goal was not to clone any product. It was to find the patterns that keep recurring in the strongest fitness products, decide which ones fit a private, offline strength log, and build IronLog's own identity on top of them.
 
@@ -107,7 +110,7 @@ Research was done on Mobbin (iOS) across eight areas. The goal was not to clone 
 
 ---
 
-## 4. IronLog design system: "Forge"
+## 4. Overload design system: "Forge"
 
 ### Visual direction
 IronLog should feel like **cast iron and chalk**: dark, dense and quiet, with one hot accent that means *do this now*. It has three signatures:
@@ -118,28 +121,33 @@ IronLog should feel like **cast iron and chalk**: dark, dense and quiet, with on
 Everything else stays calm: neutral surfaces, hairline borders, no gradients.
 
 ### Colour tokens
-Colours are semantic tokens. Dark is the flagship theme ("Forge") and light is "Chalk".
+Colours are semantic tokens, adopted from Sam's Training Week. The neutrals are true greys, so indigo is the only hue on screen that is not reporting a state. Each role means one thing:
 
-| Token | Chalk (light) | Forge (dark) | Use |
+| Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `bg` | `#F3F2EE` | `#0B0C0E` | App background |
-| `surface` | `#FFFFFF` | `#141619` | Cards, sheets |
-| `surface-2` | `#EEEDE8` | `#1B1E22` | Inputs, set cells, secondary buttons |
-| `surface-3` | `#E4E2DC` | `#24282D` | Pressed/hover, tracks |
-| `line` | `#E1DFD8` | `#24272C` | Hairline borders |
-| `ink` | `#15161A` | `#F4F3EF` | Primary text |
-| `ink-2` | `#4D4E55` | `#B6B8BE` | Secondary text |
-| `muted` | `#636469` | `#8B8E95` | Captions, labels (≥4.5:1 on bg) |
-| `accent` (ember) | `#FF6B2C` | `#FF6B2C` | Primary action, current item, progress |
-| `accent-ink` | `#B3410F` | `#FF8B59` | Accent used as text |
-| `accent-soft` | `#FFE6DA` | `#35190C` | Accent tints |
-| `on-accent` | `#15161A` | `#15161A` | Text on ember (6.3:1) |
-| `good` | `#157A3C` | `#35C46B` | Completed sets **only** |
-| `warn` | `#A84D08` | `#F5B454` | Warm-up sets |
-| `danger` | `#C2261C` | `#F06A5F` | Destructive, failure sets |
-| `series-1` / `series-2` | `#EB6834` / `#2A78D6` | `#D95926` / `#3987E5` | Chart series (validated orange/blue pair) |
+| `bg` | `#F4F4F5` | `#0E0E11` | App background |
+| `surface` | `#FFFFFF` | `#18181C` | Cards, sheets |
+| `surface-2` | `#F0F0F3` | `#212127` | Inputs, set cells, secondary buttons |
+| `surface-3` | `#E4E4E9` | `#2C2C33` | Pressed/hover, tracks |
+| `line` | `#DCDCE1` | `#2E2E35` | Hairline borders |
+| `ink` | `#18181B` | `#F4F4F5` | Primary text (17.7:1 on a card) |
+| `ink-2` | `#3F3F46` | `#CACAD1` | Secondary text |
+| `muted` | `#52525B` | `#A6A6B0` | Captions, labels (7.7:1 on a card) |
+| `accent` (indigo) | `#4338CA` | `#9A94FF` | The one thing you can act on: the next set, primary buttons, progress |
+| `accent-soft` | `#ECEBFC` | `#25234A` | Accent tints |
+| `on-accent` | `#FFFFFF` | `#0E0E11` | Text on indigo (7.9:1 / 6.8:1) |
+| `good` | `#137537` | `#43BF78` | Logged and complete; easy effort; aerobic minutes |
+| `warn` | `#A34A06` | `#F0A64A` | Hold or back off; hard effort; warm-up sets |
+| `danger` | `#B91C1C` | `#F4817B` | Destructive only |
+| `series-1` / `series-2` | `#4338CA` / `#0F766E` | `#9A94FF` / `#2DD4BF` | Chart series |
 
-A dark `hero` surface (`#15161A`, the same in both themes) is used for the one card on each page that must dominate, such as today's workout or the rest timer.
+A dark `hero` surface (`#18181B` light, `#232329` dark) is used for the one card on each page that must dominate, such as today's workout or the rest timer.
+On hero surfaces the accent switches to a lighter indigo (`#B3AEFF`), and good to `#5CD08F`, so rings and buttons keep their contrast, as on Longevity's rest bar.
+
+**Effort** is a shape as well as a colour, so it reads in greyscale and to colour-blind users:
+- easy is a green circle
+- moderate is an indigo diamond
+- hard is an amber triangle
 
 ### Typography
 - **Display:** Barlow Condensed 600/700, tabular numerals. Used for numbers, page titles and hero names. Page titles are uppercase with wide tracking at 32–40px. Numerals are sized by role:

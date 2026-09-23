@@ -31,6 +31,18 @@ export default function Routines() {
   const idx = menuFor ? routines.findIndex((r) => r.id === menuFor.id) : -1
 
   const plan = routines.filter((r) => r.inPlan)
+  const weekly = plan.length > 0 && plan.every((r) => r.weekday != null)
+  if (weekly) plan.sort((a, b) => ((a.weekday! + 6) % 7) - ((b.weekday! + 6) % 7))
+  // Routines that belong to a named program (such as Sam's Weekly Workout) are listed together.
+  const groups = useMemo(() => {
+    const out: { label: string; program: boolean; items: Routine[] }[] = []
+    for (const r of routines) {
+      const label = r.program ?? 'Other routines'
+      const g = out.find((x) => x.label === label) ?? out[out.push({ label, program: !!r.program, items: [] }) - 1]
+      g.items.push(r)
+    }
+    return out.sort((a, b) => Number(b.program) - Number(a.program))
+  }, [routines])
 
   return (
     <div className="animate-rise">
@@ -38,7 +50,7 @@ export default function Routines() {
         title="Routines"
         subtitle={
           planCount
-            ? `${planCount} in your plan · trains ${profile.trainingDays.map((d) => WEEKDAY_SHORT[d]).join(', ') || 'no days set'}`
+            ? `${planCount} in your plan · trains ${(weekly ? plan.map((r) => r.weekday!) : [...profile.trainingDays].sort((x, y) => ((x + 6) % 7) - ((y + 6) % 7))).map((d) => WEEKDAY_SHORT[d]).join(', ') || 'no days set'}`
             : 'Add routines to your plan to get a “next workout” on the home screen.'
         }
       />
@@ -66,7 +78,7 @@ export default function Routines() {
 
       {plan.length > 0 && (
         <section className="mb-6" aria-label="Plan rotation">
-          <h2 className="eyebrow mb-3">Plan rotation</h2>
+          <h2 className="eyebrow mb-3">{weekly ? `This week · ${plan[0].program ?? 'Weekly plan'}` : 'Plan rotation'}</h2>
           <ol className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
             {plan.map((r, i) => {
               const up = next?.routine.id === r.id
@@ -79,8 +91,11 @@ export default function Routines() {
                       up ? 'border-accent bg-accent-soft/60 text-ink' : 'border-line bg-surface text-ink-2 hover:text-ink',
                     )}
                   >
-                    <span className={clsx('stamp flex size-9 items-center justify-center rounded-full text-lg', up ? 'bg-accent text-on-accent' : 'bg-surface-2')}>{i + 1}</span>
-                    {r.name}
+                    <span className={clsx('stamp flex size-9 items-center justify-center rounded-full', weekly ? 'text-sm' : 'text-lg', up ? 'bg-accent text-on-accent' : 'bg-surface-2')}>
+                      {weekly ? WEEKDAY_SHORT[r.weekday!] : i + 1}
+                    </span>
+                    {weekly ? r.name.replace(/^\w+day — /, '') : r.name}
+                    {r.optional && <span className="text-xs font-medium text-muted">optional</span>}
                     {up && <span className="text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">Next</span>}
                   </Link>
                 </li>
@@ -103,18 +118,22 @@ export default function Routines() {
         />
       ) : (
         <>
-          <h2 className="eyebrow mb-3">All routines · {routines.length}</h2>
-          <ul className="grid gap-3 md:grid-cols-2">
-            {routines.map((r) => {
+          {groups.map((g) => (
+          <section key={g.label} className="mb-8" aria-label={g.label}>
+          <h2 className={clsx('eyebrow mb-3', g.program && 'text-accent-ink')}>
+            {g.label} · {g.items.length}
+          </h2>
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {g.items.map((r) => {
               const muscles = routineMuscles(r, map)
               const isNext = next?.routine.id === r.id
-              const sets = r.exercises.reduce((n, e) => n + e.sets, 0)
+              const sets = r.exercises.reduce((n, e) => n + (e.minutes ? 0 : e.sets), 0)
               const shown = r.exercises.slice(0, 4)
               return (
-                <li key={r.id} className={clsx('flex flex-col rounded-2xl border bg-surface p-4 sm:p-5', isNext ? 'border-accent ring-1 ring-accent' : 'border-line')}>
+                <li key={r.id} className={clsx('flex min-w-0 flex-col rounded-2xl border bg-surface p-4 sm:p-5', isNext ? 'border-accent ring-1 ring-accent' : 'border-line')}>
                   <div className="flex items-start gap-2">
                     <Link to={`/routines/${r.id}`} className="flex min-h-11 min-w-0 flex-1 items-center hover:underline">
-                      <h2 className="truncate font-display text-[26px] leading-tight font-semibold tracking-[0.03em] uppercase">{r.name}</h2>
+                      <h2 className="min-w-0 truncate font-display text-[26px] leading-tight font-semibold tracking-[0.03em] uppercase">{r.name}</h2>
                     </Link>
                     <IconButton label={`Options for ${r.name}`} onClick={() => setMenuFor(r)} className="-mt-1 -mr-2 size-11">
                       <MoreHorizontal size={20} />
@@ -127,8 +146,10 @@ export default function Routines() {
                         <CalendarCheck size={12} /> In plan
                       </Badge>
                     )}
+                    {r.optional && <Badge>Optional</Badge>}
                     <span className="inline-flex items-center gap-1">
-                      <Dumbbell size={14} /> {plural(r.exercises.length, 'exercise')} · {plural(sets, 'set')}
+                      <Dumbbell size={14} /> {plural(r.exercises.length, 'exercise')}
+                      {sets > 0 && ` · ${plural(sets, 'set')}`}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Clock size={14} /> ~{routineMinutes(r)} min
@@ -140,7 +161,7 @@ export default function Routines() {
                         <li key={e.id} className="flex items-center justify-between gap-3">
                           <span className="truncate text-ink-2">{map.get(e.exerciseId)?.name ?? 'Deleted exercise'}</span>
                           <span className="tnum shrink-0 text-muted">
-                            {e.sets} × {e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`}
+                            {e.minutes ? `${e.minutes} min` : `${e.sets} × ${e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`}`}
                           </span>
                         </li>
                       ))}
@@ -169,6 +190,8 @@ export default function Routines() {
               )
             })}
           </ul>
+          </section>
+          ))}
         </>
       )}
 

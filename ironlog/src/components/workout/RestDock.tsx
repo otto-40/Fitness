@@ -5,6 +5,8 @@ import { Ring } from '../ui'
 import { useNow } from '../../hooks/useNow'
 import { clock } from '../../lib/dates'
 import { useStore } from '../../store/useStore'
+import type { Effort } from '../../types'
+import { EffortPicker } from './Effort'
 import { toast } from '../../store/useToast'
 
 function beep() {
@@ -35,6 +37,12 @@ export function RestDock() {
   const sound = useStore((s) => s.settings.timerSound)
   const adjustRest = useStore((s) => s.adjustRest)
   const skipRest = useStore((s) => s.skipRest)
+  // The set that started this rest, so it can be rated while resting (strength sets only).
+  const ratedSet = useStore((s) => (rest?.exId ? s.active?.exercises.find((e) => e.id === rest.exId)?.sets.find((x) => x.id === rest.setId) : undefined))
+  const canRate = !!ratedSet && ratedSet.completed && ratedSet.minutes == null
+  const rate = (e: Effort | null) => {
+    if (rest?.exId && rest.setId) useStore.getState().rateSet(rest.exId, rest.setId, e)
+  }
   const now = useNow(200, !!rest)
   const fired = useRef<number | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -80,7 +88,8 @@ export function RestDock() {
 
   return (
     <>
-      <div className="animate-sheet mx-auto mb-2 flex w-full max-w-3xl items-center gap-3 rounded-3xl bg-hero p-2.5 pl-2.5 text-on-hero shadow-float" role="timer" aria-live="off" aria-label={label}>
+      <div className="animate-sheet mx-auto mb-2 w-full max-w-3xl rounded-3xl bg-hero p-2.5 text-on-hero shadow-float">
+      <div className="flex items-center gap-3" role="timer" aria-live="off" aria-label={label}>
         <button onClick={() => setExpanded(true)} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl text-left" aria-label="Expand rest timer">
           <Ring value={pct} size={52} stroke={5} trackClass="text-white/15">
             <Maximize2 size={14} className="text-on-hero-muted" />
@@ -91,6 +100,13 @@ export function RestDock() {
           </span>
         </button>
         {controls(false)}
+      </div>
+      {canRate && (
+        <div className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2">
+          <span className="w-16 shrink-0 text-xs leading-tight text-on-hero-muted">How did it feel?</span>
+          <EffortPicker value={ratedSet.effort} onChange={rate} className="flex-1 gap-1.5" label="How did that set feel?" />
+        </div>
+      )}
       </div>
 
       {expanded && (
@@ -108,7 +124,10 @@ export function RestDock() {
             </Ring>
             <p className="mt-6 text-sm text-on-hero-muted">of {clock(rest.duration * 1000)} rest</p>
           </div>
-          {controls(true)}
+          <div className="flex w-full max-w-sm flex-col gap-3">
+            {canRate && <EffortPicker value={ratedSet.effort} onChange={rate} label="How did that set feel?" />}
+            {controls(true)}
+          </div>
         </div>
       )}
     </>

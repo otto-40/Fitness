@@ -1,8 +1,12 @@
 import { cn as clsx } from '../../lib/cn'
 import type { ReactNode } from 'react'
 
-export function Card({ children, className, as: As = 'div' }: { children: ReactNode; className?: string; as?: 'div' | 'section' | 'article' | 'li' }) {
-  return <As className={clsx('rounded-2xl border border-line bg-surface', className)}>{children}</As>
+export function Card({ children, className, id, as: As = 'div' }: { children: ReactNode; className?: string; id?: string; as?: 'div' | 'section' | 'article' | 'li' }) {
+  return (
+    <As id={id} className={clsx('rounded-2xl border border-line bg-surface', className)}>
+      {children}
+    </As>
+  )
 }
 
 /** Dark, dominant card used once per page for the thing that matters most right now. */
@@ -123,21 +127,21 @@ export function Badge({
   )
 }
 
-/** The IronLog mark: a loaded barbell seen end-on. */
+/** The Overload mark: a loaded barbell seen end-on. */
 export function Logo({ className, withWord = true }: { className?: string; withWord?: boolean }) {
   return (
     <span className={clsx('inline-flex items-center gap-2', className)}>
       <svg viewBox="0 0 32 32" className="size-8" aria-hidden>
         <rect width="32" height="32" rx="9" className="fill-hero" />
-        <rect x="5" y="9" width="4" height="14" rx="1.5" fill="#ff6b2c" />
-        <rect x="23" y="9" width="4" height="14" rx="1.5" fill="#ff6b2c" />
-        <rect x="9" y="11.5" width="2.5" height="9" rx="1" fill="#ff6b2c" />
-        <rect x="20.5" y="11.5" width="2.5" height="9" rx="1" fill="#ff6b2c" />
-        <rect x="11.5" y="14.75" width="9" height="2.5" rx="1" fill="#f4f3ef" />
+        <rect x="5" y="9" width="4" height="14" rx="1.5" fill="var(--hero-accent)" />
+        <rect x="23" y="9" width="4" height="14" rx="1.5" fill="var(--hero-accent)" />
+        <rect x="9" y="11.5" width="2.5" height="9" rx="1" fill="var(--hero-accent)" />
+        <rect x="20.5" y="11.5" width="2.5" height="9" rx="1" fill="var(--hero-accent)" />
+        <rect x="11.5" y="14.75" width="9" height="2.5" rx="1" fill="var(--on-hero)" />
       </svg>
       {withWord && (
         <span className="font-display text-[22px] leading-none font-bold tracking-[0.08em] uppercase">
-          Iron<span className="text-accent">Log</span>
+          Over<span className="text-accent">load</span>
         </span>
       )}
     </span>

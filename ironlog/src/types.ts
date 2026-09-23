@@ -16,6 +16,7 @@ export const MUSCLES = [
   'Hamstrings',
   'Glutes',
   'Calves',
+  'Cardio',
 ] as const
 export type Muscle = (typeof MUSCLES)[number]
 
@@ -42,6 +43,10 @@ export interface Exercise {
   custom?: boolean
   /** Deleted custom exercise kept so history still has a name for it. */
   archived?: boolean
+  /** Logged as minutes rather than weight × reps, and counted toward weekly aerobic minutes. */
+  aerobic?: boolean
+  /** Prescribed minutes when an aerobic exercise is added without a routine target. */
+  defaultMinutes?: number
 }
 
 export interface RoutineExercise {
@@ -53,6 +58,10 @@ export interface RoutineExercise {
   restSec: number
   /** Consecutive exercises sharing a superset id are performed back to back. */
   supersetId?: string | null
+  /** Prescribed minutes for an aerobic exercise (sets and reps are ignored). */
+  minutes?: number
+  /** Why it is in the program, shown on the exercise mid-workout. */
+  note?: string
 }
 
 export interface Routine {
@@ -64,11 +73,21 @@ export interface Routine {
   inPlan: boolean
   /** Created by onboarding; replaced when onboarding is repeated. */
   generated?: boolean
+  /** Groups routines that form one named program, e.g. "Sam's Weekly Workout". */
+  program?: string
+  /** Weekday this routine belongs to (0 = Sunday) in a weekly plan such as Sam's Weekly Workout. */
+  weekday?: number
+  /** A bonus day: it counts when done but is not part of the weekly target. */
+  optional?: boolean
   createdAt: string
   updatedAt: string
 }
 
 export type SetType = 'normal' | 'warmup' | 'failure' | 'drop'
+
+/** How a set felt. Optional; load and reps say what you did, effort says what it cost. */
+export type Effort = 'easy' | 'moderate' | 'hard'
+export const EFFORTS: readonly Effort[] = ['easy', 'moderate', 'hard']
 
 export interface WorkoutSet {
   id: string
@@ -77,6 +96,9 @@ export interface WorkoutSet {
   weight: number | null
   reps: number | null
   completed: boolean
+  effort?: Effort | null
+  /** Aerobic sets log minutes instead of weight and reps. */
+  minutes?: number | null
 }
 
 export interface WorkoutExercise {
@@ -86,6 +108,7 @@ export interface WorkoutExercise {
   repMin?: number
   repMax?: number
   supersetId?: string | null
+  note?: string
   sets: WorkoutSet[]
 }
 
@@ -108,6 +131,9 @@ export interface RestTimer {
   endsAt: number
   duration: number
   label: string
+  /** The set that started this rest, so it can be rated while resting. */
+  exId?: string
+  setId?: string
 }
 
 export interface Measurement {
@@ -140,6 +166,8 @@ export interface Settings {
   units: Units
   defaultRestSec: number
   timerSound: boolean
+  /** Weekly aerobic target in minutes (WHO/AHA adult guideline: 150). */
+  aerobicTargetMin?: number
   /** Onboarding has been completed or skipped at least once. */
   setupSeen?: boolean
 }

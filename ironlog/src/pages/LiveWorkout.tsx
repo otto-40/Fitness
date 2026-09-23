@@ -7,7 +7,8 @@ import { ExerciseCard } from '../components/workout/ExerciseCard'
 import { RestDock } from '../components/workout/RestDock'
 import { useExerciseMap } from '../hooks/useExercises'
 import { useNow } from '../hooks/useNow'
-import { completedSetCount, previousSets, workoutVolume } from '../lib/calc'
+import { aerobicMinutes, completedSetCount, previousSets, workoutVolume } from '../lib/calc'
+import { weekAerobicMinutes } from '../lib/stats'
 import { clock } from '../lib/dates'
 import { formatVolume } from '../lib/units'
 import { useStore } from '../store/useStore'
@@ -49,6 +50,7 @@ export default function LiveWorkout() {
   const active = useStore((s) => s.active)
   const workouts = useStore((s) => s.workouts)
   const units = useStore((s) => s.settings.units)
+  const aerobicTarget = useStore((s) => s.settings.aerobicTargetMin ?? 150)
   const a = useStore.getState()
   const map = useExerciseMap()
   const now = useNow(1000, !!active)
@@ -89,6 +91,8 @@ export default function LiveWorkout() {
 
   const elapsed = now - new Date(active.startedAt).getTime()
   const volume = workoutVolume(active)
+  const hasAerobic = active.exercises.some((e) => e.sets.some((x) => x.minutes != null))
+  const aerobicWeek = weekAerobicMinutes(workouts, new Date()) + aerobicMinutes(active)
   const doneSets = completedSetCount(active)
   const totalSets = active.exercises.reduce((n, e) => n + e.sets.length, 0)
   const tickedSets = active.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0)
@@ -146,17 +150,28 @@ export default function LiveWorkout() {
         >
           <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${totalSets ? (tickedSets / totalSets) * 100 : 0}%` }} />
         </div>
-        <dl className="mt-2 flex items-center gap-4 text-sm">
-          <div className="flex items-baseline gap-1.5">
-            <dt className="eyebrow">Volume</dt>
-            <dd className="stamp text-lg">{formatVolume(volume, units)}</dd>
-          </div>
+        <dl className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm whitespace-nowrap">
+          {(!hasAerobic || active.exercises.some((e) => e.sets.some((x) => x.minutes == null))) && (
+            <div className="flex items-baseline gap-1.5">
+              <dt className="eyebrow">Volume</dt>
+              <dd className="stamp text-lg">{formatVolume(volume, units)}</dd>
+            </div>
+          )}
           <div className="flex items-baseline gap-1.5">
             <dt className="eyebrow">Sets</dt>
             <dd className="stamp text-lg" aria-live="polite">
               {doneSets}/{totalSets}
             </dd>
           </div>
+          {hasAerobic && (
+            <div className="flex items-baseline gap-1.5">
+              <dt className="eyebrow">Aerobic week</dt>
+              <dd className="stamp text-lg">
+                {aerobicWeek}/{aerobicTarget}
+                <span className="ml-0.5 font-sans text-xs text-muted">min</span>
+              </dd>
+            </div>
+          )}
         </dl>
       </div>
 
@@ -211,6 +226,10 @@ export default function LiveWorkout() {
                     })
                   }}
                   onRestChange={(sec) => a.setActiveRest(ex.id, sec)}
+                  onEffort={(setId, e) => {
+                    const r = useStore.getState().rateSet(ex.id, setId, e)
+                    if (!r.ok && r.message) toast(r.message, { tone: 'error' })
+                  }}
                 />
               </div>
             )

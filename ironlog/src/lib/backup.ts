@@ -1,11 +1,14 @@
 import { EQUIPMENT, MUSCLES } from '../types'
-import type { Exercise, Measurement, Profile, Routine, Settings, Workout, WorkoutExercise, WorkoutSet } from '../types'
+import type { Effort, Exercise, Measurement, Profile, Routine, Settings, Workout, WorkoutExercise, WorkoutSet } from '../types'
 import type { DataState } from '../store/useStore'
-import { DEFAULT_SETTINGS } from '../store/useStore'
+import { DEFAULT_SETTINGS, migrateState } from '../store/useStore'
 import { DEMO_PROFILE } from '../data/seed'
 
-export const BACKUP_APP = 'IronLog'
-export const BACKUP_VERSION = 1
+export const BACKUP_APP = 'Overload'
+/** Backups made before the app was renamed. */
+const LEGACY_APPS = ['IronLog']
+/** v2 adds effort, aerobic minutes, routine notes, weekdays and programs. v1 files still import. */
+export const BACKUP_VERSION = 2
 
 export function buildBackup(state: DataState) {
   return {
@@ -59,6 +62,8 @@ function exercise(v: unknown): Exercise | null {
     cue: str(v.cue, 300) ?? '',
     custom: true,
     archived: v.archived === true || undefined,
+    aerobic: v.aerobic === true || undefined,
+    defaultMinutes: num(v.defaultMinutes, 1, 600) ?? undefined,
   }
 }
 
@@ -70,12 +75,24 @@ function routine(v: unknown): Routine | null {
   const exercises = arr(v.exercises, (e) => {
     if (!isObj(e)) return null
     const exerciseId = str(e.exerciseId, 100)
+    const minutes = num(e.minutes, 1, 600) ?? undefined
     const sets = num(e.sets, 1, 20)
-    const repMin = num(e.repMin, 1, 500)
-    const repMax = num(e.repMax, 1, 500)
+    // Aerobic rows carry minutes and no rep target.
+    const repMin = num(e.repMin, minutes ? 0 : 1, 500)
+    const repMax = num(e.repMax, minutes ? 0 : 1, 500)
     const restSec = num(e.restSec, 0, 1800)
     if (!exerciseId || sets == null || repMin == null || repMax == null || restSec == null) return null
-    return { id: str(e.id, 100) ?? `${id}-${exerciseId}`, exerciseId, sets, repMin, repMax: Math.max(repMin, repMax), restSec, supersetId: str(e.supersetId, 100) }
+    return {
+      id: str(e.id, 100) ?? `${id}-${exerciseId}`,
+      exerciseId,
+      sets,
+      repMin,
+      repMax: Math.max(repMin, repMax),
+      restSec,
+      supersetId: str(e.supersetId, 100),
+      minutes,
+      note: str(e.note, 300) ?? undefined,
+    }
   })
   const now = new Date().toISOString()
   return {
@@ -85,6 +102,9 @@ function routine(v: unknown): Routine | null {
     exercises,
     inPlan: v.inPlan === true,
     generated: v.generated === true || undefined,
+    program: str(v.program, 80) ?? undefined,
+    weekday: num(v.weekday, 0, 6) ?? undefined,
+    optional: v.optional === true || undefined,
     createdAt: isDate(v.createdAt) ? v.createdAt : now,
     updatedAt: isDate(v.updatedAt) ? v.updatedAt : now,
   }
@@ -99,6 +119,8 @@ function workoutSet(v: unknown): WorkoutSet | null {
     weight: optNum(v.weight, 0, 2000),
     reps: optNum(v.reps, 0, 1000),
     completed: v.completed === true,
+    effort: (['easy', 'moderate', 'hard'] as Effort[]).find((e) => e === v.effort) ?? null,
+    minutes: optNum(v.minutes, 0, 600),
   }
 }
 
@@ -113,6 +135,7 @@ function workoutExercise(v: unknown): WorkoutExercise | null {
     repMin: num(v.repMin, 1, 500) ?? undefined,
     repMax: num(v.repMax, 1, 500) ?? undefined,
     supersetId: str(v.supersetId, 100),
+    note: str(v.note, 300) ?? undefined,
     sets: arr(v.sets, workoutSet),
   }
 }
@@ -170,6 +193,7 @@ function settings(v: unknown): Settings {
     units: v.units === 'lb' ? 'lb' : 'kg',
     defaultRestSec: num(v.defaultRestSec, 0, 1800) ?? 90,
     timerSound: v.timerSound !== false,
+    aerobicTargetMin: num(v.aerobicTargetMin, 30, 600) ?? 150,
     setupSeen: true,
   }
 }
@@ -188,9 +212,9 @@ export function parseBackup(text: string): ImportResult {
   } catch {
     throw new Error('That file is not valid JSON.')
   }
-  if (!isObj(raw) || raw.app !== BACKUP_APP || !isObj(raw.data)) throw new Error('That file is not an IronLog backup.')
+  if (!isObj(raw) || !(raw.app === BACKUP_APP || LEGACY_APPS.includes(raw.app as string)) || !isObj(raw.data)) throw new Error('That file is not an Overload backup.')
   if (typeof raw.version !== 'number' || raw.version > BACKUP_VERSION)
-    throw new Error('This backup was made by a newer version of IronLog.')
+    throw new Error('This backup was made by a newer version of Overload.')
   const d = raw.data
   const lens = ['workouts', 'routines', 'measurements', 'customExercises'].map((k) => (Array.isArray(d[k]) ? (d[k] as unknown[]).length : 0))
   const data: DataState = {
@@ -214,7 +238,8 @@ export function parseBackup(text: string): ImportResult {
   }
   const kept = [data.workouts.length, data.routines.length, data.measurements.length, data.customExercises.length]
   return {
-    data,
+    // Backups from before Overload get the same upgrade as stored data (Sam's Weekly Workout, aerobic target).
+    data: migrateState(data, raw.version),
     counts: { workouts: kept[0], routines: kept[1], measurements: kept[2], exercises: kept[3] },
     skipped: lens.reduce((s, n, i) => s + (n - kept[i]), 0),
   }
