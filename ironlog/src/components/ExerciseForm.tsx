@@ -5,7 +5,7 @@ import { useStore } from '../store/useStore'
 import { toast } from '../store/useToast'
 import type { Equipment, Exercise, Muscle } from '../types'
 import { EQUIPMENT, MUSCLES } from '../types'
-import { Button, Chip, Field, Input, Modal, Select, Textarea } from './ui'
+import { Button, Chip, Field, Input, Modal, Select, Stepper, Switch, Textarea } from './ui'
 
 interface ExerciseFormProps {
   open: boolean
@@ -27,6 +27,8 @@ function OpenExerciseForm({ open, onClose, existing, onSaved }: ExerciseFormProp
   const [secondary, setSecondary] = useState<Muscle[]>(existing?.secondary ?? [])
   const [equipment, setEquipment] = useState<Equipment>(existing?.equipment ?? 'Barbell')
   const [cue, setCue] = useState(existing?.cue ?? '')
+  const [aerobic, setAerobic] = useState(!!existing?.aerobic)
+  const [minutes, setMinutes] = useState(existing?.defaultMinutes ?? 30)
   const [error, setError] = useState<string | null>(null)
 
   const submit = (e: React.FormEvent) => {
@@ -37,7 +39,17 @@ function OpenExerciseForm({ open, onClose, existing, onSaved }: ExerciseFormProp
     if (all.some((x) => x.id !== existing?.id && x.name.toLowerCase() === n.toLowerCase()))
       return setError('An exercise with this name already exists.')
     const id = existing?.id ?? uid('cx')
-    save({ id, name: n, primary, secondary: secondary.filter((m) => m !== primary), equipment, cue: cue.trim(), custom: true })
+    save({
+      id,
+      name: n,
+      primary,
+      secondary: secondary.filter((m) => m !== primary),
+      equipment,
+      cue: cue.trim(),
+      custom: true,
+      aerobic: aerobic || undefined,
+      defaultMinutes: aerobic ? minutes : undefined,
+    })
     toast(existing ? 'Exercise updated' : 'Custom exercise created', { tone: 'success' })
     onSaved?.(id)
     onClose()
@@ -107,6 +119,15 @@ function OpenExerciseForm({ open, onClose, existing, onSaved }: ExerciseFormProp
             ))}
           </div>
         </fieldset>
+        <div className="flex flex-col gap-3 rounded-2xl bg-surface-2 p-3">
+          <Switch
+            checked={aerobic}
+            onChange={setAerobic}
+            label="Aerobic (log minutes)"
+            description="Logged as minutes instead of weight and reps, and counted toward your weekly aerobic target."
+          />
+          {aerobic && <Stepper label="Default minutes" min={5} max={600} step={5} unit="min" value={minutes} onChange={setMinutes} className="bg-surface" />}
+        </div>
         <Field label="Form cue" hint="One short reminder you want to see mid-set.">
           {(id, d) => <Textarea id={id} aria-describedby={d} value={cue} maxLength={200} onChange={(e) => setCue(e.target.value)} placeholder="e.g. Pull to the hip, pause at the top" />}
         </Field>

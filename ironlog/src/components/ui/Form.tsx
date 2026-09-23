@@ -214,6 +214,8 @@ export function Stepper({
   onChange,
   min = 0,
   max = 99,
+  step = 1,
+  unit,
   label,
   className,
 }: {
@@ -221,18 +223,21 @@ export function Stepper({
   onChange: (v: number) => void
   min?: number
   max?: number
+  step?: number
+  unit?: string
   label: string
   className?: string
 }) {
   return (
-    <div className={clsx('flex h-10 items-center rounded-xl bg-surface-2', className)} role="group" aria-label={label}>
-      <button type="button" aria-label={`Decrease ${label}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))} className="flex h-full w-10 items-center justify-center rounded-l-xl text-lg font-semibold text-ink-2 hover:bg-surface-3 disabled:opacity-35">
+    <div className={clsx('flex h-11 items-center rounded-xl bg-surface-2', className)} role="group" aria-label={label}>
+      <button type="button" aria-label={`Decrease ${label}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - step))} className="flex h-full w-11 items-center justify-center rounded-l-xl text-lg font-semibold text-ink-2 hover:bg-surface-3 disabled:opacity-35">
         −
       </button>
       <span className="stamp min-w-7 flex-1 text-center text-xl" aria-live="polite">
         {value}
+        {unit && <span className="ml-0.5 font-sans text-xs font-medium text-muted">{unit}</span>}
       </span>
-      <button type="button" aria-label={`Increase ${label}`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))} className="flex h-full w-10 items-center justify-center rounded-r-xl text-lg font-semibold text-ink-2 hover:bg-surface-3 disabled:opacity-35">
+      <button type="button" aria-label={`Increase ${label}`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + step))} className="flex h-full w-11 items-center justify-center rounded-r-xl text-lg font-semibold text-ink-2 hover:bg-surface-3 disabled:opacity-35">
         +
       </button>
     </div>

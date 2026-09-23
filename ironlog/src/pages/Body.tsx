@@ -210,7 +210,7 @@ export default function Body() {
         <EmptyState
           icon={<Scale size={22} />}
           title="No measurements yet"
-          body="Weigh in a couple of times a week, same time of day, and IronLog will chart the trend and show your 30- and 90-day change."
+          body="Weigh in a couple of times a week, same time of day, and Overload will chart the trend and show your 30- and 90-day change."
           action={
             <Button icon={<Plus size={18} />} onClick={openNew}>
               Log your first weigh-in

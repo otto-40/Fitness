@@ -89,9 +89,10 @@ describe('program generation', () => {
 })
 
 describe('backup import', () => {
-  it('rejects non-IronLog files', () => {
+  it('rejects non-Overload files and accepts backups from before the rename', () => {
     expect(() => parseBackup('nope')).toThrow(/valid JSON/)
-    expect(() => parseBackup('{"app":"Other"}')).toThrow(/not an IronLog backup/)
+    expect(() => parseBackup('{"app":"Other"}')).toThrow(/not an Overload backup/)
+    expect(parseBackup(JSON.stringify({ app: 'IronLog', version: 1, data: {} })).counts.workouts).toBe(0)
   })
 
   it('keeps valid records and skips malformed ones', () => {

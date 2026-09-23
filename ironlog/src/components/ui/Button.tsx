@@ -89,8 +89,9 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       title={label}
       className={clsx(
         'inline-flex shrink-0 items-center justify-center rounded-xl transition-colors active:scale-95 disabled:opacity-40',
-        size === 'sm' && 'size-8',
-        size === 'md' && 'size-10',
+        // Compact icon buttons keep an invisible 44px touch area.
+        size === 'sm' && 'hit size-8',
+        size === 'md' && 'hit size-10',
         size === 'lg' && 'size-12',
         tone === 'default' && 'text-ink-2 hover:bg-surface-2 hover:text-ink',
         tone === 'accent' && 'bg-accent text-on-accent hover:bg-accent-hover',

@@ -1,6 +1,6 @@
 import { addDays, addWeeks, differenceInCalendarWeeks, format, isSameDay, parseISO, startOfDay } from 'date-fns'
 import type { Exercise, Muscle, Profile, Routine, Workout } from '../types'
-import { byDateDesc, isWorking, setVolume, workoutVolume } from './calc'
+import { aerobicMinutes, byDateDesc, isWorking, setVolume, workoutVolume } from './calc'
 import { WEEK_OPTS, weekStart } from './dates'
 
 export function workoutsInRange(workouts: Workout[], from: Date, to: Date): Workout[] {
@@ -10,6 +10,11 @@ export function workoutsInRange(workouts: Workout[], from: Date, to: Date): Work
     const t = new Date(w.startedAt).getTime()
     return t >= a && t < b
   })
+}
+
+export function weekAerobicMinutes(workouts: Workout[], anyDayInWeek: Date): number {
+  const start = weekStart(anyDayInWeek)
+  return workoutsInRange(workouts, start, addWeeks(start, 1)).reduce((sum, w) => sum + aerobicMinutes(w), 0)
 }
 
 export function weekVolume(workouts: Workout[], anyDayInWeek: Date): number {
@@ -22,6 +27,8 @@ export interface WeekBucket {
   label: string
   workouts: number
   volume: number
+  /** Completed aerobic minutes. */
+  aerobic: number
 }
 
 export function weeklyBuckets(workouts: Workout[], weeks: number, now = new Date()): WeekBucket[] {
@@ -35,6 +42,7 @@ export function weeklyBuckets(workouts: Workout[], weeks: number, now = new Date
       label: format(start, 'd MMM'),
       workouts: inWeek.length,
       volume: inWeek.reduce((s, w) => s + workoutVolume(w), 0),
+      aerobic: inWeek.reduce((s, w) => s + aerobicMinutes(w), 0),
     })
   }
   return out
@@ -95,10 +103,30 @@ export interface NextWorkout {
   date: Date
 }
 
+/**
+ * A weekly plan is one where every routine in the plan is pinned to a weekday (such as
+ * Sam's Weekly Workout). It sets the planned days and the weekly target; optional days don't count.
+ */
+export function weeklyPlan(routines: Routine[]): { days: number[]; target: number } | null {
+  const plan = routines.filter((r) => r.inPlan && r.exercises.length > 0)
+  if (!plan.length || plan.some((r) => r.weekday == null)) return null
+  return { days: plan.map((r) => r.weekday!), target: plan.filter((r) => !r.optional).length || plan.length }
+}
+
 /** Next routine in the plan rotation, on the next planned training day. */
 export function nextWorkout(routines: Routine[], workouts: Workout[], profile: Profile, now = new Date()): NextWorkout | null {
   const rotation = routines.filter((r) => r.inPlan && r.exercises.length > 0)
   if (!rotation.length) return null
+  const today0 = startOfDay(now)
+  // A weekly plan (every routine pinned to a weekday) follows the calendar, not the rotation.
+  if (rotation.every((r) => r.weekday != null)) {
+    const doneToday = new Set(workouts.filter((w) => isSameDay(parseISO(w.startedAt), today0)).map((w) => w.routineId))
+    for (let i = 0; i < 8; i++) {
+      const d = addDays(today0, i)
+      const r = rotation.find((x) => x.weekday === d.getDay() && !(i === 0 && doneToday.has(x.id)))
+      if (r) return { routine: r, date: d }
+    }
+  }
   const last = [...workouts].sort(byDateDesc).find((w) => rotation.some((r) => r.id === w.routineId))
   const idx = last ? (rotation.findIndex((r) => r.id === last.routineId) + 1) % rotation.length : 0
   const days = profile.trainingDays.length ? profile.trainingDays : [1, 3, 5]
@@ -130,7 +158,8 @@ export function routineMinutes(routine: Routine): number {
   routine.exercises.forEach((re, i) => {
     const next = routine.exercises[i + 1]
     const inSupersetWithNext = re.supersetId && next?.supersetId === re.supersetId
-    sec += re.sets * (45 + (inSupersetWithNext ? 10 : re.restSec)) + 60
+    if (re.minutes) sec += re.minutes * 60 + 60
+    else sec += re.sets * (45 + (inSupersetWithNext ? 10 : re.restSec)) + 60
   })
   return Math.max(5, Math.round(sec / 60 / 5) * 5)
 }

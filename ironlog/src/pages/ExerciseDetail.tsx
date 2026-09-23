@@ -3,12 +3,14 @@ import { format, parseISO } from 'date-fns'
 import { ArrowLeft, LineChart as ChartIcon, Medal, Pencil, Star, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { LineTrend } from '../components/charts/Charts'
+import { ColumnTrend, LineTrend } from '../components/charts/Charts'
 import { ExerciseForm } from '../components/ExerciseForm'
 import { Badge, Button, Card, ConfirmDialog, EmptyState, IconButton, Monogram, MuscleTag, SectionTitle, Segmented, Stat } from '../components/ui'
 import { SetTypeBadge } from '../components/workout/SetTypeBadge'
+import { EffortLegend, EffortShape } from '../components/workout/Effort'
+import { EFFORT_META } from '../components/workout/effortMeta'
 import { useExerciseMap } from '../hooks/useExercises'
-import { exerciseHistory, exerciseRecords } from '../lib/calc'
+import { aerobicHistory, exerciseHistory, exerciseRecords } from '../lib/calc'
 import { friendlyDay } from '../lib/dates'
 import { formatEstimate, formatVolume, formatWeight, round, toDisplayWeight } from '../lib/units'
 import { useStore } from '../store/useStore'
@@ -119,7 +121,9 @@ export default function ExerciseDetail() {
         </blockquote>
       )}
 
-      {history.length === 0 ? (
+      {ex.aerobic ? (
+        <AerobicHistory exerciseId={ex.id} />
+      ) : history.length === 0 ? (
         <EmptyState icon={<ChartIcon size={22} />} title="No history yet" body="Log this exercise in a workout and its best set, estimated 1RM and progress chart will appear here." />
       ) : (
         <>
@@ -179,8 +183,10 @@ export default function ExerciseDetail() {
                 format={(v) => (activeMetric === 'maxReps' ? `${v} reps` : `${v.toLocaleString()} ${units}`)}
                 ariaLabel={`${metricName} over ${history.length} sessions, from ${data[0].value} to ${data.at(-1)!.value}`}
                 tickFormat={(v) => (v >= 10000 ? `${Math.round(v / 1000)}k` : String(v))}
+                effort={history.map((h) => h.effort)}
               />
             )}
+            {history.length >= 2 && <EffortLegend className="mt-2" />}
           </Card>
 
           <section className="mt-6">
@@ -212,7 +218,14 @@ export default function ExerciseDetail() {
                   <li key={h.workoutId}>
                     <Link to={`/history/${h.workoutId}`} className="block rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong">
                       <div className="flex items-baseline justify-between gap-3">
-                        <span className="font-semibold">{format(parseISO(h.date), 'EEE d MMM yyyy')}</span>
+                        <span className="inline-flex items-center gap-2 font-semibold">
+                          {format(parseISO(h.date), 'EEE d MMM yyyy')}
+                          {h.effort && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">
+                              <EffortShape effort={h.effort} size={10} /> {EFFORT_META[h.effort].label}
+                            </span>
+                          )}
+                        </span>
                         {h.e1rm > 0 && <span className="tnum text-sm text-muted">e1RM {formatEstimate(h.e1rm, units)}</span>}
                       </div>
                       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -223,6 +236,7 @@ export default function ExerciseDetail() {
                             <span key={s.id} className={clsx('inline-flex items-center gap-1.5 rounded-lg py-0.5 pr-2 pl-0.5', best ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2')}>
                               <SetTypeBadge type={s.type} index={n} className="size-6 rounded-md text-sm" />
                               <span className="stamp text-[17px]">{s.weight ? `${formatWeight(s.weight, units, false)}×${s.reps}` : `${s.reps} reps`}</span>
+                              {s.effort && <EffortShape effort={s.effort} size={9} />}
                             </span>
                           )
                         })}
@@ -259,5 +273,52 @@ export default function ExerciseDetail() {
         confirmLabel="Delete"
       />
     </div>
+  )
+}
+
+/** Aerobic exercises: minutes per session rather than load. */
+function AerobicHistory({ exerciseId }: { exerciseId: string }) {
+  const workouts = useStore((s) => s.workouts)
+  const sessions = useMemo(() => aerobicHistory(workouts, exerciseId), [workouts, exerciseId])
+  if (!sessions.length)
+    return <EmptyState icon={<ChartIcon size={22} />} title="No sessions yet" body="Log this in a workout and its minutes will build up here, and count toward your weekly aerobic target." />
+  const total = sessions.reduce((n, x) => n + x.minutes, 0)
+  const recent = sessions.slice(-16)
+  return (
+    <>
+      <Card className="grid grid-cols-2 gap-5 p-4 sm:grid-cols-4 sm:p-5">
+        <Stat size="lg" label="Total" value={total.toLocaleString()} unit="min" />
+        <Stat size="lg" label="Sessions" value={sessions.length} />
+        <Stat label="Average" value={Math.round(total / sessions.length)} unit="min" sub="per session" />
+        <Stat label="Last" value={sessions.at(-1)!.minutes} unit="min" sub={friendlyDay(sessions.at(-1)!.date)} />
+      </Card>
+      <Card className="mt-4 p-4 sm:p-5">
+        <SectionTitle>Minutes per session</SectionTitle>
+        <ColumnTrend
+          data={recent.map((x) => ({ label: format(parseISO(x.date), 'd MMM'), minutes: x.minutes }))}
+          series={[{ key: 'minutes', name: 'Minutes', color: 'var(--good)' }]}
+          format={(v) => `${v} min`}
+          yWidth={32}
+          highlightLast
+          ariaLabel={`Minutes for the last ${recent.length} sessions`}
+        />
+      </Card>
+      <section className="mt-6">
+        <SectionTitle>History</SectionTitle>
+        <ul className="grid gap-2 md:grid-cols-2">
+          {[...sessions].reverse().slice(0, 12).map((x) => (
+            <li key={x.workoutId}>
+              <Link to={`/history/${x.workoutId}`} className="flex min-h-14 items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 transition-colors hover:border-line-strong">
+                <span className="font-semibold">{format(parseISO(x.date), 'EEE d MMM yyyy')}</span>
+                <span className="stamp text-xl">
+                  {x.minutes}
+                  <span className="font-sans text-sm font-normal text-muted"> min</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
   )
 }

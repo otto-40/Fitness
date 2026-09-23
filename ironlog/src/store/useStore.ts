@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
   ActiveWorkout,
+  Effort,
   Exercise,
   Measurement,
   Profile,
@@ -12,7 +13,7 @@ import type {
   WorkoutExercise,
   WorkoutSet,
 } from '../types'
-import { DEMO_PROFILE, generateSeed, snapDemoToUnits, starterRoutines } from '../data/seed'
+import { DEMO_PROFILE, generateSeed, samsWeeklyWorkout, snapDemoToUnits, starterRoutines } from '../data/seed'
 import { BUILT_IN_EXERCISES } from '../data/exercises'
 import { uid } from '../lib/id'
 import { isDone, previousSets } from '../lib/calc'
@@ -34,7 +35,7 @@ export interface DataState {
   active: ActiveWorkout | null
 }
 
-type SetPatch = Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'type' | 'completed'>>
+type SetPatch = Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'type' | 'completed' | 'effort' | 'minutes'>>
 
 interface Actions {
   completeOnboarding: (profile: Profile, settings: Partial<Settings>, keepDemo: boolean) => void
@@ -57,6 +58,8 @@ interface Actions {
   renameActive: (name: string) => void
   updateSet: (exId: string, setId: string, patch: SetPatch) => void
   completeSet: (exId: string, setId: string) => { ok: boolean; message?: string }
+  /** Rates a set; in the live workout, rating an unlogged set logs it too. Null clears the rating. */
+  rateSet: (exId: string, setId: string, effort: Effort | null) => { ok: boolean; message?: string }
   addSet: (exId: string, type?: SetType) => void
   removeSet: (exId: string, setId: string) => void
   addExercisesToActive: (exerciseIds: string[]) => void
@@ -81,7 +84,7 @@ interface Actions {
   importData: (data: DataState) => void
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', units: 'kg', defaultRestSec: 90, timerSound: true }
+export const DEFAULT_SETTINGS: Settings = { theme: 'system', units: 'kg', defaultRestSec: 90, timerSound: true, aerobicTargetMin: 150 }
 
 function seededState(): DataState {
   const seed = generateSeed()
@@ -102,6 +105,15 @@ function newSet(type: SetType = 'normal'): WorkoutSet {
   return { id: uid('s'), type, weight: null, reps: null, completed: false }
 }
 
+/** Aerobic exercises start with their prescribed minutes filled in, so the normal case is one tap. */
+function newAerobicSet(minutes: number): WorkoutSet {
+  return { id: uid('s'), type: 'normal', weight: null, reps: null, minutes, completed: false }
+}
+
+function exerciseDef(s: DataState, id: string): Exercise | undefined {
+  return BUILT_IN_EXERCISES.find((e) => e.id === id) ?? s.customExercises.find((e) => e.id === id)
+}
+
 function mapActive(state: DataState, fn: (a: ActiveWorkout) => ActiveWorkout): Partial<DataState> {
   return state.active ? { active: fn(state.active) } : {}
 }
@@ -116,6 +128,21 @@ export function referenceSet(prev: WorkoutSet[], ex: WorkoutExercise, set: Worko
   const same = ex.sets.filter((s) => (s.type === 'warmup') === warm)
   const idx = same.findIndex((s) => s.id === set.id)
   return prev.filter((s) => (s.type === 'warmup') === warm)[idx]
+}
+
+/**
+ * v2 (Overload): adds Sam's Weekly Workout and makes it the plan, and sets the weekly
+ * aerobic target. Everything already logged is left exactly as it was.
+ */
+export function migrateState(state: DataState, version: number): DataState {
+  if (version >= 2 || !state) return state
+  const have = new Set(state.routines.map((r) => r.id))
+  const sams = samsWeeklyWorkout().filter((r) => !have.has(r.id))
+  return {
+    ...state,
+    settings: { ...state.settings, aerobicTargetMin: state.settings.aerobicTargetMin ?? 150 },
+    routines: [...sams, ...state.routines.map((r) => (r.program ? { ...r, inPlan: true } : { ...r, inPlan: false }))],
+  }
 }
 
 export const useStore = create<DataState & Actions>()(
@@ -222,15 +249,20 @@ export const useStore = create<DataState & Actions>()(
       startWorkout: (routineId) =>
         set((s) => {
           const r = routineId ? s.routines.find((x) => x.id === routineId) : null
-          const exercises: WorkoutExercise[] = (r?.exercises ?? []).map((re) => ({
-            id: uid('we'),
-            exerciseId: re.exerciseId,
-            restSec: re.restSec,
-            repMin: re.repMin,
-            repMax: re.repMax,
-            supersetId: re.supersetId ?? null,
-            sets: Array.from({ length: Math.max(1, re.sets) }, () => newSet()),
-          }))
+          const exercises: WorkoutExercise[] = (r?.exercises ?? []).map((re) => {
+            const def = exerciseDef(s, re.exerciseId)
+            const aerobic = !!def?.aerobic
+            return {
+              id: uid('we'),
+              exerciseId: re.exerciseId,
+              restSec: re.restSec,
+              repMin: aerobic ? undefined : re.repMin,
+              repMax: aerobic ? undefined : re.repMax,
+              supersetId: re.supersetId ?? null,
+              note: re.note,
+              sets: aerobic ? [newAerobicSet(re.minutes || def?.defaultMinutes || 20)] : Array.from({ length: Math.max(1, re.sets) }, () => newSet()),
+            }
+          })
           return {
             active: {
               id: uid('w'),
@@ -257,11 +289,17 @@ export const useStore = create<DataState & Actions>()(
           set(mapActive(s, (a2) => mapExercise(a2, exId, (e) => ({ ...e, sets: e.sets.map((x) => (x.id === setId ? { ...x, completed: false } : x)) }))))
           return { ok: true }
         }
+        // Aerobic work logs its minutes; there is no load to check and no rest to start.
+        if (target.minutes != null) {
+          if (!(target.minutes > 0)) return { ok: false, message: 'Enter the minutes first' }
+          set(mapActive(s, (a2) => mapExercise(a2, exId, (e) => ({ ...e, sets: e.sets.map((x) => (x.id === setId ? { ...x, completed: true } : x)) }))))
+          return { ok: true }
+        }
         const prev = previousSets(s.workouts, ex.exerciseId)
         const ref = referenceSet(prev, ex, target)
         const reps = target.reps ?? ref?.reps ?? null
         const weight = target.weight ?? ref?.weight ?? null
-        const def = [...BUILT_IN_EXERCISES, ...s.customExercises].find((e) => e.id === ex.exerciseId)
+        const def = exerciseDef(s, ex.exerciseId)
         if (!reps || reps <= 0) return { ok: false, message: 'Enter reps for this set first' }
         if (weight == null && def?.equipment !== 'Bodyweight') return { ok: false, message: 'Enter a weight for this set first' }
         // Rest after the last exercise of a superset round, otherwise go straight to the next one.
@@ -284,15 +322,28 @@ export const useStore = create<DataState & Actions>()(
             rest:
               midSuperset || restSec <= 0
                 ? a.rest
-                : { endsAt: Date.now() + restSec * 1000, duration: restSec, label: def?.name ?? 'Rest' },
+                : { endsAt: Date.now() + restSec * 1000, duration: restSec, label: def?.name ?? 'Rest', exId, setId },
           },
         })
+        return { ok: true }
+      },
+      rateSet: (exId, setId, effort) => {
+        const a = get().active
+        const target = a?.exercises.find((e) => e.id === exId)?.sets.find((x) => x.id === setId)
+        if (!a || !target) return { ok: false }
+        if (effort && !target.completed) {
+          const r = get().completeSet(exId, setId)
+          if (!r.ok) return r
+        }
+        set((s) => mapActive(s, (a2) => mapExercise(a2, exId, (e) => ({ ...e, sets: e.sets.map((x) => (x.id === setId ? { ...x, effort } : x)) }))))
         return { ok: true }
       },
       addSet: (exId, type = 'normal') =>
         set((s) =>
           mapActive(s, (a) =>
             mapExercise(a, exId, (e) => {
+              const last = e.sets.at(-1)
+              if (last?.minutes != null) return { ...e, sets: [...e.sets, newAerobicSet(last.minutes || 10)] }
               const created = newSet(type)
               if (type === 'warmup') {
                 const firstWork = e.sets.findIndex((x) => x.type !== 'warmup')
@@ -312,13 +363,16 @@ export const useStore = create<DataState & Actions>()(
             ...a,
             exercises: [
               ...a.exercises,
-              ...ids.map((exerciseId) => ({
-                id: uid('we'),
-                exerciseId,
-                restSec: s.settings.defaultRestSec,
-                supersetId: null,
-                sets: [newSet(), newSet(), newSet()],
-              })),
+              ...ids.map((exerciseId) => {
+                const def = exerciseDef(s, exerciseId)
+                return {
+                  id: uid('we'),
+                  exerciseId,
+                  restSec: def?.aerobic ? 0 : s.settings.defaultRestSec,
+                  supersetId: null,
+                  sets: def?.aerobic ? [newAerobicSet(def.defaultMinutes ?? 20)] : [newSet(), newSet(), newSet()],
+                }
+              }),
             ],
           })),
         ),
@@ -395,7 +449,8 @@ export const useStore = create<DataState & Actions>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => migrateState(persisted as DataState, version),
       partialize: (s): DataState => ({
         onboarded: s.onboarded,
         profile: s.profile,

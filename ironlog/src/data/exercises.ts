@@ -114,13 +114,29 @@ const rows: Row[] = [
   ['russian-twist', 'Russian Twist', 'Core', [], 'Kettlebell', 'Lean back, rotate the torso, not just the arms.'],
   ['dead-bug', 'Dead Bug', 'Core', [], 'Bodyweight', 'Lower back glued to the floor, reach opposite arm and leg.'],
   ['band-woodchop', 'Band Woodchop', 'Core', ['Shoulders'], 'Band', 'Rotate from the hips, arms stay long.'],
+
+  // From Sam's Weekly Workout
+  ['calf-tibialis-raise', 'Seated Calf ⇄ Tibialis Raise', 'Calves', [], 'Dumbbell', 'Alternate calves up, then toes up. Reps are per movement.'],
+  ['copenhagen-plank', 'Copenhagen Adductor Plank', 'Core', ['Glutes'], 'Bodyweight', 'Top leg on the bench, hips high. Log seconds per side as reps.'],
+  ['pallof-side-plank', 'Pallof Press + Side Plank', 'Core', ['Shoulders'], 'Cable', 'Press out and resist the turn, then straight into a side plank. One round each side.'],
 ]
 
-export const BUILT_IN_EXERCISES: Exercise[] = rows.map(([id, name, primary, secondary, equipment, cue]) => ({
-  id,
-  name,
-  primary,
-  secondary,
-  equipment,
-  cue,
-}))
+/** Logged as minutes and counted toward the weekly aerobic target. */
+const aerobicRows: [id: string, name: string, secondary: Muscle[], equipment: Equipment, cue: string, minutes: number][] = [
+  ['incline-walk', 'Incline Walk — Zone 2', ['Calves', 'Glutes'], 'Machine', 'An incline and pace you can still hold a conversation at.', 20],
+  ['basketball', 'Basketball', ['Quads', 'Calves'], 'Bodyweight', 'Game night: covers plyometrics and high-intensity intervals.', 60],
+]
+
+export const BUILT_IN_EXERCISES: Exercise[] = [
+  ...rows.map(([id, name, primary, secondary, equipment, cue]): Exercise => ({ id, name, primary, secondary, equipment, cue })),
+  ...aerobicRows.map(([id, name, secondary, equipment, cue, minutes]): Exercise => ({
+    id,
+    name,
+    primary: 'Cardio',
+    secondary,
+    equipment,
+    cue,
+    aerobic: true,
+    defaultMinutes: minutes,
+  })),
+]

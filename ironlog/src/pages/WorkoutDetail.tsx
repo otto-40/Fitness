@@ -6,8 +6,10 @@ import { ExercisePicker } from '../components/ExercisePicker'
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Field, Input, SectionTitle, Textarea } from '../components/ui'
 import { ExerciseCard } from '../components/workout/ExerciseCard'
 import { SetTypeBadge } from '../components/workout/SetTypeBadge'
+import { EffortShape } from '../components/workout/Effort'
+import { EFFORT_META } from '../components/workout/effortMeta'
 import { useExerciseMap } from '../hooks/useExercises'
-import { completedSetCount, durationMs, e1rm, isDone, PR_LABEL, previousSets, prsForWorkout, workoutVolume } from '../lib/calc'
+import { aerobicMinutes, completedSetCount, durationMs, e1rm, isDone, PR_LABEL, previousSets, prsForWorkout, workoutVolume } from '../lib/calc'
 import { formatDuration } from '../lib/dates'
 import { prValue } from '../lib/format'
 import { uid } from '../lib/id'
@@ -55,7 +57,7 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
     else if (startDate.getTime() > Date.now() + 60000) errs.start = 'A logged workout can’t start in the future.'
     const mins = Number(minutes)
     if (!Number.isInteger(mins) || mins < 1 || mins > 600) errs.minutes = 'Duration must be between 1 and 600 minutes.'
-    const exercises = draft.exercises.map((e) => ({ ...e, sets: e.sets.filter((s) => s.completed && (s.reps ?? 0) > 0) })).filter((e) => e.sets.length)
+    const exercises = draft.exercises.map((e) => ({ ...e, sets: e.sets.filter(isDone) })).filter((e) => e.sets.length)
     if (!exercises.length) errs.sets = 'Keep at least one completed set with reps, or delete the workout instead.'
     setErrors(errs)
     if (Object.values(errs).some(Boolean)) return
@@ -65,7 +67,7 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
       notes: draft.notes?.trim() || undefined,
       startedAt: startDate.toISOString(),
       endedAt: new Date(startDate.getTime() + mins * 60000).toISOString(),
-      exercises: exercises.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s, weight: s.weight ?? 0 })) })),
+      exercises: exercises.map((e) => ({ ...e, sets: e.sets.map((s) => (s.minutes != null ? s : { ...s, weight: s.weight ?? 0 })) })),
     })
     toast('Workout updated', { tone: 'success' })
     onDone()
@@ -115,8 +117,11 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
             isLast={i === draft.exercises.length - 1}
             onSetChange={(setId, patch) => mapSet(ex.id, setId, (s) => ({ ...s, ...patch }))}
             onToggle={(setId) => mapSet(ex.id, setId, (s) => ({ ...s, completed: !s.completed }))}
+            onEffort={(setId, effort) => mapSet(ex.id, setId, (s) => ({ ...s, effort }))}
             onAddSet={(type = 'normal') =>
               mapEx(ex.id, (e) => {
+                const last = e.sets.at(-1)
+                if (last?.minutes != null) return { ...e, sets: [...e.sets, { id: uid('s'), type: 'normal', weight: null, reps: null, minutes: last.minutes || 10, completed: false }] }
                 const created: WorkoutSet = { id: uid('s'), type, weight: null, reps: null, completed: false }
                 // Warm-ups go before the first working set, as in the live workout.
                 const at = type === 'warmup' ? e.sets.findIndex((s) => s.type !== 'warmup') : -1
@@ -231,9 +236,9 @@ export default function WorkoutDetail() {
       <Card className="grid grid-cols-2 gap-y-2 p-1 sm:grid-cols-4">
         {[
           ['Duration', formatDuration(durationMs(w))],
-          ['Volume', formatVolume(workoutVolume(w), units)],
+          aerobicMinutes(w) > 0 && workoutVolume(w) === 0 ? ['Aerobic', `${aerobicMinutes(w)} min`] : ['Volume', formatVolume(workoutVolume(w), units)],
           ['Sets', String(completedSetCount(w))],
-          ['Exercises', String(w.exercises.length)],
+          aerobicMinutes(w) > 0 && workoutVolume(w) > 0 ? ['Aerobic', `${aerobicMinutes(w)} min`] : ['Exercises', String(w.exercises.length)],
         ].map(([k, v]) => (
           <div key={k} className="p-4">
             <div className="eyebrow">{k}</div>
@@ -265,12 +270,18 @@ export default function WorkoutDetail() {
               <Link to={`/library/${ex.exerciseId}`} className="inline-flex min-h-11 items-center font-semibold hover:underline">
                 {map.get(ex.exerciseId)?.name ?? 'Deleted exercise'}
               </Link>
+              {ex.sets.some((s) => s.minutes != null) ? (
+                <p className="mt-1 text-sm text-muted">
+                  <span className="stamp text-2xl text-ink">{ex.sets.filter(isDone).reduce((m, s) => m + (s.minutes ?? 0), 0)}</span> min aerobic
+                </p>
+              ) : (
               <table className="mt-3 w-full text-sm">
                 <thead>
                   <tr className="text-left text-[11px] tracking-wide text-muted uppercase">
                     <th className="w-12 pb-2 font-semibold">Set</th>
                     <th className="pb-2 font-semibold">Weight</th>
                     <th className="pb-2 font-semibold">Reps</th>
+                    <th className="pb-2 font-semibold">Effort</th>
                     <th className="pb-2 text-right font-semibold">Est. 1RM</th>
                   </tr>
                 </thead>
@@ -284,12 +295,23 @@ export default function WorkoutDetail() {
                         </td>
                         <td className="stamp text-lg">{formatWeight(s.weight, units)}</td>
                         <td className="stamp text-lg">{s.reps}</td>
+                        <td>
+                          {s.effort ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <EffortShape effort={s.effort} />
+                              <span className="max-sm:sr-only">{EFFORT_META[s.effort].label}</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted" aria-label="Not rated">—</span>
+                          )}
+                        </td>
                         <td className="text-right text-muted">{s.weight ? formatEstimate(e1rm(s.weight, s.reps ?? 0), units) : '—'}</td>
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
+              )}
             </Card>
           )
         })}

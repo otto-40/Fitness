@@ -2,9 +2,11 @@ import clsx from 'clsx'
 import { ArrowRight, Check, Delete } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { parseDecimal, round } from '../../lib/units'
+import type { Effort } from '../../types'
 import { Modal } from '../ui'
+import { EffortPicker } from './Effort'
 
-export type KeypadField = 'weight' | 'reps'
+export type KeypadField = 'weight' | 'reps' | 'minutes'
 
 export interface KeypadProps {
   open: boolean
@@ -16,12 +18,17 @@ export interface KeypadProps {
   /** Values in display units. */
   weight: number | null
   reps: number | null
+  /** Aerobic sets: the pad edits minutes only. */
+  minutes?: number | null
   weightPlaceholder?: string
   repsPlaceholder?: string
   unit: string
   step: number
   bodyweight: boolean
-  onChange: (patch: { weight?: number | null; reps?: number | null }) => void
+  onChange: (patch: { weight?: number | null; reps?: number | null; minutes?: number | null }) => void
+  /** Strength sets can be rated. In the live workout a rating also logs the set. */
+  effort?: Effort | null
+  onEffort?: (e: Effort | null) => void
   /** Present in the live workout: logs the set and closes. */
   onLog?: () => void
   completed?: boolean
@@ -35,13 +42,16 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as 
  */
 export function Keypad(p: KeypadProps) {
   const valueOf = (f: KeypadField) => {
-    const v = f === 'weight' ? p.weight : p.reps
+    const v = f === 'weight' ? p.weight : f === 'reps' ? p.reps : p.minutes
     return v == null ? '' : String(v)
   }
   const [text, setText] = useState(() => valueOf(p.field))
   // Key handling reads and writes this ref so fast typing never sees a stale render.
   // The sheet is mounted fresh each time it opens, so this starts from the current value.
   const entry = useRef({ field: p.field, text: valueOf(p.field), fresh: true })
+
+  const aerobic = p.field === 'minutes'
+  const step = p.field === 'weight' ? p.step : p.field === 'minutes' ? 5 : 1
 
   const switchField = (f: KeypadField) => {
     entry.current = { field: f, text: valueOf(f), fresh: true }
@@ -54,15 +64,15 @@ export function Keypad(p: KeypadProps) {
     entry.current = { field, text: t, fresh: false }
     setText(t)
     const n = parseDecimal(t)
-    const max = field === 'weight' ? 2000 : 999
-    const v = n == null ? null : Math.min(max, Math.max(0, field === 'reps' ? Math.round(n) : n))
-    p.onChange(field === 'weight' ? { weight: v } : { reps: v })
+    const max = field === 'weight' ? 2000 : field === 'minutes' ? 600 : 999
+    const v = n == null ? null : Math.min(max, Math.max(0, field === 'weight' ? n : Math.round(n)))
+    p.onChange({ [field]: v })
   }
 
   const press = (k: (typeof KEYS)[number]) => {
     const { field, text: cur, fresh } = entry.current
     if (k === 'back') return commit(cur.slice(0, -1))
-    if (k === '.' && (field === 'reps' || (!fresh && cur.includes('.')))) return
+    if (k === '.' && (field !== 'weight' || (!fresh && cur.includes('.')))) return
     const base = fresh ? '' : cur
     const next = base === '0' && k !== '.' ? k : base + k
     const [int, dec] = next.split('.')
@@ -72,7 +82,7 @@ export function Keypad(p: KeypadProps) {
 
   const nudge = (d: number) => {
     const { field, text: cur } = entry.current
-    const base = parseDecimal(cur) ?? parseDecimal((field === 'weight' ? p.weightPlaceholder : p.repsPlaceholder) ?? '') ?? 0
+    const base = parseDecimal(cur) ?? parseDecimal((field === 'weight' ? p.weightPlaceholder : field === 'reps' ? p.repsPlaceholder : '') ?? '') ?? 0
     commit(String(Math.max(0, round(base + d, 2))))
   }
 
@@ -88,7 +98,7 @@ export function Keypad(p: KeypadProps) {
     else if (e.key === 'Backspace') press('back')
     else if (e.key === 'Enter' && e.target === e.currentTarget) advance()
     // Tab switches field only while the pad itself has focus; on a button it moves focus as usual.
-    else if (e.key === 'Tab' && !e.shiftKey && e.target === e.currentTarget) switchField(entry.current.field === 'weight' ? 'reps' : 'weight')
+    else if (e.key === 'Tab' && !e.shiftKey && e.target === e.currentTarget && !aerobic) switchField(entry.current.field === 'weight' ? 'reps' : 'weight')
     else return
     e.preventDefault()
   }
@@ -120,16 +130,22 @@ export function Keypad(p: KeypadProps) {
     <Modal open={p.open} onClose={p.onClose} title={p.title} description={p.subtitle} size="sm">
       <div onKeyDown={onKeyDown} className="outline-none" tabIndex={-1} data-autofocus aria-label="Number pad">
         <div role="group" aria-label="Field being edited" className="flex gap-2">
-          {fieldButton('weight', p.bodyweight ? 'Added load' : 'Weight', p.weight, p.weightPlaceholder, p.unit)}
-          {fieldButton('reps', 'Reps', p.reps, p.repsPlaceholder)}
+          {aerobic ? (
+            fieldButton('minutes', 'Minutes', p.minutes ?? null, undefined, 'min')
+          ) : (
+            <>
+              {fieldButton('weight', p.bodyweight ? 'Added load' : 'Weight', p.weight, p.weightPlaceholder, p.unit)}
+              {fieldButton('reps', 'Reps', p.reps, p.repsPlaceholder)}
+            </>
+          )}
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => nudge(p.field === 'weight' ? -p.step : -1)} className="stamp h-12 rounded-xl bg-surface-2 text-xl hover:bg-surface-3 active:scale-[0.97]">
-            −{p.field === 'weight' ? p.step : 1}
+          <button type="button" onClick={() => nudge(-step)} className="stamp h-12 rounded-xl bg-surface-2 text-xl hover:bg-surface-3 active:scale-[0.97]">
+            −{step}
           </button>
-          <button type="button" onClick={() => nudge(p.field === 'weight' ? p.step : 1)} className="stamp h-12 rounded-xl bg-surface-2 text-xl hover:bg-surface-3 active:scale-[0.97]">
-            +{p.field === 'weight' ? p.step : 1}
+          <button type="button" onClick={() => nudge(step)} className="stamp h-12 rounded-xl bg-surface-2 text-xl hover:bg-surface-3 active:scale-[0.97]">
+            +{step}
           </button>
         </div>
 
@@ -139,7 +155,7 @@ export function Keypad(p: KeypadProps) {
               key={k}
               type="button"
               onClick={() => press(k)}
-              disabled={k === '.' && p.field === 'reps'}
+              disabled={k === '.' && p.field !== 'weight'}
               aria-label={k === 'back' ? 'Delete' : k === '.' ? 'Decimal point' : k}
               className="stamp flex h-14 items-center justify-center rounded-xl bg-surface text-[26px] ring-1 ring-line transition-colors ring-inset hover:bg-surface-2 active:scale-[0.97] active:bg-surface-3 disabled:opacity-30"
             >
@@ -148,16 +164,31 @@ export function Keypad(p: KeypadProps) {
           ))}
         </div>
 
+        {p.onEffort && (
+          <div className="mt-3">
+            <p className="eyebrow mb-1.5">{p.onLog && !p.completed ? 'Rate it to log the set' : 'How did it feel?'}</p>
+            <EffortPicker value={p.effort} onChange={p.onEffort} />
+          </div>
+        )}
+
         <div className="mt-3 grid grid-cols-[1fr_1.4fr] gap-2">
           <button type="button" onClick={p.onClose} className="h-14 rounded-2xl bg-surface-2 text-[15px] font-semibold hover:bg-surface-3">
             Done
           </button>
-          {p.field === 'weight' ? (
+          {aerobic ? (
+            p.onLog && !p.completed ? (
+              <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-good text-[15px] font-semibold text-on-good hover:brightness-110">
+                <Check size={20} strokeWidth={3} /> Log minutes
+              </button>
+            ) : (
+              <span aria-hidden />
+            )
+          ) : p.field === 'weight' ? (
             <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-bg hover:opacity-90">
               Reps <ArrowRight size={18} />
             </button>
           ) : p.onLog && !p.completed ? (
-            <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-good text-[15px] font-semibold text-white hover:brightness-110 dark:text-[#0b0c0e]">
+            <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-good text-[15px] font-semibold text-on-good hover:brightness-110">
               <Check size={20} strokeWidth={3} /> Log set
             </button>
           ) : (

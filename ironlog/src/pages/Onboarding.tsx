@@ -133,7 +133,7 @@ export default function Onboarding() {
               <br />
               <span className="text-accent">On record.</span>
             </h1>
-            <p className="mt-6 max-w-md text-[17px] text-ink-2">A few quick questions and IronLog builds a starting plan around your schedule, goal and equipment.</p>
+            <p className="mt-6 max-w-md text-[17px] text-ink-2">A few quick questions and Overload builds a starting plan around your schedule, goal and equipment.</p>
             <ul className="mt-8 flex flex-col gap-3">
               {[
                 [<Timer size={18} key="t" />, 'Live sessions', 'A rest timer and last time’s numbers on every set'],

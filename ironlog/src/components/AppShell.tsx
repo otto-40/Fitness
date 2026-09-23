@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
-        <Link to="/" className="mb-8 px-2" aria-label="IronLog home">
+        <Link to="/" className="mb-8 px-2" aria-label="Overload home">
           <Logo />
         </Link>
         {!active && (
@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Mobile top bar */}
         {!inWorkout && (
           <div className="flex items-center justify-between px-4 pt-4 lg:hidden">
-            <Link to="/" aria-label="IronLog home" className="flex h-11 items-center">
+            <Link to="/" aria-label="Overload home" className="flex h-11 items-center">
               <Logo />
             </Link>
             <Link to="/settings" aria-label="Settings" className="flex size-11 items-center justify-center rounded-xl text-ink-2 hover:bg-surface-2">
@@ -126,7 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="main"
           className={clsx(
             'mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10',
-            inWorkout ? 'pt-0 pb-44' : clsx('pt-5 lg:pt-10 lg:pb-16', hideNav ? 'pb-28' : active ? 'pb-44' : 'pb-nav'),
+            inWorkout ? 'pt-0 pb-60' : clsx('pt-5 lg:pt-10 lg:pb-16', hideNav ? 'pb-28' : active ? 'pb-44' : 'pb-nav'),
           )}
         >
           {children}

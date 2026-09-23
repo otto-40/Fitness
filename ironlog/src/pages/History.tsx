@@ -7,7 +7,7 @@ import { ColumnTrend } from '../components/charts/Charts'
 import { useStartWorkout } from '../components/StartWorkout'
 import { Badge, Button, Card, EmptyState, PageHeader, Segmented, Stat } from '../components/ui'
 import { useExerciseMap } from '../hooks/useExercises'
-import { byDateDesc, completedSetCount, computePrEvents, durationMs, workoutVolume } from '../lib/calc'
+import { aerobicMinutes, byDateDesc, completedSetCount, computePrEvents, durationMs, workoutVolume } from '../lib/calc'
 import { formatDuration, WEEK_OPTS, weekStart } from '../lib/dates'
 import { weekStreaks } from '../lib/stats'
 import { formatVolume } from '../lib/units'
@@ -40,8 +40,9 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
             <span className="inline-flex items-center gap-1">
               <Clock size={13} /> {formatDuration(durationMs(w))}
             </span>
-            <span className="tnum font-medium text-ink-2">{formatVolume(workoutVolume(w), units)}</span>
-            <span className="tnum">{plural(completedSetCount(w), 'set')}</span>
+            {workoutVolume(w) > 0 && <span className="tnum font-medium text-ink-2">{formatVolume(workoutVolume(w), units)}</span>}
+            {aerobicMinutes(w) > 0 && <span className="tnum font-medium text-good">{aerobicMinutes(w)} min aerobic</span>}
+            {workoutVolume(w) > 0 && <span className="tnum">{plural(completedSetCount(w), 'set')}</span>}
           </span>
           <span className="mt-1.5 line-clamp-1 block text-sm text-ink-2">{w.exercises.map((e) => map.get(e.exerciseId)?.name ?? 'Deleted exercise').join(' · ')}</span>
         </span>

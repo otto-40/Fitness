@@ -78,6 +78,10 @@ export default function RoutineEditor() {
   const validate = () => {
     const rows: Record<string, string> = {}
     for (const e of draft.exercises) {
+      if (map.get(e.exerciseId)?.aerobic) {
+        if (!e.minutes || e.minutes < 1 || e.minutes > 600) rows[e.id] = 'Minutes must be between 1 and 600.'
+        continue
+      }
       if (!e.sets || e.sets < 1 || e.sets > 10) rows[e.id] = 'Sets must be between 1 and 10.'
       else if (!e.repMin || !e.repMax || e.repMin < 1 || e.repMax > 100) rows[e.id] = 'Reps must be between 1 and 100.'
       else if (e.repMin > e.repMax) rows[e.id] = 'The minimum reps can’t be above the maximum.'
@@ -122,6 +126,7 @@ export default function RoutineEditor() {
       <h1 className="mb-6 font-display text-4xl font-semibold tracking-wide uppercase">{isNew ? 'New routine' : 'Edit routine'}</h1>
 
       <Card className="flex flex-col gap-4 p-4 sm:p-5">
+        {draft.program && <p className="eyebrow text-accent-ink">{draft.program}</p>}
         <Field label="Name" error={errors.name}>
           {(fid, d) => (
             <Input
@@ -199,6 +204,15 @@ export default function RoutineEditor() {
                     </IconButton>
                   </div>
                 </div>
+                {def?.aerobic ? (
+                  <div className="mt-3 grid grid-cols-[1fr_1fr] gap-2 sm:grid-cols-[180px_1fr]">
+                    <div className="flex flex-col gap-1 text-xs font-medium text-muted">
+                      Minutes
+                      <Stepper label="Minutes" min={5} max={600} step={5} unit="min" value={e.minutes || def.defaultMinutes || 20} onChange={(v) => patchRow(e.id, { minutes: v })} />
+                    </div>
+                    <p className="self-end pb-2.5 text-xs text-muted">Aerobic — logged as minutes and counted toward your weekly target.</p>
+                  </div>
+                ) : (
                 <div className="mt-3 grid grid-cols-[1fr_1.4fr] gap-2 sm:grid-cols-[132px_160px_1fr]">
                   <div className="flex flex-col gap-1 text-xs font-medium text-muted">
                     Sets
@@ -207,14 +221,14 @@ export default function RoutineEditor() {
                   <div className="flex flex-col gap-1 text-xs font-medium text-muted">
                     <span id={`reps-${e.id}`}>Rep range</span>
                     <div className="flex items-center gap-1.5" role="group" aria-labelledby={`reps-${e.id}`}>
-                      <NumberField label="Minimum reps" decimal={false} max={100} value={e.repMin || null} onChange={(v) => patchRow(e.id, { repMin: v ?? 0 })} className="h-10 text-base" />
+                      <NumberField label="Minimum reps" decimal={false} max={100} value={e.repMin || null} onChange={(v) => patchRow(e.id, { repMin: v ?? 0 })} className="text-base" />
                       <span className="text-muted">–</span>
-                      <NumberField label="Maximum reps" decimal={false} max={100} value={e.repMax || null} onChange={(v) => patchRow(e.id, { repMax: v ?? 0 })} className="h-10 text-base" />
+                      <NumberField label="Maximum reps" decimal={false} max={100} value={e.repMax || null} onChange={(v) => patchRow(e.id, { repMax: v ?? 0 })} className="text-base" />
                     </div>
                   </div>
                   <label className="col-span-2 flex flex-col gap-1 text-xs font-medium text-muted sm:col-span-1">
                     Rest
-                    <Select value={e.restSec} onChange={(ev) => patchRow(e.id, { restSec: Number(ev.target.value) })} className="h-10">
+                    <Select value={e.restSec} onChange={(ev) => patchRow(e.id, { restSec: Number(ev.target.value) })}>
                       {REST.map((r) => (
                         <option key={r} value={r}>
                           {restLabel(r)}
@@ -223,6 +237,15 @@ export default function RoutineEditor() {
                     </Select>
                   </label>
                 </div>
+                )}
+                <Input
+                  value={e.note ?? ''}
+                  maxLength={200}
+                  onChange={(ev) => patchRow(e.id, { note: ev.target.value || undefined })}
+                  placeholder="Why it’s in the program (shown mid-workout)"
+                  aria-label={`Note for ${def?.name ?? 'exercise'}`}
+                  className="mt-2 text-sm"
+                />
                 {rowErr && <p className="mt-2 text-sm text-danger">{rowErr}</p>}
               </div>
               {i < draft.exercises.length - 1 && (
@@ -276,7 +299,12 @@ export default function RoutineEditor() {
         onPick={(ids) =>
           setExercises((l) => [
             ...l,
-            ...ids.map((exerciseId) => ({ id: uid('re'), exerciseId, sets: 3, repMin: 8, repMax: 12, restSec: defaultRest, supersetId: null })),
+            ...ids.map((exerciseId) => {
+              const d = map.get(exerciseId)
+              return d?.aerobic
+                ? { id: uid('re'), exerciseId, sets: 1, repMin: 0, repMax: 0, restSec: 0, minutes: d.defaultMinutes ?? 20, supersetId: null }
+                : { id: uid('re'), exerciseId, sets: 3, repMin: 8, repMax: 12, restSec: defaultRest, supersetId: null }
+            }),
           ])
         }
       />

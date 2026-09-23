@@ -1,12 +1,12 @@
 {
-  "name": "IronLog",
-  "short_name": "IronLog",
+  "name": "Overload",
+  "short_name": "Overload",
   "description": "A local-first strength training tracker.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b0c0e",
-  "theme_color": "#0b0c0e",
+  "background_color": "#0e0e11",
+  "theme_color": "#0e0e11",
   "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }

@@ -1,4 +1,4 @@
-import type { Workout, WorkoutSet } from '../types'
+import type { Effort, Workout, WorkoutSet } from '../types'
 
 /** Epley estimate. A single rep is its own 1RM. */
 export function e1rm(weight: number, reps: number): number {
@@ -7,13 +7,58 @@ export function e1rm(weight: number, reps: number): number {
   return weight * (1 + Math.min(reps, 20) / 30)
 }
 
-export function isDone(s: WorkoutSet): boolean {
-  return s.completed && (s.reps ?? 0) > 0
+/** An aerobic set logs minutes rather than weight and reps. */
+export function isAerobicSet(s: WorkoutSet): boolean {
+  return s.minutes != null
 }
 
-/** Completed, non-warm-up sets count toward volume and records. */
+export function isDone(s: WorkoutSet): boolean {
+  return s.completed && (isAerobicSet(s) ? (s.minutes ?? 0) > 0 : (s.reps ?? 0) > 0)
+}
+
+/** Completed, non-warm-up strength sets count toward volume and records. Aerobic sets never do. */
 export function isWorking(s: WorkoutSet): boolean {
-  return isDone(s) && s.type !== 'warmup'
+  return isDone(s) && s.type !== 'warmup' && !isAerobicSet(s)
+}
+
+/** Completed aerobic minutes in a workout. */
+export function aerobicMinutes(w: Pick<Workout, 'exercises'>): number {
+  let m = 0
+  for (const ex of w.exercises) for (const s of ex.sets) if (isDone(s) && isAerobicSet(s)) m += s.minutes ?? 0
+  return m
+}
+
+const EFFORT_RANK: Record<Effort, number> = { easy: 0, moderate: 1, hard: 2 }
+
+/**
+ * How a session of one exercise felt overall: the most common rating among its
+ * rated working sets, ties going to the harder one. Null when nothing is rated.
+ */
+export function sessionEffort(sets: WorkoutSet[]): Effort | null {
+  const counts: Record<Effort, number> = { easy: 0, moderate: 0, hard: 0 }
+  for (const s of sets) if (isWorking(s) && s.effort) counts[s.effort]++
+  let best: Effort | null = null
+  for (const e of ['easy', 'moderate', 'hard'] as Effort[]) if (counts[e] && (!best || counts[e] >= counts[best])) best = e
+  return best
+}
+
+export type EffortAdvice = { kind: 'add'; weight: number } | { kind: 'hold'; weight: number }
+
+/**
+ * Next-time advice from last session, only when every working set carrying load was rated:
+ * all easy means there is load to add, all hard means repeat the weight rather than add.
+ */
+export function effortAdvice(prev: WorkoutSet[], step: number): EffortAdvice | null {
+  const work = prev.filter((s) => isWorking(s) && (s.weight ?? 0) > 0)
+  if (!work.length || work.some((s) => !s.effort)) return null
+  const top = Math.max(...work.map((s) => s.weight ?? 0))
+  if (work.every((s) => s.effort === 'easy')) return { kind: 'add', weight: top + step }
+  if (work.every((s) => s.effort === 'hard')) return { kind: 'hold', weight: top }
+  return null
+}
+
+export function effortRank(e: Effort): number {
+  return EFFORT_RANK[e]
 }
 
 export function setVolume(s: WorkoutSet): number {
@@ -47,6 +92,7 @@ export interface ExerciseSession {
   workoutId: string
   date: string
   sets: WorkoutSet[]
+  effort: Effort | null
   bestSet: WorkoutSet | null
   topWeight: number
   e1rm: number
@@ -88,7 +134,20 @@ export function exerciseHistory(workouts: Workout[], exerciseId: string): Exerci
   for (const w of [...workouts].sort(byDateAsc)) {
     const sets = w.exercises.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets)
     if (!sets.some(isWorking)) continue
-    out.push({ workoutId: w.id, date: w.startedAt, sets: sets.filter(isDone), ...summariseSets(sets) })
+    out.push({ workoutId: w.id, date: w.startedAt, sets: sets.filter(isDone), effort: sessionEffort(sets), ...summariseSets(sets) })
+  }
+  return out
+}
+
+/** Minutes logged for an aerobic exercise, one entry per session, oldest first. */
+export function aerobicHistory(workouts: Workout[], exerciseId: string): { workoutId: string; date: string; minutes: number }[] {
+  const out: { workoutId: string; date: string; minutes: number }[] = []
+  for (const w of [...workouts].sort(byDateAsc)) {
+    const minutes = w.exercises
+      .filter((e) => e.exerciseId === exerciseId)
+      .flatMap((e) => e.sets)
+      .reduce((n, s) => n + (isDone(s) && isAerobicSet(s) ? (s.minutes ?? 0) : 0), 0)
+    if (minutes > 0) out.push({ workoutId: w.id, date: w.startedAt, minutes })
   }
   return out
 }
