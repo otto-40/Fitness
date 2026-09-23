@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Mobile top bar */}
         {!inWorkout && (
           <div className="flex items-center justify-between px-4 pt-4 lg:hidden">
-            <Link to="/" aria-label="IronLog home">
+            <Link to="/" aria-label="IronLog home" className="flex h-11 items-center">
               <Logo />
             </Link>
             <Link to="/settings" aria-label="Settings" className="flex size-11 items-center justify-center rounded-xl text-ink-2 hover:bg-surface-2">

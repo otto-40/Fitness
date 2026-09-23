@@ -11,6 +11,7 @@ import { formatDuration, friendlyDay, WEEK_OPTS } from '../lib/dates'
 import { muscleSplit, weeklyBuckets } from '../lib/stats'
 import { formatEstimate, formatVolume, formatWeight, round, toDisplayWeight } from '../lib/units'
 import { useStore } from '../store/useStore'
+import { plural } from '../lib/format'
 
 type Range = '4' | '12' | '26' | 'all'
 
@@ -210,7 +211,7 @@ export default function Progress() {
             By muscle group
           </SectionTitle>
           {split.length ? (
-            <RankBars rows={split.map((r) => ({ label: r.muscle, value: r.value }))} format={(v) => (splitMetric === 'sets' ? `${v} sets` : formatVolume(v, units))} />
+            <RankBars rows={split.map((r) => ({ label: r.muscle, value: r.value }))} format={(v) => (splitMetric === 'sets' ? plural(v, 'set') : formatVolume(v, units))} />
           ) : (
             <p className="py-8 text-center text-sm text-muted">No working sets in this range.</p>
           )}
@@ -222,7 +223,7 @@ export default function Progress() {
       <Card className="mt-4 p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="eyebrow">Strength progression</h2>
-          <Select value={selected} onChange={(e) => setExerciseId(e.target.value)} aria-label="Exercise" className="h-9 w-auto max-w-[220px] text-sm">
+          <Select value={selected} onChange={(e) => setExerciseId(e.target.value)} aria-label="Exercise" className="w-auto max-w-[220px] text-sm">
             {exerciseOptions.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.name} ({o.n})
@@ -273,7 +274,7 @@ export default function Progress() {
               <LineTrend data={exData} series={[{ key: 'reps', name: 'Most reps' }]} format={(v) => `${v} reps`} ariaLabel={`Most reps per session for ${map.get(selected)?.name}`} />
             )}
             {selected && (
-              <Link to={`/library/${selected}`} className="mt-2 inline-block text-sm font-semibold text-accent-ink hover:underline">
+              <Link to={`/library/${selected}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-accent-ink hover:underline">
                 Full exercise history
               </Link>
             )}
@@ -286,7 +287,7 @@ export default function Progress() {
           <h2 className="font-display text-[26px] font-semibold tracking-[0.04em] uppercase">Personal records</h2>
           <div className="relative w-full sm:w-64">
             <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-            <Input value={recordQuery} onChange={(e) => setRecordQuery(e.target.value)} placeholder="Filter exercises" className="h-10 pl-9 text-sm" aria-label="Filter records" />
+            <Input value={recordQuery} onChange={(e) => setRecordQuery(e.target.value)} placeholder="Filter exercises" className="pl-9 text-sm" aria-label="Filter records" />
           </div>
         </div>
         <ul className="flex flex-col gap-2 sm:hidden">
@@ -295,7 +296,7 @@ export default function Progress() {
               <Link to={`/library/${r.exerciseId}`} className="block rounded-2xl border border-line bg-surface p-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="truncate font-semibold">{map.get(r.exerciseId)!.name}</span>
-                  <span className="shrink-0 text-xs text-muted">{r.sessions} sessions</span>
+                  <span className="shrink-0 text-xs text-muted">{plural(r.sessions, 'session')}</span>
                 </div>
                 <dl className="mt-3 grid grid-cols-3 gap-2">
                   <div>

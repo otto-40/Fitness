@@ -169,7 +169,7 @@ export default function Onboarding() {
   const summary: { step: Step; icon: ReactNode; label: string; value: string }[] = [
     { step: 'goal', icon: <Target size={18} />, label: 'Goal', value: GOAL_LABEL[goal] },
     { step: 'experience', icon: <TrendingUp size={18} />, label: 'Experience', value: EXPERIENCE_LABEL[experience] },
-    { step: 'days', icon: <CalendarDays size={18} />, label: 'Schedule', value: `${daysPerWeek} days · ${[...days].sort().map((d) => WEEKDAY_SHORT[d]).join(', ')}` },
+    { step: 'days', icon: <CalendarDays size={18} />, label: 'Schedule', value: `${daysPerWeek} days · ${[...days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => WEEKDAY_SHORT[d]).join(', ')}` },
     { step: 'equipment', icon: <Dumbbell size={18} />, label: 'Equipment', value: equipment.length === EQUIPMENT.length ? 'Full gym' : equipment.join(', ') },
     { step: 'units', icon: <Ruler size={18} />, label: 'Units', value: units === 'kg' ? 'Kilograms' : 'Pounds' },
     { step: 'name', icon: <User size={18} />, label: 'Name', value: name.trim() || 'Not set' },
@@ -278,7 +278,7 @@ export default function Onboarding() {
                 ))}
               </div>
               <p className="eyebrow mt-8 mb-3">Training days</p>
-              <div className="grid grid-cols-7 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
                 {[1, 2, 3, 4, 5, 6, 0].map((d) => {
                   const on = days.includes(d)
                   return (

@@ -96,7 +96,7 @@ export function Segmented<T extends string>({
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={clsx(
-              'flex-1 rounded-full px-3.5 font-semibold whitespace-nowrap transition-all',
+              'hit flex-1 rounded-full px-3.5 font-semibold whitespace-nowrap transition-all',
               size === 'sm' ? 'h-8 text-[13px]' : 'h-9 text-sm',
               active ? 'bg-surface text-ink shadow-card dark:bg-surface-3' : 'text-muted hover:text-ink',
             )}
@@ -126,7 +126,7 @@ export function Chip({
       aria-pressed={active}
       onClick={onClick}
       className={clsx(
-        'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+        'hit inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
         active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink',
         className,
       )}
@@ -152,7 +152,7 @@ export function Switch({ checked, onChange, label, description }: { checked: boo
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={clsx('relative h-7 w-12 shrink-0 rounded-full transition-colors', checked ? 'bg-accent' : 'bg-surface-3')}
+        className={clsx('hit h-7 w-12 shrink-0 rounded-full transition-colors', checked ? 'bg-accent' : 'bg-surface-3')}
       >
         <span className={clsx('absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform', checked && 'translate-x-5')} />
       </button>
@@ -176,14 +176,15 @@ export function DropdownChip({
 }) {
   const active = value !== ''
   return (
-    <span className="relative inline-flex shrink-0">
+    // The select itself is 44px tall for touch; the pill is drawn behind it at chip size.
+    <span className="relative inline-flex h-11 shrink-0 items-center">
       <select
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={clsx(
-          'h-9 appearance-none rounded-full border pr-8 pl-3.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2 hover:border-line-strong',
+          'peer relative z-10 h-11 appearance-none rounded-full bg-transparent pr-8 pl-3.5 text-sm font-medium focus:outline-none',
+          active ? 'text-bg' : 'text-ink-2',
         )}
       >
         <option value="">{placeholder}</option>
@@ -193,7 +194,14 @@ export function DropdownChip({
           </option>
         ))}
       </select>
-      <svg viewBox="0 0 24 24" className={clsx('pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2', active ? 'text-bg' : 'text-muted')} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <span
+        aria-hidden
+        className={clsx(
+          'pointer-events-none absolute inset-x-0 inset-y-1 rounded-full border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg',
+          active ? 'border-ink bg-ink' : 'border-line bg-surface peer-hover:border-line-strong',
+        )}
+      />
+      <svg viewBox="0 0 24 24" className={clsx('pointer-events-none absolute top-1/2 right-2.5 z-10 size-4 -translate-y-1/2', active ? 'text-bg' : 'text-muted')} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
         <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>

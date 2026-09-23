@@ -5,7 +5,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Card, EmptyState, LinkButton, MuscleTag, SectionTitle } from '../components/ui'
 import { useExerciseMap } from '../hooks/useExercises'
 import { completedSetCount, durationMs, PR_LABEL, prsForWorkout, summariseSets, workoutVolume } from '../lib/calc'
-import { prValue } from '../lib/format'
+import { prValue, plural } from '../lib/format'
 import { formatDuration } from '../lib/dates'
 import { formatVolume, formatWeight } from '../lib/units'
 import { useStore } from '../store/useStore'
@@ -115,7 +115,7 @@ export default function WorkoutSummary() {
                     <Link to={`/library/${e.exerciseId}`} className="block truncate font-medium hover:underline">
                       {map.get(e.exerciseId)?.name ?? 'Deleted exercise'}
                     </Link>
-                    <div className="text-sm text-muted">{e.sets.length} sets</div>
+                    <div className="text-sm text-muted">{plural(e.sets.length, 'set')}</div>
                   </div>
                   <div className="text-right">
                     <div className="stamp text-xl">{s.bestSet ? `${formatWeight(s.bestSet.weight, units)} × ${s.bestSet.reps}` : '—'}</div>

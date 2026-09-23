@@ -41,7 +41,11 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         if (!f.length) return
         const first = f[0]
         const last = f[f.length - 1]
-        if (e.shiftKey && document.activeElement === first) {
+        // Focus that somehow ended up outside the dialog is pulled back in.
+        if (!panel.current.contains(document.activeElement)) {
+          e.preventDefault()
+          ;(e.shiftKey ? last : first).focus()
+        } else if (e.shiftKey && document.activeElement === first) {
           e.preventDefault()
           last.focus()
         } else if (!e.shiftKey && document.activeElement === last) {
@@ -53,10 +57,9 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     document.addEventListener('keydown', onKey)
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    requestAnimationFrame(() => {
-      const target = panel.current?.querySelector<HTMLElement>('[data-autofocus]') ?? panel.current
-      target?.focus()
-    })
+    // Focus immediately (the panel is in the DOM by now) so keys typed right after opening land inside.
+    const target = panel.current?.querySelector<HTMLElement>('[data-autofocus]') ?? panel.current
+    target?.focus({ preventScroll: true })
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = overflow
@@ -90,7 +93,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             </h2>
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
           </div>
-          <IconButton label="Close" onClick={onClose} className="-mr-2">
+          <IconButton label="Close" onClick={onClose} className="-mr-2 size-11">
             <X size={20} />
           </IconButton>
         </div>

@@ -17,6 +17,7 @@ import { BUILT_IN_EXERCISES } from '../data/exercises'
 import { uid } from '../lib/id'
 import { isDone, previousSets } from '../lib/calc'
 import { generateProgram } from '../lib/programGen'
+import { normalizeSupersets } from '../lib/supersets'
 
 export const STORAGE_KEY = 'ironlog-v1'
 export const DEMO_PREFIX = 'demo-'
@@ -166,7 +167,7 @@ export const useStore = create<DataState & Actions>()(
               : s.customExercises.filter((e) => e.id !== id),
             favorites: s.favorites.filter((f) => f !== id),
             routines: s.routines.map((r) =>
-              r.exercises.some((e) => e.exerciseId === id) ? { ...r, exercises: r.exercises.filter((e) => e.exerciseId !== id) } : r,
+              r.exercises.some((e) => e.exerciseId === id) ? { ...r, exercises: normalizeSupersets(r.exercises.filter((e) => e.exerciseId !== id)) } : r,
             ),
           }
         }),
@@ -321,7 +322,7 @@ export const useStore = create<DataState & Actions>()(
             ],
           })),
         ),
-      removeActiveExercise: (exId) => set((s) => mapActive(s, (a) => ({ ...a, exercises: a.exercises.filter((e) => e.id !== exId) }))),
+      removeActiveExercise: (exId) => set((s) => mapActive(s, (a) => ({ ...a, exercises: normalizeSupersets(a.exercises.filter((e) => e.id !== exId)) }))),
       moveActiveExercise: (exId, dir) =>
         set((s) =>
           mapActive(s, (a) => {
@@ -330,7 +331,8 @@ export const useStore = create<DataState & Actions>()(
             if (i < 0 || j < 0 || j >= a.exercises.length) return a
             const exercises = [...a.exercises]
             ;[exercises[i], exercises[j]] = [exercises[j], exercises[i]]
-            return { ...a, exercises }
+            // Moving through a superset must not leave split groups or lone links behind.
+            return { ...a, exercises: normalizeSupersets(exercises) }
           }),
         ),
       setActiveRest: (exId, restSec) => set((s) => mapActive(s, (a) => mapExercise(a, exId, (e) => ({ ...e, restSec })))),

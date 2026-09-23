@@ -111,6 +111,11 @@
 }
 
 @layer base {
+  /* Native option lists never inherit a chip's inverted text colour. */
+  option {
+    color: var(--ink);
+    background: var(--surface);
+  }
   html {
     background: var(--bg);
     -webkit-tap-highlight-color: transparent;
@@ -159,6 +164,15 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.01em;
     line-height: 1;
+  }
+  /* Invisible 44px touch area for controls that are drawn smaller (chips, pills, text links). */
+  .hit {
+    position: relative;
+  }
+  .hit::after {
+    content: '';
+    position: absolute;
+    inset: min(0px, calc((100% - 44px) / 2));
   }
   .pb-nav {
     padding-bottom: calc(env(safe-area-inset-bottom) + 112px);

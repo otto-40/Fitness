@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { format, parseISO, subDays } from 'date-fns'
 import { Pencil, Plus, Scale, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { LineTrend } from '../components/charts/Charts'
 import { Button, Card, ConfirmDialog, EmptyState, Field, HeroCard, IconButton, Input, Modal, PageHeader, SectionTitle, Segmented, Textarea } from '../components/ui'
 import { NumberField } from '../components/workout/NumberField'
@@ -41,30 +41,32 @@ function Delta({ value, units, kind }: { value: number | null | undefined; units
 
 type Draft = { date: string; weight: number | null; bodyFat: number | null; note: string } & Record<LengthKey, number | null>
 
-function EntryForm({ open, onClose, existing }: { open: boolean; onClose: () => void; existing: Measurement | null }) {
+type EntryFormProps = { open: boolean; onClose: () => void; existing: Measurement | null }
+
+/** Mounted only while open, so each opening starts from the entry (or the last weigh-in). */
+function EntryForm(props: EntryFormProps) {
+  return props.open ? <OpenEntryForm {...props} /> : null
+}
+
+function OpenEntryForm({ open, onClose, existing }: EntryFormProps) {
   const units = useStore((s) => s.settings.units)
   const measurements = useStore((s) => s.measurements)
   const save = useStore((s) => s.saveMeasurement)
-  const empty: Draft = { date: format(new Date(), 'yyyy-MM-dd'), weight: null, bodyFat: null, note: '', waist: null, chest: null, arms: null, thighs: null, hips: null }
-  const [d, setD] = useState<Draft>(empty)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    setError(null)
+  const [d, setD] = useState<Draft>(() => {
+    const empty: Draft = { date: format(new Date(), 'yyyy-MM-dd'), weight: null, bodyFat: null, note: '', waist: null, chest: null, arms: null, thighs: null, hips: null }
     if (!existing) {
       const last = [...measurements].filter((m) => m.weight).sort((a, b) => a.date.localeCompare(b.date)).at(-1)
-      setD({ ...empty, weight: last?.weight ? toDisplayWeight(last.weight, units) : null })
-      return
+      return { ...empty, weight: last?.weight ? toDisplayWeight(last.weight, units) : null }
     }
-    setD({
+    return {
       date: existing.date,
       weight: existing.weight != null ? toDisplayWeight(existing.weight, units) : null,
       bodyFat: existing.bodyFat ?? null,
       note: existing.note ?? '',
       ...(Object.fromEntries(LENGTHS.map((k) => [k, existing[k] != null ? toDisplayLength(existing[k]!, units) : null])) as Record<LengthKey, number | null>),
-    })
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+    }
+  })
+  const [error, setError] = useState<string | null>(null)
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -243,7 +245,7 @@ export default function Body() {
           </div>
 
           <Card className="mt-4 p-4 sm:p-5">
-            <div role="radiogroup" aria-label="Measurement" className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+            <div role="radiogroup" aria-label="Measurement" className="scrollbar-none -mx-4 -my-1 flex gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:flex-wrap sm:px-0">
               {METRICS.map((m) => (
                 <button
                   key={m.key}
@@ -251,7 +253,7 @@ export default function Body() {
                   aria-checked={metric === m.key}
                   onClick={() => setMetric(m.key)}
                   className={clsx(
-                    'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors',
+                    'hit inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors',
                     metric === m.key ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2 hover:text-ink',
                   )}
                 >

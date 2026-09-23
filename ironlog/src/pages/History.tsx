@@ -13,6 +13,7 @@ import { weekStreaks } from '../lib/stats'
 import { formatVolume } from '../lib/units'
 import { useStore } from '../store/useStore'
 import type { Workout } from '../types'
+import { plural } from '../lib/format'
 
 function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
   const units = useStore((s) => s.settings.units)
@@ -40,7 +41,7 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
               <Clock size={13} /> {formatDuration(durationMs(w))}
             </span>
             <span className="tnum font-medium text-ink-2">{formatVolume(workoutVolume(w), units)}</span>
-            <span className="tnum">{completedSetCount(w)} sets</span>
+            <span className="tnum">{plural(completedSetCount(w), 'set')}</span>
           </span>
           <span className="mt-1.5 line-clamp-1 block text-sm text-ink-2">{w.exercises.map((e) => map.get(e.exerciseId)?.name ?? 'Deleted exercise').join(' · ')}</span>
         </span>
@@ -58,9 +59,9 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
-      <Card className="p-4 sm:p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <button onClick={() => setMonth((m) => subMonths(m, 1))} className="flex size-10 items-center justify-center rounded-xl hover:bg-surface-2" aria-label="Previous month">
+      <Card className="px-2 py-4 sm:p-5">
+        <div className="mb-4 flex items-center justify-between px-2 sm:px-0">
+          <button onClick={() => setMonth((m) => subMonths(m, 1))} className="flex size-11 items-center justify-center rounded-xl hover:bg-surface-2" aria-label="Previous month">
             <ChevronLeft size={20} />
           </button>
           <div className="text-center">
@@ -72,20 +73,20 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
           <button
             onClick={() => setMonth((m) => addMonths(m, 1))}
             disabled={isSameMonth(month, new Date())}
-            className="flex size-10 items-center justify-center rounded-xl hover:bg-surface-2 disabled:opacity-30"
+            className="flex size-11 items-center justify-center rounded-xl hover:bg-surface-2 disabled:opacity-30"
             aria-label="Next month"
           >
             <ChevronRight size={20} />
           </button>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-muted uppercase" aria-hidden>
+        <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-muted uppercase sm:gap-1" aria-hidden>
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
             <span key={i} className="py-1">
               {d}
             </span>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1" role="grid" aria-label={format(month, 'MMMM yyyy')}>
+        <div className="grid grid-cols-7 gap-y-1 sm:gap-1" role="grid" aria-label={format(month, 'MMMM yyyy')}>
           {days.map((d) => {
             const ws = workouts.filter((w) => isSameDay(parseISO(w.startedAt), d))
             const cur = isSameMonth(d, month)
@@ -98,16 +99,20 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
                 aria-selected={!!sel}
                 aria-label={`${format(d, 'd MMMM')}${ws.length ? `, ${ws.map((w) => w.name).join(', ')}` : ', no workout'}`}
                 onClick={() => setSelected(d)}
-                className={clsx(
-                  'stamp relative mx-auto flex aspect-square w-full max-w-12 flex-col items-center justify-center rounded-full text-[17px] transition-colors',
-                  !cur && 'invisible',
-                  ws.length ? 'bg-accent text-on-accent' : 'hover:bg-surface-2',
-                  isToday(d) && !ws.length && 'ring-2 ring-accent ring-inset',
-                  sel && 'ring-2 ring-ink ring-offset-2 ring-offset-surface',
-                )}
+                // The whole cell is the touch target; the circle is drawn inside it.
+                className={clsx('group flex min-h-11 w-full items-center justify-center rounded-full focus-visible:outline-none', !cur && 'invisible')}
               >
-                {format(d, 'd')}
-                {ws.length > 1 && <span className="absolute bottom-1 text-[9px] leading-none">×{ws.length}</span>}
+                <span
+                  className={clsx(
+                    'stamp relative flex aspect-square w-[min(calc(100%_-_4px),48px)] flex-col items-center justify-center rounded-full text-[17px] transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent',
+                    ws.length ? 'bg-accent text-on-accent' : 'group-hover:bg-surface-2',
+                    isToday(d) && !ws.length && 'ring-2 ring-accent ring-inset',
+                    sel && 'ring-2 ring-ink ring-offset-2 ring-offset-surface',
+                  )}
+                >
+                  {format(d, 'd')}
+                  {ws.length > 1 && <span className="absolute bottom-1 text-[9px] leading-none">×{ws.length}</span>}
+                </span>
               </button>
             )
           })}
@@ -212,7 +217,7 @@ export default function History() {
               <ColumnTrend
                 data={perMonth}
                 series={[{ key: 'workouts', name: 'Workouts' }]}
-                format={(v) => `${v} workouts`}
+                format={(v) => plural(v, 'workout')}
                 height={110}
                 yWidth={24}
                 highlightLast

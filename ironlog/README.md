@@ -7,6 +7,8 @@ Everything, including a workout you are halfway through, is saved in your browse
 **Live app:** https://otto-40.github.io/Fitness/ironlog/. The repo's Pages workflow builds `ironlog/` and publishes the output there on every deploy.
 Data is stored per browser, so the live site and `localhost` keep separate logs.
 
+[`audit-report.md`](audit-report.md) records the final audit: what was tested, what was fixed and the known limitations.
+
 ## Design
 
 The interface uses **Forge**, a design system built for IronLog from a study of real fitness products on Mobbin.
@@ -24,22 +26,44 @@ Requires Node.js 20 or newer.
 
 ```bash
 cd ironlog
-npm install
+npm ci             # or npm install
 npm run dev        # http://localhost:5173
 ```
 
 Other scripts:
 
-| Command           | What it does                                    |
-| ----------------- | ----------------------------------------------- |
-| `npm run build`   | Type-checks, then builds a static bundle into `dist/` |
-| `npm run preview` | Serves the production build locally             |
-| `npm test`        | Runs the unit tests (Vitest)                    |
-| `npm run lint`    | Lints with oxlint                               |
+| Command           | What it does                                                  |
+| ----------------- | ------------------------------------------------------------- |
+| `npm run check`   | Everything CI should run: type-check, lint, unit tests, build |
+| `npm run build`   | Type-checks, then builds a static bundle into `dist/`         |
+| `npm run preview` | Serves the production build at http://localhost:4173          |
+| `npm test`        | Runs the unit tests (Vitest)                                  |
+| `npm run lint`    | Lints with oxlint                                             |
 
 On first launch you get onboarding. Finish it to get a generated plan, or skip it to explore the demo:
 about ten weeks of seeded push/pull/legs history plus body measurements.
 Sample records carry a `demo-` id prefix, so **Settings → Remove sample data** deletes them without touching anything you logged yourself.
+
+## Deployment
+
+IronLog is a static web app. `npm run build` writes everything to `dist/`: an `index.html`, hashed JS and CSS in `dist/assets/`, the icon and a web app manifest.
+Upload the contents of `dist/` to any static host or web server. No server-side code, environment variables, database or build-time configuration is needed.
+
+- **Any path works.** Asset URLs are relative (`base: './'` in `vite.config.ts`), so the app runs from a domain root or a subfolder such as `/apps/ironlog/` without changes.
+- **No rewrite rules.** Routing uses URL hashes (`#/history`), so the server only ever serves `index.html` and the files in `assets/`. Deep links and refreshes work on any host.
+- **Caching.** Files in `assets/` have content hashes in their names and can be cached for a long time. Serve `index.html` with a short cache, or none, so users pick up new releases.
+- **HTTPS.** Browsers only allow "Add to Home Screen" installs, and some storage guarantees, over HTTPS. Most static hosts provide it by default.
+- **Check before publishing.** Run `npm run check`, then `npm run preview` to click through the production build locally.
+- **Data stays with the browser.** Moving the app to a new domain starts with an empty log, because `localStorage` is per site. Use **Settings → Export JSON** on the old address and **Import JSON** on the new one.
+
+Example with a plain file server:
+
+```bash
+npm ci && npm run build
+npx serve dist          # or: python3 -m http.server --directory dist 8080
+```
+
+This repository publishes to GitHub Pages through `.github/workflows/pages.yml`. That workflow builds `ironlog/` and swaps the source folder for `dist/` in the uploaded site. It is one example of deploying the build; nothing in the app depends on GitHub Pages.
 
 ## Architecture
 
@@ -67,10 +91,10 @@ src/
     ui/Viz.tsx          Ring, SegmentBar, Sparkline, MiniBars: small SVG/CSS visuals shared across screens
     charts/Charts.tsx   Recharts wrappers (line/area, columns, labelled rank bars)
     workout/            ExerciseCard (set table), Keypad (weight/reps number pad), NumberField, SetTypeBadge,
-                        RestDock (rest timer dock + full-screen view)
+                        RestDock (rest timer dock + full-screen view), setTypes.ts (set-type labels)
     AppShell.tsx        Sidebar on desktop, floating tab bar + "More" sheet on mobile, workout mini-player
     ExercisePicker.tsx, ExerciseForm.tsx, StartWorkout.tsx
-  index.css             Design tokens (light + dark), stamp/eyebrow utilities, motion keyframes
+  index.css             Design tokens (light + dark), stamp/eyebrow/hit utilities, motion keyframes
   pages/                One file per screen (Home, Onboarding, Library, ExerciseDetail, Routines, RoutineEditor,
                         LiveWorkout, WorkoutSummary, History, WorkoutDetail, Progress, Body, Settings)
 ```
@@ -141,10 +165,17 @@ Key decisions:
 
 **Quality**
 - [x] Responsive: phone tab bar, tablet, and a desktop sidebar layout
-- [x] Keyboard-accessible dialogs (focus trap, Escape to close), labelled controls, visible focus, main text colours checked against WCAG AA (4.5:1), reduced-motion support
-- [x] Unit tests for the calculation, superset, program-generation, units and import logic
+- [x] Keyboard-accessible dialogs (focus trap, Escape to close, focus returned to the trigger), labelled controls, visible focus, main text colours checked against WCAG AA (4.5:1), reduced-motion support
+- [x] Touch targets of at least 44px on phones, checked on every screen at 360px, with no horizontal overflow from 360px up
+- [x] Unsaved-change prompts in the routine and past-workout editors
+- [x] Installable web app manifest; static build that runs from any path
+- [x] Unit tests for the calculation, superset, program-generation, units, import and regression cases
 
 ## Limitations
 
-- Data lives in one browser on one device. Clearing site data deletes it, so use **Export JSON** as a backup.
+- Data lives in one browser on one device. Clearing site data deletes it, so use **Export JSON** as a backup. Import replaces data; it doesn't merge.
+- No offline mode: the app needs a connection to load, and there is no service worker.
+- `localStorage` allows about 5 MB per site. By estimate, that is roughly 800 workouts at the demo's density.
+- On desktop, the sidebar links don't show the unsaved-changes prompt in editors. Cancel, the back link and closing the tab do.
 - The rest-timer beep and vibration depend on browser support. iOS Safari does not vibrate.
+- The audit ran in Chromium only. See [`audit-report.md`](audit-report.md) for what was and wasn't tested.

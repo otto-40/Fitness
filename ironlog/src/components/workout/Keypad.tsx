@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { ArrowRight, Check, Delete } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { parseDecimal, round } from '../../lib/units'
 import { Modal } from '../ui'
 
@@ -34,36 +34,36 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as 
  * the first key after switching field replaces the value, like a calculator.
  */
 export function Keypad(p: KeypadProps) {
-  const current = p.field === 'weight' ? p.weight : p.reps
-  const [text, setText] = useState(current == null ? '' : String(current))
-  const [fresh, setFresh] = useState(true)
-  // Reset only when the sheet opens or the field changes (state adjusted during render, no effect).
-  const sig = p.open ? p.field : null
-  const [prevSig, setPrevSig] = useState(sig)
-  if (sig !== prevSig) {
-    setPrevSig(sig)
-    if (sig) {
-      setText(current == null ? '' : String(current))
-      setFresh(true)
-    }
+  const valueOf = (f: KeypadField) => {
+    const v = f === 'weight' ? p.weight : p.reps
+    return v == null ? '' : String(v)
+  }
+  const [text, setText] = useState(() => valueOf(p.field))
+  // Key handling reads and writes this ref so fast typing never sees a stale render.
+  // The sheet is mounted fresh each time it opens, so this starts from the current value.
+  const entry = useRef({ field: p.field, text: valueOf(p.field), fresh: true })
+
+  const switchField = (f: KeypadField) => {
+    entry.current = { field: f, text: valueOf(f), fresh: true }
+    setText(entry.current.text)
+    p.onFieldChange(f)
   }
 
   const commit = (t: string) => {
+    const field = entry.current.field
+    entry.current = { field, text: t, fresh: false }
     setText(t)
     const n = parseDecimal(t)
-    const max = p.field === 'weight' ? 2000 : 999
-    const v = n == null ? null : Math.min(max, Math.max(0, p.field === 'reps' ? Math.round(n) : n))
-    p.onChange(p.field === 'weight' ? { weight: v } : { reps: v })
+    const max = field === 'weight' ? 2000 : 999
+    const v = n == null ? null : Math.min(max, Math.max(0, field === 'reps' ? Math.round(n) : n))
+    p.onChange(field === 'weight' ? { weight: v } : { reps: v })
   }
 
   const press = (k: (typeof KEYS)[number]) => {
-    if (k === 'back') {
-      setFresh(false)
-      return commit(text.slice(0, -1))
-    }
-    if (k === '.' && (p.field === 'reps' || text.includes('.'))) return
-    const base = fresh ? '' : text
-    setFresh(false)
+    const { field, text: cur, fresh } = entry.current
+    if (k === 'back') return commit(cur.slice(0, -1))
+    if (k === '.' && (field === 'reps' || (!fresh && cur.includes('.')))) return
+    const base = fresh ? '' : cur
     const next = base === '0' && k !== '.' ? k : base + k
     const [int, dec] = next.split('.')
     if (int.length > 4 || (dec && dec.length > 2)) return
@@ -71,14 +71,13 @@ export function Keypad(p: KeypadProps) {
   }
 
   const nudge = (d: number) => {
-    setFresh(false)
-    const cur = parseDecimal(text) ?? parseDecimal((p.field === 'weight' ? p.weightPlaceholder : p.repsPlaceholder) ?? '') ?? 0
-    const v = Math.max(0, round(cur + d, 2))
-    commit(String(v))
+    const { field, text: cur } = entry.current
+    const base = parseDecimal(cur) ?? parseDecimal((field === 'weight' ? p.weightPlaceholder : p.repsPlaceholder) ?? '') ?? 0
+    commit(String(Math.max(0, round(base + d, 2))))
   }
 
   const advance = () => {
-    if (p.field === 'weight') p.onFieldChange('reps')
+    if (entry.current.field === 'weight') switchField('reps')
     else if (p.onLog && !p.completed) p.onLog()
     else p.onClose()
   }
@@ -87,8 +86,9 @@ export function Keypad(p: KeypadProps) {
     if (/^[0-9]$/.test(e.key)) press(e.key as (typeof KEYS)[number])
     else if (e.key === '.' || e.key === ',') press('.')
     else if (e.key === 'Backspace') press('back')
-    else if (e.key === 'Enter') advance()
-    else if (e.key === 'Tab') p.onFieldChange(p.field === 'weight' ? 'reps' : 'weight')
+    else if (e.key === 'Enter' && e.target === e.currentTarget) advance()
+    // Tab switches field only while the pad itself has focus; on a button it moves focus as usual.
+    else if (e.key === 'Tab' && !e.shiftKey && e.target === e.currentTarget) switchField(entry.current.field === 'weight' ? 'reps' : 'weight')
     else return
     e.preventDefault()
   }
@@ -100,7 +100,7 @@ export function Keypad(p: KeypadProps) {
       <button
         type="button"
         aria-pressed={on}
-        onClick={() => p.onFieldChange(f)}
+        onClick={() => switchField(f)}
         className={clsx(
           'flex flex-1 flex-col items-start rounded-2xl border-2 px-4 py-2.5 text-left transition-colors',
           on ? 'border-accent bg-accent-soft/40' : 'border-transparent bg-surface-2',
@@ -161,7 +161,7 @@ export function Keypad(p: KeypadProps) {
               <Check size={20} strokeWidth={3} /> Log set
             </button>
           ) : (
-            <button type="button" onClick={() => p.onFieldChange('weight')} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-bg hover:opacity-90">
+            <button type="button" onClick={() => switchField('weight')} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-bg hover:opacity-90">
               Weight <ArrowRight size={18} />
             </button>
           )}

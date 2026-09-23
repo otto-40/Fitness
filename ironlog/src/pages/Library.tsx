@@ -8,6 +8,7 @@ import { useExerciseList } from '../hooks/useExercises'
 import { useStore } from '../store/useStore'
 import type { Equipment, Exercise, Muscle } from '../types'
 import { EQUIPMENT, MUSCLES } from '../types'
+import { plural } from '../lib/format'
 
 type Sort = 'az' | 'used'
 
@@ -73,7 +74,7 @@ export default function Library() {
     <div className="animate-rise">
       <PageHeader
         title="Exercises"
-        subtitle={`${all.length} exercises · ${favorites.length} favourites`}
+        subtitle={`${plural(all.length, 'exercise')} · ${plural(favorites.length, 'favourite')}`}
         actions={
           <Button icon={<Plus size={18} />} onClick={() => setCreating(true)}>
             New exercise
@@ -105,7 +106,7 @@ export default function Library() {
 
       <div className="mt-2 mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-muted" aria-live="polite">
-          {filtered ? `${list.length} match${list.length === 1 ? '' : 'es'}` : `${list.length} exercises`}
+          {filtered ? `${list.length} match${list.length === 1 ? '' : 'es'}` : plural(list.length, 'exercise')}
         </p>
         <Segmented<Sort>
           label="Sort"

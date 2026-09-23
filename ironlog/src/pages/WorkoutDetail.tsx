@@ -11,15 +11,16 @@ import { completedSetCount, durationMs, e1rm, isDone, PR_LABEL, previousSets, pr
 import { formatDuration } from '../lib/dates'
 import { prValue } from '../lib/format'
 import { uid } from '../lib/id'
+import { normalizeSupersets } from '../lib/supersets'
 import { formatEstimate, formatVolume, formatWeight } from '../lib/units'
 import { useStore } from '../store/useStore'
 import { toast } from '../store/useToast'
 import { useFocusMode } from '../store/useUi'
 import type { Workout, WorkoutExercise, WorkoutSet } from '../types'
 
-function BackLink() {
+function BackLink({ onClick }: { onClick?: (e: React.MouseEvent) => void }) {
   return (
-    <Link to="/history" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink">
+    <Link to="/history" onClick={onClick} className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-muted hover:text-ink">
       <ArrowLeft size={16} /> History
     </Link>
   )
@@ -35,6 +36,10 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
   const [minutes, setMinutes] = useState(String(Math.max(1, Math.round(durationMs(workout) / 60000))))
   const [picker, setPicker] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [confirmLeave, setConfirmLeave] = useState<null | 'edit' | 'history'>(null)
+  const [initial] = useState(() => JSON.stringify([draft, start, minutes]))
+  const dirty = JSON.stringify([draft, start, minutes]) !== initial
+  const navigate = useNavigate()
   useFocusMode()
 
   const mapEx = (exId: string, fn: (e: WorkoutExercise) => WorkoutExercise) =>
@@ -68,7 +73,13 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
 
   return (
     <div className="animate-rise mx-auto max-w-3xl pb-32">
-      <BackLink />
+      <BackLink
+        onClick={(e) => {
+          if (!dirty) return
+          e.preventDefault()
+          setConfirmLeave('history')
+        }}
+      />
       <h1 className="mb-6 font-display text-4xl font-semibold tracking-wide uppercase">Edit workout</h1>
       <Card className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
         <Field label="Name" error={errors.name} className="sm:col-span-2">
@@ -104,7 +115,14 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
             isLast={i === draft.exercises.length - 1}
             onSetChange={(setId, patch) => mapSet(ex.id, setId, (s) => ({ ...s, ...patch }))}
             onToggle={(setId) => mapSet(ex.id, setId, (s) => ({ ...s, completed: !s.completed }))}
-            onAddSet={(type = 'normal') => mapEx(ex.id, (e) => ({ ...e, sets: [...e.sets, { id: uid('s'), type, weight: null, reps: null, completed: false }] }))}
+            onAddSet={(type = 'normal') =>
+              mapEx(ex.id, (e) => {
+                const created: WorkoutSet = { id: uid('s'), type, weight: null, reps: null, completed: false }
+                // Warm-ups go before the first working set, as in the live workout.
+                const at = type === 'warmup' ? e.sets.findIndex((s) => s.type !== 'warmup') : -1
+                return { ...e, sets: at < 0 ? [...e.sets, created] : [...e.sets.slice(0, at), created, ...e.sets.slice(at)] }
+              })
+            }
             onRemoveSet={(setId) => mapEx(ex.id, (e) => ({ ...e, sets: e.sets.filter((s) => s.id !== setId) }))}
             onMove={(dir) =>
               setDraft((d) => {
@@ -112,10 +130,10 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
                 const j = i + dir
                 if (j < 0 || j >= list.length) return d
                 ;[list[i], list[j]] = [list[j], list[i]]
-                return { ...d, exercises: list }
+                return { ...d, exercises: normalizeSupersets(list) }
               })
             }
-            onRemove={() => setDraft((d) => ({ ...d, exercises: d.exercises.filter((e) => e.id !== ex.id) }))}
+            onRemove={() => setDraft((d) => ({ ...d, exercises: normalizeSupersets(d.exercises.filter((e) => e.id !== ex.id)) }))}
           />
         ))}
       </div>
@@ -125,7 +143,7 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
 
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
         <div className="mx-auto flex max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
-          <Button variant="secondary" size="lg" block onClick={onDone}>
+          <Button variant="secondary" size="lg" block onClick={() => (dirty ? setConfirmLeave('edit') : onDone())}>
             Cancel
           </Button>
           <Button size="lg" block onClick={save}>
@@ -151,6 +169,14 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
             ],
           }))
         }
+      />
+      <ConfirmDialog
+        open={!!confirmLeave}
+        onClose={() => setConfirmLeave(null)}
+        onConfirm={() => (confirmLeave === 'history' ? navigate('/history') : onDone())}
+        title="Discard changes?"
+        message="Your edits to this workout haven’t been saved."
+        confirmLabel="Discard"
       />
     </div>
   )
@@ -236,7 +262,7 @@ export default function WorkoutDetail() {
           let n = 0
           return (
             <Card key={ex.id} className="p-4">
-              <Link to={`/library/${ex.exerciseId}`} className="font-semibold hover:underline">
+              <Link to={`/library/${ex.exerciseId}`} className="inline-flex min-h-11 items-center font-semibold hover:underline">
                 {map.get(ex.exerciseId)?.name ?? 'Deleted exercise'}
               </Link>
               <table className="mt-3 w-full text-sm">

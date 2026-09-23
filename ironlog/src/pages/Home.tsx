@@ -12,6 +12,7 @@ import { formatDuration, friendlyDay, weekStart } from '../lib/dates'
 import { nextWorkout, routineMinutes, routineMuscles, weekStreaks, weekVolume, weeklyBuckets } from '../lib/stats'
 import { formatEstimate, formatVolume, formatWeight } from '../lib/units'
 import { useStore } from '../store/useStore'
+import { plural } from '../lib/format'
 
 function greeting(d: Date) {
   const h = d.getHours()
@@ -157,7 +158,7 @@ export default function Home() {
             <h2 className="mt-4 font-display text-[44px] leading-[0.95] font-semibold tracking-[0.03em] uppercase">{next.routine.name}</h2>
             <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-on-hero-muted">
               <span className="inline-flex items-center gap-1.5">
-                <Dumbbell size={15} /> {next.routine.exercises.length} exercises
+                <Dumbbell size={15} /> {plural(next.routine.exercises.length, 'exercise')}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Clock size={15} /> ~{routineMinutes(next.routine)} min
@@ -209,7 +210,7 @@ export default function Home() {
               <div className="mt-1 text-[15px] font-semibold">
                 {weekCount >= target ? 'Target hit' : `${target - weekCount} to go`}
               </div>
-              <div className="mt-0.5 text-xs text-muted">{target} sessions planned</div>
+              <div className="mt-0.5 text-xs text-muted">{plural(target, 'session')} planned</div>
             </div>
           </Card>
           <Card className="p-4 lg:p-5">
@@ -261,7 +262,7 @@ export default function Home() {
         <Card className="p-4 sm:p-5">
           <SectionTitle
             action={
-              <Link to="/progress#records" className="text-sm font-semibold text-accent-ink hover:underline">
+              <Link to="/progress#records" className="hit text-sm font-semibold text-accent-ink hover:underline">
                 All records
               </Link>
             }
@@ -282,7 +283,7 @@ export default function Home() {
         <Card className="p-4 sm:p-5">
           <SectionTitle
             action={
-              <Link to="/history" className="text-sm font-semibold text-accent-ink hover:underline">
+              <Link to="/history" className="hit text-sm font-semibold text-accent-ink hover:underline">
                 See all
               </Link>
             }

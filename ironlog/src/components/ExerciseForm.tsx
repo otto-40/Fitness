@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { uid } from '../lib/id'
 import { useExerciseList } from '../hooks/useExercises'
 import { useStore } from '../store/useStore'
@@ -7,35 +7,27 @@ import type { Equipment, Exercise, Muscle } from '../types'
 import { EQUIPMENT, MUSCLES } from '../types'
 import { Button, Chip, Field, Input, Modal, Select, Textarea } from './ui'
 
-export function ExerciseForm({
-  open,
-  onClose,
-  existing,
-  onSaved,
-}: {
+interface ExerciseFormProps {
   open: boolean
   onClose: () => void
   existing?: Exercise
   onSaved?: (id: string) => void
-}) {
+}
+
+/** Mounted only while open, so every opening starts from the exercise's current values. */
+export function ExerciseForm(props: ExerciseFormProps) {
+  return props.open ? <OpenExerciseForm {...props} /> : null
+}
+
+function OpenExerciseForm({ open, onClose, existing, onSaved }: ExerciseFormProps) {
   const save = useStore((s) => s.saveExercise)
   const all = useExerciseList()
-  const [name, setName] = useState('')
-  const [primary, setPrimary] = useState<Muscle>('Chest')
-  const [secondary, setSecondary] = useState<Muscle[]>([])
-  const [equipment, setEquipment] = useState<Equipment>('Barbell')
-  const [cue, setCue] = useState('')
+  const [name, setName] = useState(existing?.name ?? '')
+  const [primary, setPrimary] = useState<Muscle>(existing?.primary ?? 'Chest')
+  const [secondary, setSecondary] = useState<Muscle[]>(existing?.secondary ?? [])
+  const [equipment, setEquipment] = useState<Equipment>(existing?.equipment ?? 'Barbell')
+  const [cue, setCue] = useState(existing?.cue ?? '')
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    setName(existing?.name ?? '')
-    setPrimary(existing?.primary ?? 'Chest')
-    setSecondary(existing?.secondary ?? [])
-    setEquipment(existing?.equipment ?? 'Barbell')
-    setCue(existing?.cue ?? '')
-    setError(null)
-  }, [open, existing])
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()

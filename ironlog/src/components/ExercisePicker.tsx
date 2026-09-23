@@ -74,7 +74,7 @@ export function ExercisePicker({
             <Search size={18} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
             <Input data-autofocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exercises" className="pl-10" aria-label="Search exercises" />
           </div>
-          <div className="scrollbar-none -mx-5 mt-3 flex gap-2 overflow-x-auto px-5">
+          <div className="scrollbar-none -mx-5 mt-2 flex gap-2 overflow-x-auto px-5 py-1">
             <Chip active={!muscle} onClick={() => setMuscle(null)}>
               All
             </Chip>

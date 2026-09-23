@@ -27,6 +27,7 @@ export function formatDuration(ms: number): string {
   const totalMin = Math.max(0, Math.round(ms / 60000))
   const h = Math.floor(totalMin / 60)
   const m = totalMin % 60
+  if (!h && !m) return ms > 0 ? '<1 min' : '0 min'
   return h ? `${h}h ${m.toString().padStart(2, '0')}m` : `${m} min`
 }
 

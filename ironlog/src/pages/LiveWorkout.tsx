@@ -121,12 +121,14 @@ export default function LiveWorkout() {
           <IconButton label="Minimise workout" onClick={() => navigate('/')} className="-ml-2 size-11">
             <ChevronDown size={24} />
           </IconButton>
-          <button onClick={() => setEditName(active.name)} className="group min-w-0 flex-1 text-left" aria-label={`Workout name: ${active.name}. Tap to rename.`}>
-            <span className="eyebrow block truncate">{active.name}</span>
-            <span className="stamp block text-[34px]" role="timer" aria-label={`Elapsed ${clock(elapsed)}`}>
-              {clock(elapsed)}
-            </span>
-          </button>
+          <h1 className="min-w-0 flex-1">
+            <button onClick={() => setEditName(active.name)} className="group w-full min-w-0 text-left" aria-label={`Workout name: ${active.name}. Tap to rename.`}>
+              <span className="eyebrow block truncate">{active.name}</span>
+              <span className="stamp block text-[34px]" role="timer" aria-label={`Elapsed ${clock(elapsed)}`}>
+                {clock(elapsed)}
+              </span>
+            </button>
+          </h1>
           <IconButton label="Workout options" onClick={() => setMenu(true)} className="size-11">
             <MoreHorizontal size={22} />
           </IconButton>
@@ -214,7 +216,7 @@ export default function LiveWorkout() {
             )
           })
           return isSuperset ? (
-            <section key={g.id} aria-label="Superset" className="relative rounded-3xl border border-accent/40 bg-accent-soft/30 p-1.5 pl-3">
+            <section key={g.id} aria-label="Superset" className="relative -mx-2 rounded-3xl border border-accent/40 bg-accent-soft/30 p-1 pl-2.5 sm:mx-0 sm:p-1.5 sm:pl-3">
               <span className="absolute top-4 bottom-4 left-1 w-1 rounded-full bg-accent" aria-hidden />
               <div className="flex items-center gap-2 px-1.5 pt-1 pb-2 text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">
                 <Link2 size={14} /> Superset · rest after the last exercise
