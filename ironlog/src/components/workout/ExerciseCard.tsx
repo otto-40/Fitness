@@ -8,7 +8,8 @@ import { formatWeight, fromDisplayWeight, toDisplayWeight, weightStep } from '..
 import { Button, IconButton, Modal, Monogram, MuscleTag } from '../ui'
 import { Keypad } from './Keypad'
 import type { KeypadField } from './Keypad'
-import { SET_TYPE_META, SetTypeBadge } from './SetTypeBadge'
+import { SetTypeBadge } from './SetTypeBadge'
+import { SET_TYPE_META } from './setTypes'
 
 type SetPatch = Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'type'>>
 
@@ -40,7 +41,7 @@ function fmtRest(sec: number) {
   return m ? `${m}:${s.toString().padStart(2, '0')}` : `${s}s`
 }
 
-const GRID = 'grid grid-cols-[40px_minmax(0,1fr)_minmax(0,76px)_minmax(0,60px)_52px] items-center gap-1.5 sm:gap-2'
+const GRID = 'grid grid-cols-[44px_minmax(0,1fr)_minmax(0,76px)_minmax(0,60px)_52px] items-center gap-1.5 sm:gap-2'
 
 export function ExerciseCard(p: ExerciseCardProps) {
   const { ex, def, prev, units } = p
@@ -57,7 +58,9 @@ export function ExerciseCard(p: ExerciseCardProps) {
 
   const labelFor = (s: WorkoutSet) => {
     const n = ex.sets.filter((x) => x.type !== 'warmup').findIndex((x) => x.id === s.id) + 1
-    return { n, text: s.type === 'normal' ? `Set ${n}` : `${SET_TYPE_META[s.type].label} set` }
+    // Every label is unique so screen readers can tell two warm-ups or drop sets apart.
+    if (s.type === 'warmup') return { n, text: `Warm-up ${ex.sets.filter((x) => x.type === 'warmup').findIndex((x) => x.id === s.id) + 1}` }
+    return { n, text: s.type === 'normal' ? `Set ${n}` : `Set ${n} · ${SET_TYPE_META[s.type].label}` }
   }
 
   const toggle = (setId: string, wasDone: boolean) => {
@@ -102,7 +105,9 @@ export function ExerciseCard(p: ExerciseCardProps) {
       <div className="px-2 pt-3 pb-2 sm:px-3">
         <div className={clsx(GRID, 'px-1 pb-1.5 text-[11px] font-semibold tracking-[0.1em] text-muted uppercase')}>
           <span className="text-center">Set</span>
-          <span>Last time</span>
+          <span>
+            Last<span className="max-sm:hidden"> time</span>
+          </span>
           <span className="text-center">{bodyweight ? `+${units}` : units}</span>
           <span className="text-center">Reps</span>
           <span className="sr-only">Done</span>
@@ -140,18 +145,25 @@ export function ExerciseCard(p: ExerciseCardProps) {
                   upNext && 'ring-2 ring-accent ring-inset',
                 )}
               >
-                <button onClick={() => setSetMenuFor(s.id)} aria-label={`${label}: change type or delete`} className="flex justify-center rounded-lg">
+                <button onClick={() => setSetMenuFor(s.id)} aria-label={`${label}: change type or delete`} className="flex h-11 w-11 items-center justify-center rounded-lg">
                   <SetTypeBadge type={s.type} index={n} className="size-10" />
                 </button>
                 <button
                   type="button"
                   disabled={!ref || s.completed}
                   onClick={() => ref && p.onSetChange(s.id, { weight: ref.weight, reps: ref.reps })}
-                  className="tnum flex h-[52px] min-w-0 flex-col items-start justify-center truncate rounded-lg text-left text-[13px] font-medium text-muted enabled:hover:text-ink"
+                  className="tnum flex h-[52px] w-full min-w-0 flex-col items-start justify-center overflow-hidden rounded-lg text-left text-[13px] font-medium text-muted enabled:hover:text-ink"
                   aria-label={ref ? `Last time ${refText(ref)}. Tap to copy.` : 'No previous set'}
                 >
-                  {upNext && <span className="text-[10px] font-bold tracking-[0.12em] text-accent-ink uppercase">Up next</span>}
-                  <span className="truncate">{refText(ref)}</span>
+                  {upNext && <span className="text-[10px] leading-tight font-bold tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase">Up next</span>}
+                  {ref ? (
+                    <span className="flex min-w-0 flex-wrap leading-tight">
+                      <span className="whitespace-nowrap">{bodyweight && !ref.weight ? 'BW' : formatWeight(ref.weight, units, false)}</span>
+                      <span className="whitespace-nowrap">&nbsp;× {ref.reps}</span>
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
                 </button>
                 {cell('weight', s.weight == null ? null : formatWeight(s.weight, units, false), wPlaceholder, `${label} weight: ${s.weight == null ? 'empty' : formatWeight(s.weight, units)}. Edit`)}
                 {cell('reps', s.reps == null ? null : String(s.reps), rPlaceholder, `${label} reps: ${s.reps ?? 'empty'}. Edit`)}

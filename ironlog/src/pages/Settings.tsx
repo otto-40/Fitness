@@ -10,6 +10,7 @@ import type { ImportResult } from '../lib/backup'
 import { WEEKDAY_SHORT } from '../lib/dates'
 import { DEMO_PREFIX, STORAGE_KEY, useStore } from '../store/useStore'
 import type { DataState } from '../store/useStore'
+import { plural } from '../lib/format'
 import { toast } from '../store/useToast'
 import type { Equipment, Experience, Goal, ThemePref, Units } from '../types'
 import { EQUIPMENT } from '../types'
@@ -84,10 +85,11 @@ export default function Settings() {
       message:
         pending?.kind === 'import' ? (
           <>
-            This replaces everything on this device with the backup: <strong className="text-ink">{pending.result.counts.workouts}</strong> workouts,{' '}
-            <strong className="text-ink">{pending.result.counts.routines}</strong> routines, <strong className="text-ink">{pending.result.counts.measurements}</strong> measurements and{' '}
-            <strong className="text-ink">{pending.result.counts.exercises}</strong> custom exercises.
-            {pending.result.skipped > 0 && <> {pending.result.skipped} invalid entries will be skipped.</>}
+            This replaces everything on this device with the backup: <strong className="text-ink">{plural(pending.result.counts.workouts, 'workout')}</strong>,{' '}
+            <strong className="text-ink">{plural(pending.result.counts.routines, 'routine')}</strong>, <strong className="text-ink">{plural(pending.result.counts.measurements, 'measurement')}</strong> and{' '}
+            <strong className="text-ink">{plural(pending.result.counts.exercises, 'custom exercise')}</strong>.
+            {pending.result.skipped > 0 && <> {plural(pending.result.skipped, 'invalid entry', 'invalid entries')} will be skipped.</>}
+            {useStore.getState().active && <> The workout in progress will be discarded.</>}
           </>
         ) : null,
       label: 'Replace and import',
@@ -223,7 +225,7 @@ export default function Settings() {
           </div>
           <fieldset className="px-4 py-4">
             <legend className="float-left mb-2 w-full text-sm font-medium text-ink-2">Training days</legend>
-            <div className="clear-both grid grid-cols-7 gap-1.5">
+            <div className="clear-both grid grid-cols-4 gap-1.5 sm:grid-cols-7">
               {[1, 2, 3, 4, 5, 6, 0].map((d) => {
                 const on = profile.trainingDays.includes(d)
                 return (

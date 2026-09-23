@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { ArrowDown, ArrowLeft, ArrowUp, Clock, Link2, Link2Off, ListPlus, Play, Plus, Trash2, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { useStartWorkout } from '../components/StartWorkout'
@@ -14,6 +14,7 @@ import { useStore } from '../store/useStore'
 import { toast } from '../store/useToast'
 import { useFocusMode } from '../store/useUi'
 import type { Routine, RoutineExercise } from '../types'
+import { plural } from '../lib/format'
 
 const REST = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const restLabel = (s: number) => (s === 0 ? 'No rest' : s < 60 ? `${s}s` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} min`)
@@ -37,10 +38,21 @@ export default function RoutineEditor() {
   const [picker, setPicker] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; exercises?: string; rows?: Record<string, string> }>({})
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [initial] = useState(() => JSON.stringify(draft))
+  const dirty = !!draft && JSON.stringify(draft) !== initial
   const { start, dialog } = useStartWorkout()
   useFocusMode()
 
   const muscles = useMemo(() => (draft ? routineMuscles(draft, map) : []), [draft, map])
+
+  // Closing the tab with unsaved edits gets the browser's own "leave page?" prompt.
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
 
   if (!draft)
     return (
@@ -90,11 +102,21 @@ export default function RoutineEditor() {
     else navigate('/routines')
   }
 
+  const leave = () => (dirty ? setConfirmLeave(true) : navigate('/routines'))
+
   const totalSets = draft.exercises.reduce((n, e) => n + (e.sets || 0), 0)
 
   return (
     <div className="animate-rise mx-auto max-w-3xl pb-32">
-      <Link to="/routines" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink">
+      <Link
+        to="/routines"
+        onClick={(e) => {
+          if (!dirty) return
+          e.preventDefault()
+          setConfirmLeave(true)
+        }}
+        className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-muted hover:text-ink"
+      >
         <ArrowLeft size={16} /> Routines
       </Link>
       <h1 className="mb-6 font-display text-4xl font-semibold tracking-wide uppercase">{isNew ? 'New routine' : 'Edit routine'}</h1>
@@ -125,7 +147,7 @@ export default function RoutineEditor() {
           <Clock size={16} /> ~{draft.exercises.length ? routineMinutes(draft) : 0} min
         </span>
         <span className="font-medium">
-          {draft.exercises.length} exercises · {totalSets} sets
+          {plural(draft.exercises.length, 'exercise')} · {plural(totalSets, 'set')}
         </span>
         <span className="flex flex-wrap gap-1.5">
           {muscles.length ? muscles.map((m) => <MuscleTag key={m} muscle={m} />) : <span className="text-muted">No muscles yet</span>}
@@ -236,7 +258,7 @@ export default function RoutineEditor() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
         <div className="mx-auto flex max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
-          <IconButton label="Cancel" size="lg" onClick={() => navigate('/routines')} className="size-13 bg-surface-2">
+          <IconButton label="Cancel" size="lg" onClick={leave} className="size-13 bg-surface-2">
             <X size={20} />
           </IconButton>
           <Button variant="outline" size="lg" className="min-w-0 flex-1 px-3" icon={<Play size={16} />} onClick={() => save(true)}>
@@ -269,6 +291,14 @@ export default function RoutineEditor() {
         title="Delete routine?"
         message="Workouts you already logged with it stay in your history."
         confirmLabel="Delete"
+      />
+      <ConfirmDialog
+        open={confirmLeave}
+        onClose={() => setConfirmLeave(false)}
+        onConfirm={() => navigate('/routines')}
+        title="Discard changes?"
+        message="Your edits to this routine haven’t been saved."
+        confirmLabel="Discard"
       />
       {dialog}
     </div>

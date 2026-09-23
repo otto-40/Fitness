@@ -25,7 +25,7 @@ const sizes: Record<Size, string> = {
   xl: 'h-14 rounded-2xl px-6 text-[17px]',
 }
 
-export function buttonClass(variant: Variant = 'primary', size: Size = 'md', extra?: string) {
+function buttonClass(variant: Variant = 'primary', size: Size = 'md', extra?: string) {
   return clsx(base, variants[variant], sizes[size], extra)
 }
 

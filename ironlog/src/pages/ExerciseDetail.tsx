@@ -13,6 +13,7 @@ import { friendlyDay } from '../lib/dates'
 import { formatEstimate, formatVolume, formatWeight, round, toDisplayWeight } from '../lib/units'
 import { useStore } from '../store/useStore'
 import { toast } from '../store/useToast'
+import { plural } from '../lib/format'
 
 type Metric = 'e1rm' | 'topWeight' | 'volume' | 'maxReps'
 
@@ -69,7 +70,7 @@ export default function ExerciseDetail() {
 
   return (
     <div className="animate-rise">
-      <Link to="/library" className="mb-4 inline-flex h-9 items-center gap-1 text-sm font-medium text-muted hover:text-ink">
+      <Link to="/library" className="mb-4 inline-flex h-11 items-center gap-1 text-sm font-medium text-muted hover:text-ink">
         <ArrowLeft size={16} /> Exercises
       </Link>
       <div className="mb-5 flex items-start gap-4">
@@ -151,7 +152,7 @@ export default function ExerciseDetail() {
                       {trend > 0 ? '+' : trend < 0 ? '−' : '±'}
                       {Math.abs(round(trend, 1)).toLocaleString()} {activeMetric === 'maxReps' ? 'reps' : units}
                     </span>{' '}
-                    across {history.length} sessions
+                    across {plural(history.length, 'session')}
                   </div>
                 )}
               </div>

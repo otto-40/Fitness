@@ -59,10 +59,10 @@ export function RestDock() {
 
   const controls = (big: boolean) => (
     <div className={clsx('flex items-center gap-2', big && 'w-full max-w-sm')}>
-      <button onClick={() => adjustRest(-15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 px-3 text-lg')} aria-label="Subtract 15 seconds">
+      <button onClick={() => adjustRest(-15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 w-12 text-lg sm:w-auto sm:px-3')} aria-label="Subtract 15 seconds">
         −15
       </button>
-      <button onClick={() => adjustRest(15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 px-3 text-lg')} aria-label="Add 15 seconds">
+      <button onClick={() => adjustRest(15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 w-12 text-lg sm:w-auto sm:px-3')} aria-label="Add 15 seconds">
         +15
       </button>
       <button
@@ -70,10 +70,10 @@ export function RestDock() {
           skipRest()
           setExpanded(false)
         }}
-        className={clsx('flex items-center justify-center gap-1.5 rounded-2xl bg-accent font-bold text-on-accent hover:bg-accent-hover active:scale-95', big ? 'h-16 flex-[1.4] text-lg' : 'h-12 px-3.5 text-sm')}
+        className={clsx('flex items-center justify-center gap-1.5 rounded-2xl bg-accent font-bold text-on-accent hover:bg-accent-hover active:scale-95', big ? 'h-16 flex-[1.4] text-lg' : 'h-12 px-3.5 text-sm max-[379px]:w-12 max-[379px]:px-0')}
         aria-label="Skip rest"
       >
-        <SkipForward size={big ? 20 : 16} /> Skip
+        <SkipForward size={big ? 20 : 16} /> <span className={big ? undefined : 'max-[379px]:hidden'}>Skip</span>
       </button>
     </div>
   )

@@ -10,6 +10,7 @@ import { nextWorkout, routineMinutes, routineMuscles } from '../lib/stats'
 import { useStore } from '../store/useStore'
 import { toast } from '../store/useToast'
 import type { Routine } from '../types'
+import { plural } from '../lib/format'
 
 export default function Routines() {
   const { routines, workouts, profile } = useStore()
@@ -112,7 +113,7 @@ export default function Routines() {
               return (
                 <li key={r.id} className={clsx('flex flex-col rounded-2xl border bg-surface p-4 sm:p-5', isNext ? 'border-accent ring-1 ring-accent' : 'border-line')}>
                   <div className="flex items-start gap-2">
-                    <Link to={`/routines/${r.id}`} className="min-w-0 flex-1 hover:underline">
+                    <Link to={`/routines/${r.id}`} className="flex min-h-11 min-w-0 flex-1 items-center hover:underline">
                       <h2 className="truncate font-display text-[26px] leading-tight font-semibold tracking-[0.03em] uppercase">{r.name}</h2>
                     </Link>
                     <IconButton label={`Options for ${r.name}`} onClick={() => setMenuFor(r)} className="-mt-1 -mr-2 size-11">
@@ -127,7 +128,7 @@ export default function Routines() {
                       </Badge>
                     )}
                     <span className="inline-flex items-center gap-1">
-                      <Dumbbell size={14} /> {r.exercises.length} exercises · {sets} sets
+                      <Dumbbell size={14} /> {plural(r.exercises.length, 'exercise')} · {plural(sets, 'set')}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Clock size={14} /> ~{routineMinutes(r)} min
