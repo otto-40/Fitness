@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { format, parseISO } from 'date-fns'
-import { ArrowLeft, LineChart as ChartIcon, Pencil, Star, Trash2 } from 'lucide-react'
+import { ArrowLeft, LineChart as ChartIcon, Medal, Pencil, Star, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { LineTrend } from '../components/charts/Charts'
 import { ExerciseForm } from '../components/ExerciseForm'
-import { Badge, Button, Card, ConfirmDialog, EmptyState, IconButton, MuscleTag, SectionTitle, Segmented, Stat } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, EmptyState, IconButton, Monogram, MuscleTag, SectionTitle, Segmented, Stat } from '../components/ui'
 import { SetTypeBadge } from '../components/workout/SetTypeBadge'
 import { useExerciseMap } from '../hooks/useExercises'
 import { exerciseHistory, exerciseRecords } from '../lib/calc'
@@ -28,6 +28,7 @@ export default function ExerciseDetail() {
   const deleteExercise = useStore((s) => s.deleteExercise)
   const [editing, setEditing] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const history = useMemo(() => exerciseHistory(workouts, id), [workouts, id])
   const record = useMemo(() => exerciseRecords(workouts).find((r) => r.exerciseId === id), [workouts, id])
   const weighted = history.some((h) => h.topWeight > 0)
@@ -55,37 +56,54 @@ export default function ExerciseDetail() {
     value: activeMetric === 'maxReps' ? h.maxReps : round(toDisplayWeight(h[activeMetric], units), 1),
   }))
   const metricName = { e1rm: 'Estimated 1RM', topWeight: 'Top set weight', volume: 'Session volume', maxReps: 'Most reps in a set' }[activeMetric]
+  const first = data[0]?.value
+  const last = data.at(-1)?.value
+  const trend = first != null && last != null && data.length > 1 ? last - first : null
+
+  const records = [
+    record?.bestE1rm && { label: 'Best est. 1RM', value: formatEstimate(record.bestE1rm.value, units), detail: `${formatWeight(record.bestE1rm.weight, units)} × ${record.bestE1rm.reps}`, date: record.bestE1rm.date },
+    record?.bestWeight && { label: 'Heaviest weight', value: formatWeight(record.bestWeight.value, units), detail: `for ${record.bestWeight.reps} reps`, date: record.bestWeight.date },
+    record?.bestVolume && { label: 'Best session volume', value: formatVolume(record.bestVolume.value, units), detail: 'in one session', date: record.bestVolume.date },
+    record?.bestReps && { label: 'Most reps in a set', value: `${record.bestReps.value}`, detail: 'reps', date: record.bestReps.date },
+  ].filter(Boolean) as { label: string; value: string; detail: string; date: string }[]
 
   return (
     <div className="animate-rise">
-      <Link to="/library" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink">
+      <Link to="/library" className="mb-4 inline-flex h-9 items-center gap-1 text-sm font-medium text-muted hover:text-ink">
         <ArrowLeft size={16} /> Exercises
       </Link>
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="font-display text-4xl leading-none font-semibold tracking-wide uppercase sm:text-5xl">{ex.name}</h1>
+      <div className="mb-5 flex items-start gap-4">
+        <Monogram name={ex.name} size="lg" active />
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-[34px] leading-none font-semibold tracking-[0.03em] uppercase sm:text-[44px]">{ex.name}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Badge tone="accent">{ex.primary}</Badge>
+            <Badge tone="accent" className="h-7 rounded-full px-2.5">
+              {ex.primary}
+            </Badge>
             {ex.secondary.map((m) => (
               <MuscleTag key={m} muscle={m} />
             ))}
             <MuscleTag muscle={ex.equipment} />
-            {ex.custom && <Badge>Custom</Badge>}
-            {ex.archived && <Badge tone="danger">Deleted</Badge>}
+            {ex.custom && <Badge className="h-7 rounded-full px-2.5">Custom</Badge>}
+            {ex.archived && (
+              <Badge tone="danger" className="h-7 rounded-full px-2.5">
+                Deleted
+              </Badge>
+            )}
           </div>
         </div>
         <div className="flex shrink-0 gap-1">
           {!ex.archived && (
-            <IconButton label={fav ? 'Remove from favourites' : 'Add to favourites'} aria-pressed={fav} onClick={() => toggleFavorite(ex.id)} className={fav ? 'text-accent' : undefined}>
-              <Star size={20} className={clsx(fav && 'fill-current')} />
+            <IconButton label={fav ? 'Remove from favourites' : 'Add to favourites'} aria-pressed={fav} onClick={() => toggleFavorite(ex.id)} className={clsx('size-11', fav && 'text-accent')}>
+              <Star size={20} className={clsx(fav && 'animate-pop fill-current')} />
             </IconButton>
           )}
           {ex.custom && !ex.archived && (
             <>
-              <IconButton label="Edit exercise" onClick={() => setEditing(true)}>
+              <IconButton label="Edit exercise" onClick={() => setEditing(true)} className="size-11">
                 <Pencil size={18} />
               </IconButton>
-              <IconButton label="Delete exercise" tone="danger" onClick={() => setConfirm(true)}>
+              <IconButton label="Delete exercise" tone="danger" onClick={() => setConfirm(true)} className="size-11">
                 <Trash2 size={18} />
               </IconButton>
             </>
@@ -93,32 +111,50 @@ export default function ExerciseDetail() {
         </div>
       </div>
 
-      {ex.cue && <blockquote className="mb-6 rounded-2xl border-l-4 border-accent bg-surface p-4 text-[15px] text-ink-2">{ex.cue}</blockquote>}
+      {ex.cue && (
+        <blockquote className="mb-5 rounded-2xl border border-line bg-surface p-4 text-[15px] text-ink-2">
+          <span className="eyebrow mb-1 block text-accent-ink">Form cue</span>
+          {ex.cue}
+        </blockquote>
+      )}
 
       {history.length === 0 ? (
         <EmptyState icon={<ChartIcon size={22} />} title="No history yet" body="Log this exercise in a workout and its best set, estimated 1RM and progress chart will appear here." />
       ) : (
         <>
-          <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4 sm:p-5">
+          <Card className="grid grid-cols-2 gap-5 p-4 sm:grid-cols-4 sm:p-5">
             <Stat
+              size="lg"
+              label={weighted ? 'Est. 1RM' : 'Best reps'}
+              value={weighted ? (record?.bestE1rm ? formatEstimate(record.bestE1rm.value, units, false) : '—') : (record?.bestReps?.value ?? 0)}
+              unit={weighted ? units : 'reps'}
+              sub={weighted && record?.bestE1rm ? `from ${formatWeight(record.bestE1rm.weight, units, false)} × ${record.bestE1rm.reps}` : undefined}
+            />
+            <Stat
+              size="lg"
               label="Best set"
               value={record?.bestWeight ? formatWeight(record.bestWeight.value, units, false) : `${record?.bestReps?.value ?? 0}`}
               unit={record?.bestWeight ? `${units} × ${record.bestWeight.reps}` : 'reps'}
               sub={record?.bestWeight ? friendlyDay(record.bestWeight.date) : undefined}
-            />
-            <Stat
-              label="Est. 1RM"
-              value={record?.bestE1rm ? formatEstimate(record.bestE1rm.value, units, false) : '—'}
-              unit={record?.bestE1rm ? units : undefined}
-              sub={record?.bestE1rm ? `from ${formatWeight(record.bestE1rm.weight, units, false)} × ${record.bestE1rm.reps}` : 'Bodyweight only'}
             />
             <Stat label="Best volume" value={record?.bestVolume ? formatVolume(record.bestVolume.value, units, false) : '—'} unit={record?.bestVolume ? units : undefined} sub="in one session" />
             <Stat label="Sessions" value={history.length} sub={`Last: ${friendlyDay(history.at(-1)!.date)}`} />
           </Card>
 
           <Card className="mt-4 p-4 sm:p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-semibold">{metricName}</h2>
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="eyebrow">{metricName}</div>
+                {trend !== null && (
+                  <div className="mt-1 text-sm text-muted">
+                    <span className={clsx('font-semibold', trend > 0 ? 'text-good' : 'text-ink-2')}>
+                      {trend > 0 ? '+' : trend < 0 ? '−' : '±'}
+                      {Math.abs(round(trend, 1)).toLocaleString()} {activeMetric === 'maxReps' ? 'reps' : units}
+                    </span>{' '}
+                    across {history.length} sessions
+                  </div>
+                )}
+              </div>
               {weighted && (
                 <Segmented
                   label="Chart metric"
@@ -147,28 +183,45 @@ export default function ExerciseDetail() {
           </Card>
 
           <section className="mt-6">
+            <SectionTitle>Personal records</SectionTitle>
+            <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+              {records.map((r) => (
+                <li key={r.label} className="flex min-h-16 items-center gap-3 px-4 py-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
+                    <Medal size={17} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{r.label}</span>
+                    <span className="block text-sm text-muted">
+                      {r.detail} · {format(parseISO(r.date), 'd MMM yyyy')}
+                    </span>
+                  </span>
+                  <span className="stamp text-2xl">{r.value}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="mt-6">
             <SectionTitle>History</SectionTitle>
             <ul className="grid gap-2 md:grid-cols-2">
-              {[...history].reverse().map((h) => {
+              {[...history].reverse().slice(0, showAll ? undefined : 6).map((h) => {
                 let n = 0
                 return (
                   <li key={h.workoutId}>
                     <Link to={`/history/${h.workoutId}`} className="block rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong">
                       <div className="flex items-baseline justify-between gap-3">
-                        <span className="font-medium">{format(parseISO(h.date), 'EEE d MMM yyyy')}</span>
-                        {h.e1rm > 0 && <span className="tnum text-sm text-muted">1RM {formatEstimate(h.e1rm, units)}</span>}
+                        <span className="font-semibold">{format(parseISO(h.date), 'EEE d MMM yyyy')}</span>
+                        {h.e1rm > 0 && <span className="tnum text-sm text-muted">e1RM {formatEstimate(h.e1rm, units)}</span>}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <div className="mt-3 flex flex-wrap gap-1.5">
                         {h.sets.map((s) => {
                           if (s.type !== 'warmup') n++
                           const best = s.id === h.bestSet?.id
                           return (
-                            <span
-                              key={s.id}
-                              className={clsx('tnum inline-flex items-center gap-1 rounded-lg py-0.5 pr-2 pl-0.5 text-sm', best ? 'bg-accent-soft font-semibold text-accent-ink' : 'bg-surface-2')}
-                            >
-                              <SetTypeBadge type={s.type} index={n} className="size-6 text-sm" />
-                              {s.weight ? `${formatWeight(s.weight, units, false)}×${s.reps}` : `${s.reps} reps`}
+                            <span key={s.id} className={clsx('inline-flex items-center gap-1.5 rounded-lg py-0.5 pr-2 pl-0.5', best ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2')}>
+                              <SetTypeBadge type={s.type} index={n} className="size-6 rounded-md text-sm" />
+                              <span className="stamp text-[17px]">{s.weight ? `${formatWeight(s.weight, units, false)}×${s.reps}` : `${s.reps} reps`}</span>
                             </span>
                           )
                         })}
@@ -178,6 +231,11 @@ export default function ExerciseDetail() {
                 )
               })}
             </ul>
+            {history.length > 6 && (
+              <Button variant="secondary" block className="mt-3" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Show fewer' : `Show all ${history.length} sessions`}
+              </Button>
+            )}
           </section>
         </>
       )}

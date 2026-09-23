@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore'
 import type { Muscle } from '../types'
 import { MUSCLES } from '../types'
 import { ExerciseForm } from './ExerciseForm'
-import { Button, Chip, Input, Modal } from './ui'
+import { Button, Chip, Input, Modal, Monogram } from './ui'
 
 export function ExercisePicker({
   open,
@@ -100,15 +100,10 @@ export function ExercisePicker({
                     type="button"
                     aria-pressed={on}
                     onClick={() => toggle(e.id)}
-                    className={clsx('flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors', on ? 'bg-accent-soft' : 'hover:bg-surface-2')}
+                    className={clsx('flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors', on ? 'bg-accent-soft' : 'hover:bg-surface-2')}
                   >
-                    <span
-                      className={clsx(
-                        'flex size-10 shrink-0 items-center justify-center rounded-xl font-display text-lg font-semibold',
-                        on ? 'bg-accent text-on-accent' : 'bg-surface-2 text-ink-2',
-                      )}
-                    >
-                      {on ? <Check size={20} /> : e.name[0]}
+                    <span className={clsx('flex size-11 shrink-0 items-center justify-center rounded-xl', on ? 'animate-pop bg-accent text-on-accent' : '')}>
+                      {on ? <Check size={20} strokeWidth={3} /> : <Monogram name={e.name} />}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{e.name}</span>

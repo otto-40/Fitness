@@ -1,10 +1,10 @@
 import clsx from 'clsx'
-import { ArrowDown, ArrowLeft, ArrowUp, Clock, Link2, Link2Off, ListPlus, Play, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, Clock, Link2, Link2Off, ListPlus, Play, Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { useStartWorkout } from '../components/StartWorkout'
-import { Button, Card, ConfirmDialog, EmptyState, Field, IconButton, Input, MuscleTag, Select, Switch, Textarea } from '../components/ui'
+import { Button, Card, ConfirmDialog, EmptyState, Field, IconButton, Input, MuscleTag, Select, Stepper, Switch, Textarea } from '../components/ui'
 import { NumberField } from '../components/workout/NumberField'
 import { useExerciseMap } from '../hooks/useExercises'
 import { uid } from '../lib/id'
@@ -93,7 +93,7 @@ export default function RoutineEditor() {
   const totalSets = draft.exercises.reduce((n, e) => n + (e.sets || 0), 0)
 
   return (
-    <div className="animate-rise mx-auto max-w-3xl pb-24">
+    <div className="animate-rise mx-auto max-w-3xl pb-32">
       <Link to="/routines" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink">
         <ArrowLeft size={16} /> Routines
       </Link>
@@ -120,7 +120,7 @@ export default function RoutineEditor() {
         <Switch checked={draft.inPlan} onChange={(v) => setDraft({ ...draft, inPlan: v })} label="Include in my plan" description="Plan routines rotate on the home screen as your next workout." />
       </Card>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-surface-2 px-4 py-3 text-sm">
+      <div className="sticky top-2 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line bg-surface/95 px-4 py-3 text-sm shadow-card backdrop-blur">
         <span className="inline-flex items-center gap-1.5 font-medium">
           <Clock size={16} /> ~{draft.exercises.length ? routineMinutes(draft) : 0} min
         </span>
@@ -177,11 +177,11 @@ export default function RoutineEditor() {
                     </IconButton>
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-[1fr_1.6fr] gap-2 sm:grid-cols-[88px_150px_1fr]">
-                  <label className="flex flex-col gap-1 text-xs font-medium text-muted">
+                <div className="mt-3 grid grid-cols-[1fr_1.4fr] gap-2 sm:grid-cols-[132px_160px_1fr]">
+                  <div className="flex flex-col gap-1 text-xs font-medium text-muted">
                     Sets
-                    <NumberField label="Sets" decimal={false} max={10} value={e.sets || null} onChange={(v) => patchRow(e.id, { sets: v ?? 0 })} className="h-10 text-base" />
-                  </label>
+                    <Stepper label="Sets" min={1} max={10} value={e.sets || 1} onChange={(v) => patchRow(e.id, { sets: v })} />
+                  </div>
                   <div className="flex flex-col gap-1 text-xs font-medium text-muted">
                     <span id={`reps-${e.id}`}>Rep range</span>
                     <div className="flex items-center gap-1.5" role="group" aria-labelledby={`reps-${e.id}`}>
@@ -204,13 +204,14 @@ export default function RoutineEditor() {
                 {rowErr && <p className="mt-2 text-sm text-danger">{rowErr}</p>}
               </div>
               {i < draft.exercises.length - 1 && (
-                <div className="flex justify-center py-1">
+                <div className="relative flex justify-center py-1.5">
+                  <span className={clsx('absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2', linked ? 'bg-accent' : 'bg-line')} aria-hidden />
                   <button
                     onClick={() => setExercises((l) => toggleLink(l, i))}
                     aria-pressed={linked}
                     className={clsx(
-                      'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors',
-                      linked ? 'bg-accent-soft text-accent-ink' : 'text-muted hover:bg-surface-2 hover:text-ink',
+                      'relative inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-colors',
+                      linked ? 'border-accent bg-accent text-on-accent' : 'border-line bg-bg text-muted hover:text-ink',
                     )}
                   >
                     {linked ? <Link2 size={14} /> : <Link2Off size={14} />}
@@ -233,15 +234,15 @@ export default function RoutineEditor() {
         </Button>
       )}
 
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur lg:left-[248px]">
-        <div className="mx-auto flex max-w-3xl gap-2 px-4 py-3">
-          <Button variant="secondary" onClick={() => navigate('/routines')}>
-            Cancel
-          </Button>
-          <Button variant="outline" className="flex-1" icon={<Play size={16} />} onClick={() => save(true)}>
+      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
+        <div className="mx-auto flex max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
+          <IconButton label="Cancel" size="lg" onClick={() => navigate('/routines')} className="size-13 bg-surface-2">
+            <X size={20} />
+          </IconButton>
+          <Button variant="outline" size="lg" className="min-w-0 flex-1 px-3" icon={<Play size={16} />} onClick={() => save(true)}>
             Save & start
           </Button>
-          <Button className="flex-1" onClick={() => save()}>
+          <Button size="lg" className="min-w-0 flex-1 px-3" onClick={() => save()}>
             Save
           </Button>
         </div>

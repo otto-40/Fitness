@@ -5,21 +5,39 @@ export function Card({ children, className, as: As = 'div' }: { children: ReactN
   return <As className={clsx('rounded-2xl border border-line bg-surface', className)}>{children}</As>
 }
 
+/** Dark, dominant card used once per page for the thing that matters most right now. */
+export function HeroCard({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={clsx('relative overflow-hidden rounded-3xl bg-hero text-on-hero ring-1 ring-white/[0.06] ring-inset', className)}>{children}</div>
+}
+
 export function SectionTitle({ children, action, className }: { children: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={clsx('mb-3 flex items-center justify-between gap-3', className)}>
-      <h2 className="text-[13px] font-semibold tracking-[0.08em] text-muted uppercase">{children}</h2>
+    <div className={clsx('mb-3 flex min-h-8 items-center justify-between gap-3', className)}>
+      <h2 className="eyebrow">{children}</h2>
       {action}
     </div>
   )
 }
 
-export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: ReactNode; actions?: ReactNode; back?: ReactNode }) {
+export function PageHeader({
+  title,
+  eyebrow,
+  subtitle,
+  actions,
+  back,
+}: {
+  title: string
+  eyebrow?: ReactNode
+  subtitle?: ReactNode
+  actions?: ReactNode
+  back?: ReactNode
+}) {
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         {back}
-        <h1 className="font-display text-[34px] leading-none font-semibold tracking-wide uppercase sm:text-[40px]">{title}</h1>
+        {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+        <h1 className="font-display text-[34px] leading-none font-semibold tracking-[0.04em] uppercase sm:text-[40px]">{title}</h1>
         {subtitle && <p className="mt-2 text-[15px] text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -27,23 +45,50 @@ export function PageHeader({ title, subtitle, actions, back }: { title: string; 
   )
 }
 
-export function EmptyState({ icon, title, body, action, className }: { icon: ReactNode; title: string; body: string; action?: ReactNode; className?: string }) {
+export function EmptyState({
+  icon,
+  title,
+  body,
+  action,
+  className,
+}: {
+  icon: ReactNode
+  title: string
+  body: string
+  action?: ReactNode
+  className?: string
+}) {
   return (
-    <div className={clsx('flex flex-col items-center rounded-2xl border border-dashed border-line-strong px-6 py-10 text-center', className)}>
+    <div className={clsx('flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface/40 px-6 py-12 text-center', className)}>
       <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-accent-ink">{icon}</div>
-      <h3 className="text-base font-semibold">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted">{body}</p>
-      {action && <div className="mt-5">{action}</div>}
+      <h3 className="text-[17px] font-semibold">{title}</h3>
+      <p className="mt-1.5 max-w-sm text-sm text-muted">{body}</p>
+      {action && <div className="mt-6">{action}</div>}
     </div>
   )
 }
 
-export function Stat({ label, value, unit, sub, className }: { label: string; value: ReactNode; unit?: string; sub?: ReactNode; className?: string }) {
+/** Big stamped number with a small unit, for summary tiles. */
+export function Stat({
+  label,
+  value,
+  unit,
+  sub,
+  className,
+  size = 'md',
+}: {
+  label: string
+  value: ReactNode
+  unit?: string
+  sub?: ReactNode
+  className?: string
+  size?: 'md' | 'lg'
+}) {
   return (
     <div className={clsx('min-w-0', className)}>
-      <div className="text-xs font-medium tracking-wide text-muted uppercase">{label}</div>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="tnum font-display text-[28px] leading-none font-semibold">{value}</span>
+      <div className="eyebrow">{label}</div>
+      <div className="mt-1.5 flex items-baseline gap-1">
+        <span className={clsx('stamp', size === 'lg' ? 'text-[44px]' : 'text-[30px]')}>{value}</span>
         {unit && <span className="text-sm font-medium text-muted">{unit}</span>}
       </div>
       {sub && <div className="mt-1 text-xs text-muted">{sub}</div>}
@@ -51,15 +96,25 @@ export function Stat({ label, value, unit, sub, className }: { label: string; va
   )
 }
 
-export function Badge({ children, tone = 'default', className }: { children: ReactNode; tone?: 'default' | 'accent' | 'good' | 'danger'; className?: string }) {
+export function Badge({
+  children,
+  tone = 'default',
+  className,
+}: {
+  children: ReactNode
+  tone?: 'default' | 'accent' | 'good' | 'danger' | 'warn' | 'solid'
+  className?: string
+}) {
   return (
     <span
       className={clsx(
-        'inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs font-semibold whitespace-nowrap',
+        'inline-flex h-6 items-center gap-1 rounded-lg px-2 text-xs font-semibold whitespace-nowrap',
         tone === 'default' && 'bg-surface-2 text-ink-2',
         tone === 'accent' && 'bg-accent-soft text-accent-ink',
         tone === 'good' && 'bg-good-soft text-good',
         tone === 'danger' && 'bg-danger-soft text-danger',
+        tone === 'warn' && 'bg-warn-soft text-warn',
+        tone === 'solid' && 'bg-accent text-on-accent',
         className,
       )}
     >
@@ -73,15 +128,15 @@ export function Logo({ className, withWord = true }: { className?: string; withW
   return (
     <span className={clsx('inline-flex items-center gap-2', className)}>
       <svg viewBox="0 0 32 32" className="size-8" aria-hidden>
-        <rect width="32" height="32" rx="8" className="fill-ink" />
-        <rect x="5" y="9" width="4" height="14" rx="1.5" fill="#ff6a2b" />
-        <rect x="23" y="9" width="4" height="14" rx="1.5" fill="#ff6a2b" />
-        <rect x="9" y="11.5" width="2.5" height="9" rx="1" fill="#ff6a2b" />
-        <rect x="20.5" y="11.5" width="2.5" height="9" rx="1" fill="#ff6a2b" />
-        <rect x="11.5" y="14.75" width="9" height="2.5" rx="1" className="fill-bg" />
+        <rect width="32" height="32" rx="9" className="fill-hero" />
+        <rect x="5" y="9" width="4" height="14" rx="1.5" fill="#ff6b2c" />
+        <rect x="23" y="9" width="4" height="14" rx="1.5" fill="#ff6b2c" />
+        <rect x="9" y="11.5" width="2.5" height="9" rx="1" fill="#ff6b2c" />
+        <rect x="20.5" y="11.5" width="2.5" height="9" rx="1" fill="#ff6b2c" />
+        <rect x="11.5" y="14.75" width="9" height="2.5" rx="1" fill="#f4f3ef" />
       </svg>
       {withWord && (
-        <span className="font-display text-[22px] leading-none font-bold tracking-[0.06em] uppercase">
+        <span className="font-display text-[22px] leading-none font-bold tracking-[0.08em] uppercase">
           Iron<span className="text-accent">Log</span>
         </span>
       )}
@@ -89,6 +144,79 @@ export function Logo({ className, withWord = true }: { className?: string; withW
   )
 }
 
-export function MuscleTag({ muscle }: { muscle: string }) {
-  return <span className="inline-flex h-6 items-center rounded-md border border-line px-2 text-xs font-medium text-ink-2">{muscle}</span>
+export function MuscleTag({ muscle, count }: { muscle: string; count?: number }) {
+  return (
+    <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-xs font-medium text-ink-2">
+      {muscle}
+      {count != null && <span className="tnum font-semibold text-ink">{count}</span>}
+    </span>
+  )
+}
+
+/** Typographic stand-in for exercise imagery: two letters, stamped. */
+export function Monogram({ name, size = 'md', active }: { name: string; size?: 'sm' | 'md' | 'lg'; active?: boolean }) {
+  const letters =
+    name
+      .replace(/\(.*?\)/g, '')
+      .split(/[\s-]+/)
+      .filter((w) => /[A-Za-z]/.test(w))
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase() || '?'
+  return (
+    <span
+      aria-hidden
+      className={clsx(
+        'stamp flex shrink-0 items-center justify-center rounded-xl tracking-[0.06em]',
+        size === 'sm' && 'size-9 text-[15px]',
+        size === 'md' && 'size-11 text-lg',
+        size === 'lg' && 'size-14 rounded-2xl text-2xl',
+        active ? 'bg-accent text-on-accent' : 'bg-surface-2 text-ink-2',
+      )}
+    >
+      {letters}
+    </span>
+  )
+}
+
+/** Grouped inset list, settings-style. */
+export function ListGroup({ title, children, className, footer }: { title?: string; children: ReactNode; className?: string; footer?: ReactNode }) {
+  return (
+    <section className={className}>
+      {title && <h2 className="eyebrow mb-2 px-1">{title}</h2>}
+      <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">{children}</div>
+      {footer && <p className="mt-2 px-1 text-xs text-muted">{footer}</p>}
+    </section>
+  )
+}
+
+export function ListRow({
+  icon,
+  title,
+  description,
+  control,
+  className,
+  stack,
+}: {
+  icon?: ReactNode
+  title: ReactNode
+  description?: ReactNode
+  control?: ReactNode
+  className?: string
+  /** Put the control under the text on narrow screens. */
+  stack?: boolean
+}) {
+  return (
+    <div className={clsx('flex gap-3 px-4 py-3.5', stack ? 'flex-col sm:flex-row sm:items-center' : 'items-center', className)}>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        {icon && <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">{icon}</span>}
+        <div className="min-w-0">
+          <div className="text-[15px] font-medium">{title}</div>
+          {description && <div className="text-sm text-muted">{description}</div>}
+        </div>
+      </div>
+      {control && <div className={clsx('shrink-0', stack && 'sm:max-w-[60%]')}>{control}</div>}
+    </div>
+  )
 }

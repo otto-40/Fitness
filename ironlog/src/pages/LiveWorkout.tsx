@@ -1,9 +1,8 @@
-import clsx from 'clsx'
-import { ChevronDown, Dumbbell, Flag, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Dumbbell, Flag, Link2, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ExercisePicker } from '../components/ExercisePicker'
-import { ConfirmDialog, Button, EmptyState, Field, IconButton, Input, Modal, Textarea } from '../components/ui'
+import { Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Modal, Textarea } from '../components/ui'
 import { ExerciseCard } from '../components/workout/ExerciseCard'
 import { RestDock } from '../components/workout/RestDock'
 import { useExerciseMap } from '../hooks/useExercises'
@@ -92,8 +91,11 @@ export default function LiveWorkout() {
   const volume = workoutVolume(active)
   const doneSets = completedSetCount(active)
   const totalSets = active.exercises.reduce((n, e) => n + e.sets.length, 0)
-  const pending = totalSets - active.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0)
+  const tickedSets = active.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0)
+  const pending = totalSets - tickedSets
   const groups = groupSupersets(active.exercises)
+  const upNextEx = active.exercises.find((e) => e.sets.some((s) => !s.completed))
+  const upNextSetId = upNextEx?.sets.find((s) => !s.completed)?.id ?? null
 
   const finish = () => {
     const id = useStore.getState().finishWorkout()
@@ -115,36 +117,44 @@ export default function LiveWorkout() {
     <div className="mx-auto max-w-3xl">
       {/* Header */}
       <div className="sticky top-0 z-30 -mx-4 border-b border-line bg-bg/95 px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
-        <div className="flex items-center gap-2">
-          <IconButton label="Minimise workout" onClick={() => navigate('/')}>
-            <ChevronDown size={22} />
+        <div className="flex items-center gap-1">
+          <IconButton label="Minimise workout" onClick={() => navigate('/')} className="-ml-2 size-11">
+            <ChevronDown size={24} />
           </IconButton>
           <button onClick={() => setEditName(active.name)} className="group min-w-0 flex-1 text-left" aria-label={`Workout name: ${active.name}. Tap to rename.`}>
-            <span className="flex items-center gap-1.5">
-              <span className="truncate font-display text-2xl leading-tight font-semibold tracking-wide uppercase">{active.name}</span>
-              <Pencil size={14} className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
+            <span className="eyebrow block truncate">{active.name}</span>
+            <span className="stamp block text-[34px]" role="timer" aria-label={`Elapsed ${clock(elapsed)}`}>
+              {clock(elapsed)}
             </span>
           </button>
-          <IconButton label="Workout options" onClick={() => setMenu(true)}>
+          <IconButton label="Workout options" onClick={() => setMenu(true)} className="size-11">
             <MoreHorizontal size={22} />
           </IconButton>
           <Button size="sm" onClick={onFinishClick} className="max-sm:hidden">
             Finish
           </Button>
         </div>
-        <dl className="mt-2 grid grid-cols-3 gap-2">
-          {[
-            ['Duration', clock(elapsed)],
-            ['Volume', formatVolume(volume, units)],
-            ['Sets', `${doneSets}/${totalSets}`],
-          ].map(([k, v]) => (
-            <div key={k} className="rounded-xl bg-surface px-3 py-2">
-              <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">{k}</dt>
-              <dd className="tnum font-display text-xl leading-tight font-semibold" aria-live={k === 'Sets' ? 'polite' : undefined}>
-                {v}
-              </dd>
-            </div>
-          ))}
+        <div
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3"
+          role="progressbar"
+          aria-label="Sets completed"
+          aria-valuemin={0}
+          aria-valuemax={totalSets}
+          aria-valuenow={tickedSets}
+        >
+          <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${totalSets ? (tickedSets / totalSets) * 100 : 0}%` }} />
+        </div>
+        <dl className="mt-2 flex items-center gap-4 text-sm">
+          <div className="flex items-baseline gap-1.5">
+            <dt className="eyebrow">Volume</dt>
+            <dd className="stamp text-lg">{formatVolume(volume, units)}</dd>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <dt className="eyebrow">Sets</dt>
+            <dd className="stamp text-lg" aria-live="polite">
+              {doneSets}/{totalSets}
+            </dd>
+          </div>
         </dl>
       </div>
 
@@ -164,44 +174,52 @@ export default function LiveWorkout() {
         )}
         {groups.map((g) => {
           const isSuperset = g.items.length > 1
-          const cards = g.items.map((ex) => {
+          const cards = g.items.map((ex, i) => {
             exIndex++
             const idx = exIndex
             return (
-              <ExerciseCard
-                key={ex.id}
-                ex={ex}
-                def={map.get(ex.exerciseId)}
-                prev={prevByExercise.get(ex.exerciseId) ?? []}
-                units={units}
-                mode="live"
-                isFirst={idx === 0}
-                isLast={idx === active.exercises.length - 1}
-                onSetChange={(setId, patch) => a.updateSet(ex.id, setId, patch)}
-                onToggle={(setId) => {
-                  const r = useStore.getState().completeSet(ex.id, setId)
-                  if (!r.ok && r.message) toast(r.message, { tone: 'error' })
-                }}
-                onAddSet={(type) => a.addSet(ex.id, type)}
-                onRemoveSet={(setId) => a.removeSet(ex.id, setId)}
-                onMove={(dir) => a.moveActiveExercise(ex.id, dir)}
-                onRemove={() => {
-                  const snapshot = useStore.getState().active
-                  a.removeActiveExercise(ex.id)
-                  toast(`${map.get(ex.exerciseId)?.name ?? 'Exercise'} removed`, {
-                    action: { label: 'Undo', run: () => snapshot && useStore.setState({ active: { ...snapshot, rest: useStore.getState().active?.rest ?? null } }) },
-                  })
-                }}
-                onRestChange={(sec) => a.setActiveRest(ex.id, sec)}
-              />
+              <div key={ex.id} className="relative">
+                {isSuperset && i > 0 && (
+                  <span className="absolute -top-3 left-1/2 z-10 flex size-6 -translate-x-1/2 items-center justify-center rounded-full bg-accent text-on-accent" aria-hidden>
+                    <Link2 size={13} />
+                  </span>
+                )}
+                <ExerciseCard
+                  ex={ex}
+                  def={map.get(ex.exerciseId)}
+                  prev={prevByExercise.get(ex.exerciseId) ?? []}
+                  units={units}
+                  mode="live"
+                  isFirst={idx === 0}
+                  isLast={idx === active.exercises.length - 1}
+                  upNextSetId={ex.id === upNextEx?.id ? upNextSetId : null}
+                  onSetChange={(setId, patch) => a.updateSet(ex.id, setId, patch)}
+                  onToggle={(setId) => {
+                    const r = useStore.getState().completeSet(ex.id, setId)
+                    if (!r.ok && r.message) toast(r.message, { tone: 'error' })
+                  }}
+                  onAddSet={(type) => a.addSet(ex.id, type)}
+                  onRemoveSet={(setId) => a.removeSet(ex.id, setId)}
+                  onMove={(dir) => a.moveActiveExercise(ex.id, dir)}
+                  onRemove={() => {
+                    const snapshot = useStore.getState().active
+                    a.removeActiveExercise(ex.id)
+                    toast(`${map.get(ex.exerciseId)?.name ?? 'Exercise'} removed`, {
+                      action: { label: 'Undo', run: () => snapshot && useStore.setState({ active: { ...snapshot, rest: useStore.getState().active?.rest ?? null } }) },
+                    })
+                  }}
+                  onRestChange={(sec) => a.setActiveRest(ex.id, sec)}
+                />
+              </div>
             )
           })
           return isSuperset ? (
-            <section key={g.id} aria-label="Superset" className="rounded-3xl border-2 border-dashed border-accent/50 p-1.5">
-              <div className="flex items-center gap-2 px-2.5 pt-1 pb-2 text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">
-                Superset · {g.items.length} exercises back to back
+            <section key={g.id} aria-label="Superset" className="relative rounded-3xl border border-accent/40 bg-accent-soft/30 p-1.5 pl-3">
+              <span className="absolute top-4 bottom-4 left-1 w-1 rounded-full bg-accent" aria-hidden />
+              <div className="flex items-center gap-2 px-1.5 pt-1 pb-2 text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">
+                <Link2 size={14} /> Superset · rest after the last exercise
               </div>
-              <div className="flex flex-col gap-1.5">{cards}</div>
+              <div className="flex flex-col gap-3">{cards}</div>
             </section>
           ) : (
             cards
@@ -210,13 +228,13 @@ export default function LiveWorkout() {
       </div>
 
       {/* Bottom dock: rest timer + thumb-reach actions */}
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-40 px-3 lg:left-[248px]">
+      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
         <RestDock />
-        <div className="mx-auto mb-3 flex w-full max-w-3xl gap-2 rounded-2xl border border-line bg-surface/95 p-2 shadow-card backdrop-blur">
-          <Button variant="secondary" size="lg" className="flex-1" icon={<Plus size={20} />} onClick={() => setPicker(true)}>
+        <div className="mx-auto flex w-full max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
+          <Button variant="secondary" size="xl" className="flex-1" icon={<Plus size={20} />} onClick={() => setPicker(true)}>
             Exercise
           </Button>
-          <Button size="lg" className={clsx('flex-1')} icon={<Flag size={18} />} onClick={onFinishClick}>
+          <Button size="xl" className="flex-1" icon={<Flag size={18} />} onClick={onFinishClick}>
             Finish
           </Button>
         </div>
@@ -231,10 +249,10 @@ export default function LiveWorkout() {
               <Textarea id={id} value={active.notes ?? ''} maxLength={1000} onChange={(e) => a.setActiveNotes(e.target.value)} placeholder="How did it feel? Anything to remember next time?" />
             )}
           </Field>
-          <Button variant="secondary" block icon={<Pencil size={18} />} onClick={() => { setMenu(false); setEditName(active.name) }}>
+          <Button variant="secondary" size="lg" block icon={<Pencil size={18} />} onClick={() => { setMenu(false); setEditName(active.name) }}>
             Rename workout
           </Button>
-          <Button variant="danger" block icon={<Trash2 size={18} />} onClick={() => { setMenu(false); setConfirmDiscard(true) }}>
+          <Button variant="danger" size="lg" block icon={<Trash2 size={18} />} onClick={() => { setMenu(false); setConfirmDiscard(true) }}>
             Discard workout
           </Button>
         </div>
@@ -246,11 +264,7 @@ export default function LiveWorkout() {
         title="Rename workout"
         size="sm"
         footer={
-          <Button
-            block
-            type="submit"
-            form="rename-form"
-          >
+          <Button block size="lg" type="submit" form="rename-form">
             Save
           </Button>
         }

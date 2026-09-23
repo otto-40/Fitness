@@ -1,13 +1,15 @@
 import clsx from 'clsx'
-import { Plus, Search, SearchX, Star } from 'lucide-react'
+import { Plus, Search, SearchX, Star, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ExerciseForm } from '../components/ExerciseForm'
-import { Badge, Button, Chip, EmptyState, Input, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Chip, DropdownChip, EmptyState, Input, Monogram, PageHeader, Segmented } from '../components/ui'
 import { useExerciseList } from '../hooks/useExercises'
 import { useStore } from '../store/useStore'
-import type { Equipment, Muscle } from '../types'
+import type { Equipment, Exercise, Muscle } from '../types'
 import { EQUIPMENT, MUSCLES } from '../types'
+
+type Sort = 'az' | 'used'
 
 export default function Library() {
   const all = useExerciseList()
@@ -21,6 +23,7 @@ export default function Library() {
   const equipment = (params.get('equipment') as Equipment | null) ?? null
   const favOnly = params.get('fav') === '1'
   const customOnly = params.get('custom') === '1'
+  const sort: Sort = params.get('sort') === 'used' ? 'used' : 'az'
 
   const setParam = (k: string, v: string | null) => {
     const next = new URLSearchParams(params)
@@ -37,17 +40,34 @@ export default function Library() {
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    return all.filter(
+    const filtered = all.filter(
       (e) =>
-        (!needle || e.name.toLowerCase().includes(needle) || e.primary.toLowerCase().includes(needle)) &&
+        (!needle || e.name.toLowerCase().includes(needle) || e.primary.toLowerCase().includes(needle) || e.equipment.toLowerCase().includes(needle)) &&
         (!muscle || e.primary === muscle || e.secondary.includes(muscle)) &&
         (!equipment || e.equipment === equipment) &&
         (!favOnly || favorites.includes(e.id)) &&
         (!customOnly || e.custom),
     )
-  }, [all, q, muscle, equipment, favOnly, customOnly, favorites])
+    return sort === 'used' ? [...filtered].sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || a.name.localeCompare(b.name)) : filtered
+  }, [all, q, muscle, equipment, favOnly, customOnly, favorites, sort, counts])
+
+  const sections = useMemo(() => {
+    if (sort === 'used') return [{ key: 'all', items: list }]
+    const m = new Map<string, Exercise[]>()
+    for (const e of list) {
+      const k = /[a-z]/i.test(e.name[0]) ? e.name[0].toUpperCase() : '#'
+      m.set(k, [...(m.get(k) ?? []), e])
+    }
+    return [...m.entries()].map(([key, items]) => ({ key, items }))
+  }, [list, sort])
 
   const filtered = !!(q || muscle || equipment || favOnly || customOnly)
+  const clearAll = () => {
+    setQ('')
+    const next = new URLSearchParams()
+    if (sort === 'used') next.set('sort', 'used')
+    setParams(next, { replace: true })
+  }
 
   return (
     <div className="animate-rise">
@@ -61,40 +81,43 @@ export default function Library() {
         }
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search size={18} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or muscle" className="pl-10" aria-label="Search exercises" type="search" />
+      <div className="sticky top-0 z-20 -mx-4 bg-bg/95 px-4 pt-1 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+        <div className="relative">
+          <Search size={18} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exercises, muscles or equipment" className="h-12 rounded-2xl pl-11 text-base" aria-label="Search exercises" type="search" />
         </div>
-        <Select value={equipment ?? ''} onChange={(e) => setParam('equipment', e.target.value || null)} aria-label="Filter by equipment" className="sm:w-52">
-          <option value="">All equipment</option>
-          {EQUIPMENT.map((e) => (
-            <option key={e}>{e}</option>
-          ))}
-        </Select>
-      </div>
-
-      <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-        <Chip active={favOnly} onClick={() => setParam('fav', favOnly ? null : '1')}>
-          <Star size={14} className={favOnly ? 'fill-current' : undefined} /> Favourites
-        </Chip>
-        <Chip active={customOnly} onClick={() => setParam('custom', customOnly ? null : '1')}>
-          Custom
-        </Chip>
-        <span className="mx-1 w-px shrink-0 bg-line" aria-hidden />
-        <Chip active={!muscle} onClick={() => setParam('muscle', null)}>
-          All muscles
-        </Chip>
-        {MUSCLES.map((m) => (
-          <Chip key={m} active={muscle === m} onClick={() => setParam('muscle', muscle === m ? null : m)}>
-            {m}
+        <div className="scrollbar-none -mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+          <DropdownChip label="Filter by muscle" placeholder="All muscles" value={muscle ?? ''} onChange={(v) => setParam('muscle', v || null)} options={MUSCLES} />
+          <DropdownChip label="Filter by equipment" placeholder="All equipment" value={equipment ?? ''} onChange={(v) => setParam('equipment', v || null)} options={EQUIPMENT} />
+          <Chip active={favOnly} onClick={() => setParam('fav', favOnly ? null : '1')}>
+            <Star size={14} className={favOnly ? 'fill-current' : undefined} /> Favourites
           </Chip>
-        ))}
+          <Chip active={customOnly} onClick={() => setParam('custom', customOnly ? null : '1')}>
+            Custom
+          </Chip>
+          {filtered && (
+            <button onClick={clearAll} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-semibold text-accent-ink hover:bg-surface-2">
+              <X size={14} /> Clear
+            </button>
+          )}
+        </div>
       </div>
 
-      <p className="mt-4 mb-3 text-sm text-muted" aria-live="polite">
-        {filtered ? `${list.length} match${list.length === 1 ? '' : 'es'}` : 'All exercises'}
-      </p>
+      <div className="mt-2 mb-3 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-muted" aria-live="polite">
+          {filtered ? `${list.length} match${list.length === 1 ? '' : 'es'}` : `${list.length} exercises`}
+        </p>
+        <Segmented<Sort>
+          label="Sort"
+          size="sm"
+          value={sort}
+          onChange={(v) => setParam('sort', v === 'used' ? 'used' : null)}
+          options={[
+            { value: 'az', label: 'A–Z' },
+            { value: 'used', label: 'Most used' },
+          ]}
+        />
+      </div>
 
       {list.length === 0 ? (
         <EmptyState
@@ -103,13 +126,7 @@ export default function Library() {
           body={favOnly && !favorites.length ? 'Star exercises to collect your favourites here.' : 'Try a different search or filter, or add it as a custom exercise.'}
           action={
             <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setQ('')
-                  setParams({}, { replace: true })
-                }}
-              >
+              <Button variant="secondary" onClick={clearAll}>
                 Clear filters
               </Button>
               <Button icon={<Plus size={18} />} onClick={() => setCreating(true)}>
@@ -119,43 +136,47 @@ export default function Library() {
           }
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {list.map((e) => {
-            const fav = favorites.includes(e.id)
-            const n = counts.get(e.id) ?? 0
-            return (
-              <li key={e.id} className="relative">
-                <Link
-                  to={`/library/${e.id}`}
-                  className="flex h-full items-center gap-3 rounded-2xl border border-line bg-surface p-3 pr-14 transition-colors hover:border-line-strong"
-                >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 font-display text-xl font-semibold text-ink-2">{e.name[0]}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate font-medium">{e.name}</span>
-                      {e.custom && <Badge tone="accent">Custom</Badge>}
-                    </span>
-                    <span className="block truncate text-sm text-muted">
-                      {e.primary} · {e.equipment}
-                      {n > 0 && ` · ${n} session${n === 1 ? '' : 's'}`}
-                    </span>
-                  </span>
-                </Link>
-                <button
-                  onClick={() => toggleFavorite(e.id)}
-                  aria-pressed={fav}
-                  aria-label={fav ? `Remove ${e.name} from favourites` : `Add ${e.name} to favourites`}
-                  className={clsx(
-                    'absolute top-1/2 right-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-xl transition-colors hover:bg-surface-2',
-                    fav ? 'text-accent' : 'text-muted',
-                  )}
-                >
-                  <Star size={20} className={clsx(fav && 'fill-current')} />
-                </button>
-              </li>
-            )
-          })}
-        </ul>
+        <div className="flex flex-col gap-5">
+          {sections.map((sec) => (
+            <section key={sec.key} aria-label={sort === 'az' ? `Exercises starting with ${sec.key}` : 'Exercises by use'}>
+              {sort === 'az' && <h2 className="stamp mb-2 px-1 text-xl text-accent-ink">{sec.key}</h2>}
+              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface sm:grid sm:grid-cols-2 sm:gap-2 sm:divide-y-0 sm:overflow-visible sm:rounded-none sm:border-0 sm:bg-transparent xl:grid-cols-3">
+                {sec.items.map((e) => {
+                  const fav = favorites.includes(e.id)
+                  const n = counts.get(e.id) ?? 0
+                  return (
+                    <li key={e.id} className="relative sm:overflow-hidden sm:rounded-2xl sm:border sm:border-line sm:bg-surface">
+                      <Link to={`/library/${e.id}`} className="flex min-h-16 items-center gap-3 px-3 py-2.5 pr-14 transition-colors hover:bg-surface-2">
+                        <Monogram name={e.name} />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2">
+                            <span className="truncate font-medium">{e.name}</span>
+                            {e.custom && <Badge tone="accent">Custom</Badge>}
+                          </span>
+                          <span className="block truncate text-sm text-muted">
+                            {e.primary} · {e.equipment}
+                            {n > 0 && ` · ${n} session${n === 1 ? '' : 's'}`}
+                          </span>
+                        </span>
+                      </Link>
+                      <button
+                        onClick={() => toggleFavorite(e.id)}
+                        aria-pressed={fav}
+                        aria-label={fav ? `Remove ${e.name} from favourites` : `Add ${e.name} to favourites`}
+                        className={clsx(
+                          'absolute top-1/2 right-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-xl transition-colors hover:bg-surface-3',
+                          fav ? 'text-accent' : 'text-muted',
+                        )}
+                      >
+                        <Star size={20} className={clsx('transition-transform', fav && 'animate-pop fill-current')} />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
       <ExerciseForm open={creating} onClose={() => setCreating(false)} />
     </div>

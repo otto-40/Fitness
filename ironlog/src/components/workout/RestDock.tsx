@@ -1,5 +1,7 @@
-import { SkipForward } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import clsx from 'clsx'
+import { Maximize2, Minimize2, SkipForward } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Ring } from '../ui'
 import { useNow } from '../../hooks/useNow'
 import { clock } from '../../lib/dates'
 import { useStore } from '../../store/useStore'
@@ -35,6 +37,7 @@ export function RestDock() {
   const skipRest = useStore((s) => s.skipRest)
   const now = useNow(200, !!rest)
   const fired = useRef<number | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   const remaining = rest ? rest.endsAt - now : 0
 
@@ -52,44 +55,62 @@ export function RestDock() {
 
   if (!rest || remaining <= 0) return null
   const pct = Math.max(0, Math.min(1, remaining / (rest.duration * 1000)))
-  const R = 26
-  const C = 2 * Math.PI * R
+  const label = `Rest timer, ${clock(remaining)} remaining`
+
+  const controls = (big: boolean) => (
+    <div className={clsx('flex items-center gap-2', big && 'w-full max-w-sm')}>
+      <button onClick={() => adjustRest(-15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 px-3 text-lg')} aria-label="Subtract 15 seconds">
+        −15
+      </button>
+      <button onClick={() => adjustRest(15)} className={clsx('stamp rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95', big ? 'h-16 flex-1 text-2xl' : 'h-12 px-3 text-lg')} aria-label="Add 15 seconds">
+        +15
+      </button>
+      <button
+        onClick={() => {
+          skipRest()
+          setExpanded(false)
+        }}
+        className={clsx('flex items-center justify-center gap-1.5 rounded-2xl bg-accent font-bold text-on-accent hover:bg-accent-hover active:scale-95', big ? 'h-16 flex-[1.4] text-lg' : 'h-12 px-3.5 text-sm')}
+        aria-label="Skip rest"
+      >
+        <SkipForward size={big ? 20 : 16} /> Skip
+      </button>
+    </div>
+  )
 
   return (
-    <div className="animate-sheet mx-auto mb-2 flex w-full max-w-3xl items-center gap-3 rounded-2xl bg-ink p-2.5 pl-3 text-bg shadow-card" role="timer" aria-live="off" aria-label={`Rest timer, ${clock(remaining)} remaining`}>
-      <div className="relative size-16 shrink-0">
-        <svg viewBox="0 0 64 64" className="size-16 -rotate-90" aria-hidden>
-          <circle cx="32" cy="32" r={R} fill="none" stroke="currentColor" strokeOpacity="0.15" strokeWidth="5" />
-          <circle
-            cx="32"
-            cy="32"
-            r={R}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={C}
-            strokeDashoffset={C * (1 - pct)}
-            style={{ transition: 'stroke-dashoffset 0.2s linear' }}
-          />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tracking-wider uppercase opacity-70">Rest</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="tnum font-display text-4xl leading-none font-semibold">{clock(remaining)}</div>
-        <div className="mt-1 truncate text-xs opacity-70">after {rest.label}</div>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <button onClick={() => adjustRest(-15)} className="tnum h-12 rounded-xl bg-white/10 px-3 text-sm font-bold hover:bg-white/15 dark:bg-black/10" aria-label="Subtract 15 seconds">
-          −15
+    <>
+      <div className="animate-sheet mx-auto mb-2 flex w-full max-w-3xl items-center gap-3 rounded-3xl bg-hero p-2.5 pl-2.5 text-on-hero shadow-float" role="timer" aria-live="off" aria-label={label}>
+        <button onClick={() => setExpanded(true)} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl text-left" aria-label="Expand rest timer">
+          <Ring value={pct} size={52} stroke={5} trackClass="text-white/15">
+            <Maximize2 size={14} className="text-on-hero-muted" />
+          </Ring>
+          <span className="min-w-0">
+            <span className="stamp block text-[34px] sm:text-[40px]">{clock(remaining)}</span>
+            <span className="mt-0.5 block truncate text-xs text-on-hero-muted">Rest · after {rest.label}</span>
+          </span>
         </button>
-        <button onClick={() => adjustRest(15)} className="tnum h-12 rounded-xl bg-white/10 px-3 text-sm font-bold hover:bg-white/15 dark:bg-black/10" aria-label="Add 15 seconds">
-          +15
-        </button>
-        <button onClick={skipRest} className="flex h-12 items-center gap-1 rounded-xl bg-accent px-3 text-sm font-bold text-on-accent hover:bg-accent-hover" aria-label="Skip rest">
-          <SkipForward size={16} /> Skip
-        </button>
+        {controls(false)}
       </div>
-    </div>
+
+      {expanded && (
+        <div className="animate-fade fixed inset-0 z-50 flex flex-col items-center justify-between bg-hero px-6 pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+24px)] text-on-hero" role="dialog" aria-modal="true" aria-label="Rest timer" onKeyDown={(e) => e.key === 'Escape' && setExpanded(false)}>
+          <div className="flex w-full max-w-sm items-center justify-between">
+            <span className="eyebrow text-on-hero-muted">Resting</span>
+            <button onClick={() => setExpanded(false)} className="flex size-11 items-center justify-center rounded-xl hover:bg-white/10" aria-label="Minimise rest timer" autoFocus>
+              <Minimize2 size={20} />
+            </button>
+          </div>
+          <div className="flex flex-col items-center" role="timer" aria-label={label}>
+            <Ring value={pct} size={280} stroke={14} trackClass="text-white/10">
+              <span className="stamp text-[88px]">{clock(remaining)}</span>
+              <span className="mt-2 max-w-48 truncate text-sm text-on-hero-muted">after {rest.label}</span>
+            </Ring>
+            <p className="mt-6 text-sm text-on-hero-muted">of {clock(rest.duration * 1000)} rest</p>
+          </div>
+          {controls(true)}
+        </div>
+      )}
+    </>
   )
 }

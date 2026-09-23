@@ -1,9 +1,10 @@
 import { differenceInCalendarWeeks, format, parseISO, subWeeks } from 'date-fns'
-import { ChartNoAxesColumn, Search } from 'lucide-react'
+import clsx from 'clsx'
+import { ArrowDownRight, ArrowUpRight, ChartNoAxesColumn, Minus, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ColumnTrend, LineTrend, RankBars } from '../components/charts/Charts'
-import { Card, EmptyState, Input, LinkButton, PageHeader, SectionTitle, Segmented, Select, Stat } from '../components/ui'
+import { Card, EmptyState, HeroCard, Input, LinkButton, PageHeader, SectionTitle, Segmented, Select, Sparkline } from '../components/ui'
 import { useExerciseMap } from '../hooks/useExercises'
 import { byDateAsc, completedSetCount, durationMs, exerciseHistory, exerciseRecords, workoutVolume } from '../lib/calc'
 import { formatDuration, friendlyDay, WEEK_OPTS } from '../lib/dates'
@@ -12,6 +13,20 @@ import { formatEstimate, formatVolume, formatWeight, round, toDisplayWeight } fr
 import { useStore } from '../store/useStore'
 
 type Range = '4' | '12' | '26' | 'all'
+
+/** Change versus the previous period of the same length, as an arrow and a percentage. */
+function Delta({ cur, prev, className, label, onHero }: { cur: number; prev: number; className?: string; label?: string; onHero?: boolean }) {
+  if (!prev) return onHero ? <div className={clsx('text-xs text-on-hero-muted', className)}>First period on record</div> : null
+  const pct = ((cur - prev) / prev) * 100
+  const up = pct >= 0.5
+  const down = pct <= -0.5
+  return (
+    <div className={clsx('flex items-center gap-1 text-xs font-semibold', up ? (onHero ? 'text-[#5fdc8f]' : 'text-good') : onHero ? 'text-on-hero-muted' : 'text-ink-2', className)}>
+      {up ? <ArrowUpRight size={14} /> : down ? <ArrowDownRight size={14} /> : <Minus size={14} />}
+      {Math.abs(pct).toFixed(0)}%{label && <span className={clsx('font-normal', onHero ? 'text-on-hero-muted' : 'text-muted')}> {label}</span>}
+    </div>
+  )
+}
 
 export default function Progress() {
   const workouts = useStore((s) => s.workouts)
@@ -36,6 +51,13 @@ export default function Progress() {
   const from = useMemo(() => new Date(fromKey), [fromKey])
   const inRange = useMemo(() => workouts.filter((w) => parseISO(w.startedAt) >= from), [workouts, from])
   const buckets = useMemo(() => weeklyBuckets(workouts, weeks), [workouts, weeks])
+  const prevRange = useMemo(() => {
+    const prevFrom = subWeeks(from, weeks)
+    return workouts.filter((w) => {
+      const d = parseISO(w.startedAt)
+      return d >= prevFrom && d < from
+    })
+  }, [workouts, from, weeks])
   const split = useMemo(() => muscleSplit(inRange, map, splitMetric), [inRange, map, splitMetric])
 
   const exerciseOptions = useMemo(() => {
@@ -50,6 +72,16 @@ export default function Progress() {
   const selected = exerciseId && exerciseOptions.some((o) => o.id === exerciseId) ? exerciseId : (exerciseOptions[0]?.id ?? '')
   const exHistory = useMemo(() => (selected ? exerciseHistory(workouts, selected).filter((h) => parseISO(h.date) >= from) : []), [workouts, selected, from])
   const weighted = exHistory.some((h) => h.topWeight > 0)
+  const strengthList = useMemo(
+    () =>
+      exerciseOptions.slice(0, 6).map((o) => {
+        const h = exerciseHistory(workouts, o.id).filter((x) => parseISO(x.date) >= from)
+        const w = h.some((x) => x.topWeight > 0)
+        const vals = h.map((x) => (w ? x.e1rm : x.maxReps))
+        return { ...o, weighted: w, vals, last: vals.at(-1) ?? 0, delta: vals.length > 1 ? vals.at(-1)! - vals[0] : 0 }
+      }),
+    [exerciseOptions, workouts, from],
+  )
 
   const records = useMemo(
     () =>
@@ -74,7 +106,11 @@ export default function Progress() {
     )
 
   const totalVol = inRange.reduce((s, w) => s + workoutVolume(w), 0)
+  const prevVol = prevRange.reduce((s, w) => s + workoutVolume(w), 0)
   const avgDur = inRange.length ? inRange.reduce((s, w) => s + durationMs(w), 0) / inRange.length : 0
+  const prevAvg = prevRange.length ? prevRange.reduce((s, w) => s + durationMs(w), 0) / prevRange.length : 0
+  const curSets = inRange.reduce((s, w) => s + completedSetCount(w), 0)
+  const prevSets = prevRange.reduce((s, w) => s + completedSetCount(w), 0)
   const volData = buckets.map((b) => ({ label: b.label, volume: Math.round(toDisplayWeight(b.volume, units)) }))
   const countData = buckets.map((b) => ({ label: b.label, workouts: b.workouts }))
   const exData = exHistory.map((h) => ({
@@ -105,12 +141,32 @@ export default function Progress() {
         }
       />
 
-      <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4 sm:p-5">
-        <Stat label="Workouts" value={inRange.length} sub={`${(inRange.length / weeks).toFixed(1)} per week`} />
-        <Stat label="Volume" value={formatVolume(totalVol, units, false)} unit={units} />
-        <Stat label="Sets" value={inRange.reduce((s, w) => s + completedSetCount(w), 0)} />
-        <Stat label="Avg session" value={formatDuration(avgDur)} />
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
+        <HeroCard className="p-5 sm:p-6">
+          <div className="eyebrow text-on-hero-muted">Total volume · {range === 'all' ? 'all time' : `last ${range === '26' ? '6 months' : `${range} weeks`}`}</div>
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <span className="stamp text-[56px]">{formatVolume(totalVol, units, false)}</span>
+            <span className="text-base text-on-hero-muted">{units}</span>
+          </div>
+          {range !== 'all' && <Delta cur={totalVol} prev={prevVol} className="mt-2" label="vs previous period" onHero />}
+        </HeroCard>
+        <div className="grid grid-cols-3 gap-3">
+          {(
+            [
+              ['Workouts', String(inRange.length), `${(inRange.length / weeks).toFixed(1)}/wk`, inRange.length, prevRange.length],
+              ['Sets', String(curSets), 'completed', curSets, prevSets],
+              ['Avg session', formatDuration(avgDur), 'duration', avgDur, prevAvg],
+            ] as const
+          ).map(([label, value, sub, cur, prev]) => (
+            <Card key={label} className="flex flex-col p-4">
+              <div className="eyebrow">{label}</div>
+              <div className="stamp mt-2 text-[28px]">{value}</div>
+              <div className="mt-auto pt-2 text-xs text-muted">{sub}</div>
+              {range !== 'all' && <Delta cur={cur} prev={prev} className="mt-1" />}
+            </Card>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card className="p-4 sm:p-5">
@@ -136,7 +192,7 @@ export default function Progress() {
           />
         </Card>
 
-        <Card className="p-4 sm:p-5">
+        <Card className="p-4 sm:p-5 lg:col-span-2">
           <SectionTitle
             action={
               <Segmented
@@ -161,49 +217,106 @@ export default function Progress() {
           <p className="mt-3 text-xs text-muted">Counted by each exercise’s primary muscle. Warm-ups excluded.</p>
         </Card>
 
-        <Card className="p-4 sm:p-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[13px] font-semibold tracking-[0.08em] text-muted uppercase">Strength progression</h2>
-            <Select value={selected} onChange={(e) => setExerciseId(e.target.value)} aria-label="Exercise" className="h-9 w-auto max-w-[220px] text-sm">
-              {exerciseOptions.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name} ({o.n})
-                </option>
-              ))}
-            </Select>
-          </div>
-          {exData.length < 2 ? (
-            <p className="py-12 text-center text-sm text-muted">Needs at least two sessions in this range.</p>
-          ) : weighted ? (
-            <LineTrend
-              data={exData}
-              series={[
-                { key: 'e1rm', name: 'Estimated 1RM' },
-                { key: 'top', name: 'Top set weight' },
-              ]}
-              format={(v) => `${v} ${units}`}
-              ariaLabel={`Estimated one-rep max and top set weight for ${map.get(selected)?.name}`}
-            />
-          ) : (
-            <LineTrend data={exData} series={[{ key: 'reps', name: 'Most reps' }]} format={(v) => `${v} reps`} ariaLabel={`Most reps per session for ${map.get(selected)?.name}`} />
-          )}
-          {selected && (
-            <Link to={`/library/${selected}`} className="mt-2 inline-block text-sm font-semibold text-accent-ink hover:underline">
-              Full exercise history
-            </Link>
-          )}
-        </Card>
       </div>
+
+      <Card className="mt-4 p-4 sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="eyebrow">Strength progression</h2>
+          <Select value={selected} onChange={(e) => setExerciseId(e.target.value)} aria-label="Exercise" className="h-9 w-auto max-w-[220px] text-sm">
+            {exerciseOptions.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name} ({o.n})
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
+          <ul className="-mx-2 flex flex-col" aria-label="Most trained exercises">
+            {strengthList.map((o) => (
+              <li key={o.id}>
+                <button
+                  onClick={() => setExerciseId(o.id)}
+                  aria-pressed={o.id === selected}
+                  className={clsx('flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors', o.id === selected ? 'bg-accent-soft/50' : 'hover:bg-surface-2')}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-medium">{o.name}</span>
+                    <span className="block text-xs text-muted">
+                      {o.weighted ? `e1RM ${formatEstimate(o.last, units)}` : `${o.last} reps`}
+                      {o.delta !== 0 && (
+                        <span className={clsx('ml-1.5 font-semibold', o.delta > 0 ? 'text-good' : 'text-ink-2')}>
+                          {o.delta > 0 ? '▲' : '▼'} {o.weighted ? formatEstimate(Math.abs(o.delta), units) : Math.abs(o.delta)}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  <Sparkline values={o.vals} />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div>
+            <div className="mb-2 font-semibold">{map.get(selected)?.name}</div>
+            {exData.length < 2 ? (
+              <p className="py-12 text-center text-sm text-muted">Needs at least two sessions in this range.</p>
+            ) : weighted ? (
+              <LineTrend
+                data={exData}
+                series={[
+                  { key: 'e1rm', name: 'Estimated 1RM' },
+                  { key: 'top', name: 'Top set weight' },
+                ]}
+                format={(v) => `${v} ${units}`}
+                ariaLabel={`Estimated one-rep max and top set weight for ${map.get(selected)?.name}`}
+              />
+            ) : (
+              <LineTrend data={exData} series={[{ key: 'reps', name: 'Most reps' }]} format={(v) => `${v} reps`} ariaLabel={`Most reps per session for ${map.get(selected)?.name}`} />
+            )}
+            {selected && (
+              <Link to={`/library/${selected}`} className="mt-2 inline-block text-sm font-semibold text-accent-ink hover:underline">
+                Full exercise history
+              </Link>
+            )}
+          </div>
+        </div>
+      </Card>
 
       <section id="records" className="mt-8 scroll-mt-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-2xl font-semibold tracking-wide uppercase">Personal records</h2>
+          <h2 className="font-display text-[26px] font-semibold tracking-[0.04em] uppercase">Personal records</h2>
           <div className="relative w-full sm:w-64">
             <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
             <Input value={recordQuery} onChange={(e) => setRecordQuery(e.target.value)} placeholder="Filter exercises" className="h-10 pl-9 text-sm" aria-label="Filter records" />
           </div>
         </div>
-        <Card className="overflow-hidden">
+        <ul className="flex flex-col gap-2 sm:hidden">
+          {filteredRecords.map((r) => (
+            <li key={r.exerciseId}>
+              <Link to={`/library/${r.exerciseId}`} className="block rounded-2xl border border-line bg-surface p-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="truncate font-semibold">{map.get(r.exerciseId)!.name}</span>
+                  <span className="shrink-0 text-xs text-muted">{r.sessions} sessions</span>
+                </div>
+                <dl className="mt-3 grid grid-cols-3 gap-2">
+                  <div>
+                    <dt className="eyebrow">Best set</dt>
+                    <dd className="stamp mt-1 text-lg">{r.bestWeight ? `${formatWeight(r.bestWeight.value, units, false)}×${r.bestWeight.reps}` : `${r.bestReps?.value ?? 0} reps`}</dd>
+                  </div>
+                  <div>
+                    <dt className="eyebrow">e1RM</dt>
+                    <dd className="stamp mt-1 text-lg">{r.bestE1rm ? formatEstimate(r.bestE1rm.value, units) : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="eyebrow">Volume</dt>
+                    <dd className="stamp mt-1 text-lg">{r.bestVolume ? formatVolume(r.bestVolume.value, units) : '—'}</dd>
+                  </div>
+                </dl>
+              </Link>
+            </li>
+          ))}
+          {!filteredRecords.length && <li className="py-8 text-center text-sm text-muted">No exercises match “{recordQuery}”.</li>}
+        </ul>
+        <Card className="hidden overflow-hidden sm:block">
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-surface-2 text-left text-[11px] tracking-wide text-muted uppercase">

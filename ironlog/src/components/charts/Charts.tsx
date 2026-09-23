@@ -177,7 +177,7 @@ export function ColumnTrend({ data, series, format, height = 220, yWidth = 44, a
 export function RankBars({ rows, format }: { rows: { label: string; value: number }[]; format: (v: number) => string }) {
   const max = Math.max(1, ...rows.map((r) => r.value))
   return (
-    <ul className="flex flex-col gap-2.5">
+    <ul className="grid gap-2.5 lg:grid-cols-2 lg:gap-x-10">
       {rows.map((r) => (
         <li key={r.label} className="grid grid-cols-[92px_1fr_auto] items-center gap-3 text-sm">
           <span className="truncate text-ink-2">{r.label}</span>

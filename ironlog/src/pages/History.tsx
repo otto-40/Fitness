@@ -20,10 +20,11 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
   const d = parseISO(w.startedAt)
   return (
     <li>
-      <Link to={`/history/${w.id}`} className="flex gap-4 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong">
+      <Link to={`/history/${w.id}`} className="relative flex gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-4 pl-5 transition-colors hover:border-line-strong">
+        <span className={clsx('absolute inset-y-3 left-0 w-1 rounded-r-full', prCount ? 'bg-accent' : 'bg-line-strong')} aria-hidden />
         <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2 leading-none">
           <span className="text-[10px] font-semibold text-muted uppercase">{format(d, 'EEE')}</span>
-          <span className="font-display text-2xl font-semibold">{format(d, 'd')}</span>
+          <span className="stamp text-2xl">{format(d, 'd')}</span>
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
@@ -38,7 +39,7 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
             <span className="inline-flex items-center gap-1">
               <Clock size={13} /> {formatDuration(durationMs(w))}
             </span>
-            <span className="tnum">{formatVolume(workoutVolume(w), units)}</span>
+            <span className="tnum font-medium text-ink-2">{formatVolume(workoutVolume(w), units)}</span>
             <span className="tnum">{completedSetCount(w)} sets</span>
           </span>
           <span className="mt-1.5 line-clamp-1 block text-sm text-ink-2">{w.exercises.map((e) => map.get(e.exerciseId)?.name ?? 'Deleted exercise').join(' · ')}</span>
@@ -50,13 +51,13 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
 
 function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: Map<string, number> }) {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
-  const [selected, setSelected] = useState<Date | null>(null)
+  const [selected, setSelected] = useState<Date | null>(() => new Date())
   const days = eachDayOfInterval({ start: weekStart(month), end: endOfWeek(endOfMonth(month), WEEK_OPTS) })
   const inMonth = workouts.filter((w) => isSameMonth(parseISO(w.startedAt), month))
   const selectedWorkouts = selected ? workouts.filter((w) => isSameDay(parseISO(w.startedAt), selected)) : []
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+    <div className="grid items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
       <Card className="p-4 sm:p-5">
         <div className="mb-4 flex items-center justify-between">
           <button onClick={() => setMonth((m) => subMonths(m, 1))} className="flex size-10 items-center justify-center rounded-xl hover:bg-surface-2" aria-label="Previous month">
@@ -98,10 +99,10 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
                 aria-label={`${format(d, 'd MMMM')}${ws.length ? `, ${ws.map((w) => w.name).join(', ')}` : ', no workout'}`}
                 onClick={() => setSelected(d)}
                 className={clsx(
-                  'tnum relative flex aspect-square flex-col items-center justify-center rounded-xl text-sm font-medium transition-colors',
+                  'stamp relative mx-auto flex aspect-square w-full max-w-12 flex-col items-center justify-center rounded-full text-[17px] transition-colors',
                   !cur && 'invisible',
-                  ws.length ? 'bg-accent font-bold text-on-accent' : 'hover:bg-surface-2',
-                  isToday(d) && !ws.length && 'ring-2 ring-ink ring-inset',
+                  ws.length ? 'bg-accent text-on-accent' : 'hover:bg-surface-2',
+                  isToday(d) && !ws.length && 'ring-2 ring-accent ring-inset',
                   sel && 'ring-2 ring-ink ring-offset-2 ring-offset-surface',
                 )}
               >
@@ -115,7 +116,18 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
       <div>
         {selected ? (
           <>
-            <h3 className="mb-3 font-semibold">{format(selected, 'EEEE d MMMM')}</h3>
+            <div className="mb-3 flex items-end justify-between gap-3 rounded-2xl bg-surface-2 px-4 py-3">
+              <div>
+                <div className="eyebrow">Day selected</div>
+                <div className="mt-0.5 font-semibold">{format(selected, 'EEEE d MMMM')}</div>
+              </div>
+              {selectedWorkouts.length > 0 && (
+                <div className="text-right">
+                  <div className="eyebrow">Total time</div>
+                  <div className="stamp mt-0.5 text-xl">{formatDuration(selectedWorkouts.reduce((n, w) => n + durationMs(w), 0))}</div>
+                </div>
+              )}
+            </div>
             {selectedWorkouts.length ? (
               <ul className="flex flex-col gap-2">
                 {selectedWorkouts.map((w) => (
@@ -138,6 +150,7 @@ export default function History() {
   const workouts = useStore((s) => s.workouts)
   const units = useStore((s) => s.settings.units)
   const [view, setView] = useState<'list' | 'calendar'>('list')
+  const [monthsShown, setMonthsShown] = useState(2)
   const { start, dialog } = useStartWorkout()
 
   const sorted = useMemo(() => [...workouts].sort(byDateDesc), [workouts])
@@ -189,7 +202,7 @@ export default function History() {
       ) : (
         <>
           <div className="mb-6 grid gap-4 md:grid-cols-[1fr_1.3fr]">
-            <Card className="grid grid-cols-3 gap-4 p-4 sm:p-5">
+            <Card className="grid grid-cols-3 items-center gap-4 p-4 sm:p-5">
               <Stat label="Streak" value={streak.current} unit="wk" />
               <Stat label="Longest" value={streak.longest} unit="wk" />
               <Stat label="This month" value={thisMonth} />
@@ -212,10 +225,10 @@ export default function History() {
             <MonthCalendar workouts={workouts} prCounts={prCounts} />
           ) : (
             <div className="flex flex-col gap-8">
-              {months.map(([key, ws]) => (
+              {months.slice(0, monthsShown).map(([key, ws]) => (
                 <section key={key}>
                   <div className="mb-3 flex items-baseline justify-between">
-                    <h2 className="font-display text-xl font-semibold tracking-wide uppercase">{format(parseISO(`${key}-01`), 'MMMM yyyy')}</h2>
+                    <h2 className="font-display text-2xl font-semibold tracking-[0.04em] uppercase">{format(parseISO(`${key}-01`), 'MMMM yyyy')}</h2>
                     <span className="tnum text-sm text-muted">
                       {ws.length} workout{ws.length === 1 ? '' : 's'} · {formatVolume(ws.reduce((s, w) => s + workoutVolume(w), 0), units)}
                     </span>
@@ -227,6 +240,11 @@ export default function History() {
                   </ul>
                 </section>
               ))}
+              {months.length > monthsShown && (
+                <Button variant="secondary" size="lg" block onClick={() => setMonthsShown((n) => n + 3)}>
+                  Show older workouts ({months.slice(monthsShown).reduce((n, [, ws]) => n + ws.length, 0)})
+                </Button>
+              )}
             </div>
           )}
         </>

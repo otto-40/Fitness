@@ -29,6 +29,8 @@ export default function Routines() {
 
   const idx = menuFor ? routines.findIndex((r) => r.id === menuFor.id) : -1
 
+  const plan = routines.filter((r) => r.inPlan)
+
   return (
     <div className="animate-rise">
       <PageHeader
@@ -38,12 +40,54 @@ export default function Routines() {
             ? `${planCount} in your plan · trains ${profile.trainingDays.map((d) => WEEKDAY_SHORT[d]).join(', ') || 'no days set'}`
             : 'Add routines to your plan to get a “next workout” on the home screen.'
         }
-        actions={
-          <LinkButton to="/routines/new" icon={<Plus size={18} />}>
-            New routine
-          </LinkButton>
-        }
       />
+
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <button onClick={() => start(null)} className="flex min-h-20 flex-col items-start gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:border-line-strong active:scale-[0.99] sm:flex-row sm:items-center">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent">
+            <Play size={18} fill="currentColor" />
+          </span>
+          <span>
+            <span className="block font-semibold">Empty workout</span>
+            <span className="block text-sm text-muted">Add exercises as you go</span>
+          </span>
+        </button>
+        <Link to="/routines/new" className="flex min-h-20 flex-col items-start gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong active:scale-[0.99] sm:flex-row sm:items-center">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
+            <Plus size={20} />
+          </span>
+          <span>
+            <span className="block font-semibold">New routine</span>
+            <span className="block text-sm text-muted">Build a reusable session</span>
+          </span>
+        </Link>
+      </div>
+
+      {plan.length > 0 && (
+        <section className="mb-6" aria-label="Plan rotation">
+          <h2 className="eyebrow mb-3">Plan rotation</h2>
+          <ol className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+            {plan.map((r, i) => {
+              const up = next?.routine.id === r.id
+              return (
+                <li key={r.id} className="shrink-0">
+                  <Link
+                    to={`/routines/${r.id}`}
+                    className={clsx(
+                      'flex h-12 items-center gap-2.5 rounded-full border pr-4 pl-1.5 text-sm font-semibold transition-colors',
+                      up ? 'border-accent bg-accent-soft/60 text-ink' : 'border-line bg-surface text-ink-2 hover:text-ink',
+                    )}
+                  >
+                    <span className={clsx('stamp flex size-9 items-center justify-center rounded-full text-lg', up ? 'bg-accent text-on-accent' : 'bg-surface-2')}>{i + 1}</span>
+                    {r.name}
+                    {up && <span className="text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">Next</span>}
+                  </Link>
+                </li>
+              )
+            })}
+          </ol>
+        </section>
+      )}
 
       {routines.length === 0 ? (
         <EmptyState
@@ -58,24 +102,25 @@ export default function Routines() {
         />
       ) : (
         <>
-          <p className="mb-3 text-sm text-muted">Routines in your plan rotate in the order shown. Use the menu to reorder.</p>
+          <h2 className="eyebrow mb-3">All routines · {routines.length}</h2>
           <ul className="grid gap-3 md:grid-cols-2">
             {routines.map((r) => {
               const muscles = routineMuscles(r, map)
               const isNext = next?.routine.id === r.id
               const sets = r.exercises.reduce((n, e) => n + e.sets, 0)
+              const shown = r.exercises.slice(0, 4)
               return (
                 <li key={r.id} className={clsx('flex flex-col rounded-2xl border bg-surface p-4 sm:p-5', isNext ? 'border-accent ring-1 ring-accent' : 'border-line')}>
                   <div className="flex items-start gap-2">
                     <Link to={`/routines/${r.id}`} className="min-w-0 flex-1 hover:underline">
-                      <h2 className="truncate font-display text-2xl leading-tight font-semibold tracking-wide uppercase">{r.name}</h2>
+                      <h2 className="truncate font-display text-[26px] leading-tight font-semibold tracking-[0.03em] uppercase">{r.name}</h2>
                     </Link>
-                    <IconButton label={`Options for ${r.name}`} onClick={() => setMenuFor(r)} className="-mt-1 -mr-2">
+                    <IconButton label={`Options for ${r.name}`} onClick={() => setMenuFor(r)} className="-mt-1 -mr-2 size-11">
                       <MoreHorizontal size={20} />
                     </IconButton>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-                    {isNext && <Badge tone="accent">Up next</Badge>}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                    {isNext && <Badge tone="solid">Up next</Badge>}
                     {r.inPlan && !isNext && (
                       <Badge>
                         <CalendarCheck size={12} /> In plan
@@ -88,25 +133,37 @@ export default function Routines() {
                       <Clock size={14} /> ~{routineMinutes(r)} min
                     </span>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm text-ink-2">
-                    {r.exercises.length ? r.exercises.map((e) => map.get(e.exerciseId)?.name ?? 'Deleted exercise').join(' · ') : 'No exercises yet.'}
-                  </p>
+                  {r.exercises.length ? (
+                    <ul className="mt-3 flex flex-col gap-1 text-sm">
+                      {shown.map((e) => (
+                        <li key={e.id} className="flex items-center justify-between gap-3">
+                          <span className="truncate text-ink-2">{map.get(e.exerciseId)?.name ?? 'Deleted exercise'}</span>
+                          <span className="tnum shrink-0 text-muted">
+                            {e.sets} × {e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`}
+                          </span>
+                        </li>
+                      ))}
+                      {r.exercises.length > shown.length && <li className="text-muted">+{r.exercises.length - shown.length} more</li>}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted">No exercises yet.</p>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {muscles.map((m) => (
                       <MuscleTag key={m} muscle={m} />
                     ))}
                   </div>
                   <div className="mt-auto flex items-center gap-2 pt-4">
-                    <Button icon={<Play size={16} fill="currentColor" />} disabled={!r.exercises.length} onClick={() => start(r.id)} className="flex-1 sm:flex-none">
+                    <Button size="lg" variant={isNext ? 'primary' : 'secondary'} icon={<Play size={16} fill="currentColor" />} disabled={!r.exercises.length} onClick={() => start(r.id)} className="flex-1">
                       Start
                     </Button>
-                    <LinkButton to={`/routines/${r.id}`} variant="secondary" icon={<Pencil size={16} />}>
+                    <LinkButton to={`/routines/${r.id}`} size="lg" variant="outline" icon={<Pencil size={16} />}>
                       Edit
                     </LinkButton>
-                    {lastDone.get(r.id) && (
-                      <span className="ml-auto hidden text-xs text-muted sm:inline">Last done {new Date(lastDone.get(r.id)!).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
-                    )}
                   </div>
+                  {lastDone.get(r.id) && (
+                    <p className="mt-2 text-xs text-muted">Last done {new Date(lastDone.get(r.id)!).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
+                  )}
                 </li>
               )
             })}
