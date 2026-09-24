@@ -29,7 +29,7 @@ function TooltipBox({
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-line bg-surface px-3 py-2 text-sm shadow-card">
+    <div className="rounded-xl bg-surface px-3 py-2 text-sm shadow-float ring-1 ring-black/[0.05] dark:ring-white/[0.08]">
       <div className="mb-1 text-xs font-medium text-muted">{label}</div>
       {payload.map((p) => (
         <div key={p.dataKey} className="flex items-center gap-2">

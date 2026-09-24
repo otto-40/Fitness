@@ -1,9 +1,10 @@
 import { format, parseISO } from 'date-fns'
-import { ArrowLeft, Medal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Medal, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ExercisePicker } from '../components/ExercisePicker'
-import { Badge, Button, Card, ConfirmDialog, EmptyState, Field, Input, SectionTitle, Textarea } from '../components/ui'
+import { useStartWorkout } from '../components/StartWorkout'
+import { Badge, Button, Card, ConfirmDialog, EmptyState, Field, HeroCard, Input, SectionTitle, Textarea } from '../components/ui'
 import { ExerciseCard } from '../components/workout/ExerciseCard'
 import { SetTypeBadge } from '../components/workout/SetTypeBadge'
 import { EffortShape } from '../components/workout/Effort'
@@ -82,7 +83,7 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
           setConfirmLeave('history')
         }}
       />
-      <h1 className="mb-6 font-display text-4xl font-semibold tracking-wide uppercase">Edit workout</h1>
+      <h1 className="title-lg mb-6">Edit workout</h1>
       <Card className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
         <Field label="Name" error={errors.name} className="sm:col-span-2">
           {(id, d) => <Input id={id} aria-describedby={d} aria-invalid={!!errors.name} value={draft.name} maxLength={60} onChange={(e) => { setDraft({ ...draft, name: e.target.value }); setErrors((er) => ({ ...er, name: '' })) }} />}
@@ -147,7 +148,7 @@ function Editor({ workout, onDone }: { workout: Workout; onDone: () => void }) {
       </Button>
 
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:left-[256px]">
-        <div className="mx-auto flex max-w-3xl gap-2 rounded-3xl border border-line bg-surface/95 p-2 shadow-float backdrop-blur">
+        <div className="mx-auto flex max-w-3xl gap-2 rounded-[28px] bg-surface p-2 shadow-float ring-1 ring-black/[0.05] dark:bg-surface-2 dark:ring-white/[0.07]">
           <Button variant="secondary" size="lg" block onClick={() => (dirty ? setConfirmLeave('edit') : onDone())}>
             Cancel
           </Button>
@@ -195,6 +196,7 @@ export default function WorkoutDetail() {
   const map = useExerciseMap()
   const [editing, setEditing] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  const { repeat, dialog } = useStartWorkout()
   const w = workouts.find((x) => x.id === id)
   const prs = useMemo(() => (w ? prsForWorkout(workouts, w) : []), [w, workouts])
 
@@ -220,10 +222,13 @@ export default function WorkoutDetail() {
       <BackLink />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[40px] leading-none font-semibold tracking-[0.03em] uppercase sm:text-5xl">{w.name}</h1>
+          <h1 className="title-lg">{w.name}</h1>
           <p className="mt-2 text-muted">{format(parseISO(w.startedAt), "EEEE d MMMM yyyy 'at' HH:mm")}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button icon={<RotateCcw size={16} />} onClick={() => repeat(w.id)}>
+            Repeat workout
+          </Button>
           <Button variant="secondary" icon={<Pencil size={16} />} onClick={() => setEditing(true)}>
             Edit
           </Button>
@@ -233,7 +238,7 @@ export default function WorkoutDetail() {
         </div>
       </div>
 
-      <Card className="grid grid-cols-2 gap-y-2 p-1 sm:grid-cols-4">
+      <HeroCard className="grid grid-cols-2 gap-y-2 p-2 sm:grid-cols-4">
         {[
           ['Duration', formatDuration(durationMs(w))],
           aerobicMinutes(w) > 0 && workoutVolume(w) === 0 ? ['Aerobic', `${aerobicMinutes(w)} min`] : ['Volume', formatVolume(workoutVolume(w), units)],
@@ -242,10 +247,10 @@ export default function WorkoutDetail() {
         ].map(([k, v]) => (
           <div key={k} className="p-4">
             <div className="eyebrow">{k}</div>
-            <div className="stamp mt-1.5 text-[28px]">{v}</div>
+            <div className="stamp mt-1.5 text-[30px]">{v}</div>
           </div>
         ))}
-      </Card>
+      </HeroCard>
 
       {w.notes && <p className="mt-4 rounded-2xl bg-surface-2 p-4 text-[15px] text-ink-2">{w.notes}</p>}
 
@@ -317,6 +322,7 @@ export default function WorkoutDetail() {
         })}
       </section>
 
+      {dialog}
       <ConfirmDialog
         open={confirm}
         onClose={() => setConfirm(false)}

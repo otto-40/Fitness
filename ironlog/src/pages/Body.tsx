@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { format, parseISO, subDays } from 'date-fns'
-import { Pencil, Plus, Scale, Trash2 } from 'lucide-react'
+import { MoveRight, Pencil, Plus, Scale, Trash2, TrendingDown, TrendingUp } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { LineTrend } from '../components/charts/Charts'
 import { Button, Card, ConfirmDialog, EmptyState, Field, HeroCard, IconButton, Input, Modal, PageHeader, SectionTitle, Segmented, Textarea } from '../components/ui'
@@ -198,7 +198,6 @@ export default function Body() {
     <div className="animate-rise">
       <PageHeader
         title="Body"
-        subtitle="Bodyweight and measurements over time."
         actions={
           <Button icon={<Plus size={18} />} onClick={openNew}>
             Log entry
@@ -221,11 +220,19 @@ export default function Body() {
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <HeroCard className="col-span-2 p-5 lg:col-span-2">
-              <div className="eyebrow text-on-hero-muted">Bodyweight</div>
+              <div className="text-[13px] font-semibold text-on-hero-muted">Bodyweight</div>
               <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="stamp text-[56px]">{latestWeight ? formatWeight(latestWeight.weight, units, false) : '—'}</span>
+                <span className="stamp text-[60px]">{latestWeight ? formatWeight(latestWeight.weight, units, false) : '—'}</span>
                 <span className="text-base text-on-hero-muted">{units}</span>
               </div>
+              {c30 && (
+                <p className="mt-2 flex items-center gap-1.5 text-[15px] font-semibold">
+                  {Math.abs(c30.delta) < 0.1 ? <MoveRight size={17} /> : c30.delta < 0 ? <TrendingDown size={17} /> : <TrendingUp size={17} />}
+                  {Math.abs(c30.delta) < 0.1
+                    ? 'Holding steady over the last 30 days'
+                    : `${c30.delta < 0 ? 'Down' : 'Up'} ${formatWeight(Math.abs(c30.delta), units)} in the last 30 days`}
+                </p>
+              )}
               <div className="mt-1 text-xs text-on-hero-muted">{latestWeight ? `Last weigh-in ${format(parseISO(latestWeight.date), 'd MMM yyyy')}` : 'No weigh-ins yet'}</div>
             </HeroCard>
             <Card className="p-4">
@@ -253,8 +260,8 @@ export default function Body() {
                   aria-checked={metric === m.key}
                   onClick={() => setMetric(m.key)}
                   className={clsx(
-                    'hit inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors',
-                    metric === m.key ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2 hover:text-ink',
+                    'hit inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors',
+                    metric === m.key ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-2 hover:text-ink',
                   )}
                 >
                   {m.label}
@@ -296,8 +303,8 @@ export default function Body() {
             <div className="flex flex-col gap-5">
               {months.slice(0, showAll ? undefined : 2).map(([key, list]) => (
                 <div key={key}>
-                  <h3 className="mb-2 px-1 font-display text-xl font-semibold tracking-[0.04em] uppercase">{format(parseISO(`${key}-01`), 'MMMM yyyy')}</h3>
-                  <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+                  <h3 className="mb-2 px-1 text-[15px] font-semibold text-muted">{format(parseISO(`${key}-01`), 'MMMM yyyy')}</h3>
+                  <ul className="divide-y divide-line overflow-hidden card">
                     {list.map((m) => {
                       const extras = [
                         m.bodyFat != null && `Fat ${m.bodyFat}%`,

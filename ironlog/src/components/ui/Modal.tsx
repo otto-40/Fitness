@@ -78,7 +78,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         aria-labelledby={titleId}
         tabIndex={-1}
         className={clsx(
-          'animate-sheet relative flex w-full flex-col rounded-t-3xl bg-surface shadow-card outline-none sm:rounded-3xl',
+          'animate-sheet relative flex w-full flex-col rounded-t-[28px] bg-surface shadow-sheet outline-none sm:rounded-[28px]',
           tall ? 'h-[92dvh] sm:h-[80dvh]' : 'max-h-[92dvh] sm:max-h-[85dvh]',
           size === 'sm' && 'sm:max-w-sm',
           size === 'md' && 'sm:max-w-lg',
@@ -88,7 +88,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-line-strong sm:hidden" aria-hidden />
         <div className="flex items-start gap-3 px-5 pt-3 pb-2 sm:pt-5">
           <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="font-display text-2xl font-semibold tracking-wide uppercase">
+            <h2 id={titleId} className="text-[20px] leading-tight font-bold tracking-[-0.015em]">
               {title}
             </h2>
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}

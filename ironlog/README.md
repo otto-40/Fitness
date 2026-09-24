@@ -18,7 +18,7 @@ Data is stored per browser, so the live site and `localhost` keep separate logs.
 
 ## Design
 
-The interface uses **Forge**, a design system built from a study of real fitness products on Mobbin, with the colour palette from Sam's Training Week.
+The interface uses **Forge 2**, a design system built from two rounds of study of real fitness products on Mobbin, with the colour palette from Sam's Training Week.
 [`design-research.md`](design-research.md) lists the products and flows examined, the patterns adopted and rejected, the full token set (colour, type, spacing, radii, shadows, motion, charts, forms, accessibility) and the page-by-page redesign plan.
 In short:
 
@@ -26,13 +26,19 @@ In short:
   - Green means logged, complete or easy.
   - Amber means hold, hard or warm-up.
   - Red means destructive only.
-- Condensed "stamped" numerals (Barlow Condensed) for the numbers you care about. Inter for everything else.
+- Condensed "stamped" numerals (Barlow Condensed) for the numbers you care about. Inter, in sentence case, for words.
+- Borderless cards: elevated on the light canvas, tonal in dark. One deep-indigo **hero** per screen (today's session, the rest timer, the progress headline, bodyweight), matching the app icon.
+- **One-handed live workout.** The **now panel** in the thumb zone shows the next set with big ± steppers for load and reps and a 60px **Log set** button.
+  - While you rest, it becomes the rest timer and says what comes next ("Set 2 of 4 · 180 kg × 11 reps").
+  - Inside supersets it alternates exercises round by round.
+  - Finish sits at the top, away from the thumb.
+- **Repeat workout** on any past workout starts a new session with the same exercises, set types and rest.
 - A plate-ring, segment-bar and sparkline vocabulary instead of stock photos or body maps.
 - **App icon.** A bigger weight plate stepping up over a smaller one: progressive overload, and an "O". It's white on the indigo tile.
   - The master art is `public/icon.svg`.
   - It is rendered to `apple-touch-icon.png` (iOS home screen), `icon-192.png` and `icon-512.png` (Android and installs; the 512 doubles as the maskable icon, since the mark sits inside the safe zone), plus `favicon.svg` and `favicon-32.png`.
   - The in-app logo uses the same mark.
-- Large tap targets (52px set cells, 56px primary buttons), a floating tab bar with a mini-player for the running workout, and subtle motion that respects reduced-motion settings.
+- Large tap targets (52px set cells, 56px primary buttons, 76px now-panel steppers), a floating tab bar with a mini-player for the running workout, and subtle motion that respects reduced-motion settings.
 
 ## Effort, aerobic minutes and Sam's Weekly Workout
 

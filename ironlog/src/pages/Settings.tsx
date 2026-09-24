@@ -20,6 +20,88 @@ const GOAL_LABEL: Record<Goal, string> = { strength: 'Strength', muscle: 'Muscle
 
 type Pending = { kind: 'reset' | 'erase' | 'sample' | 'onboarding' } | { kind: 'import'; result: ImportResult }
 
+/** A miniature of the app in one theme: canvas, the indigo hero card and two content rows. */
+function ThemeThumb({ dark }: { dark: boolean }) {
+  const bg = dark ? '#0b0b0f' : '#f2f2f6'
+  const card = dark ? '#17171c' : '#ffffff'
+  const line = dark ? '#2b2b33' : '#e6e6ec'
+  return (
+    <g>
+      <rect width="96" height="64" fill={bg} />
+      <rect x="8" y="8" width="80" height="22" rx="6" fill="url(#thumb-hero)" />
+      <rect x="14" y="14" width="30" height="4" rx="2" fill="#ffffff" opacity="0.9" />
+      <rect x="14" y="21" width="18" height="4" rx="2" fill="#ffffff" />
+      <rect x="8" y="35" width="80" height="22" rx="6" fill={card} />
+      <rect x="14" y="41" width="36" height="4" rx="2" fill={line} />
+      <rect x="14" y="48" width="24" height="4" rx="2" fill={line} />
+    </g>
+  )
+}
+
+/** Light / Dark / System as preview cards, a radio group with arrow-key support. */
+function ThemePicker({ value, onChange }: { value: ThemePref; onChange: (v: ThemePref) => void }) {
+  const opts: { value: ThemePref; label: string; icon: ReactNode }[] = [
+    { value: 'light', label: 'Light', icon: <Sun size={14} /> },
+    { value: 'dark', label: 'Dark', icon: <Moon size={14} /> },
+    { value: 'system', label: 'System', icon: <Monitor size={14} /> },
+  ]
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    const i = opts.findIndex((o) => o.value === value)
+    onChange(opts[(i + d + opts.length) % opts.length].value)
+    requestAnimationFrame(() => (e.currentTarget as HTMLElement).querySelector<HTMLElement>('[aria-checked="true"]')?.focus())
+  }
+  return (
+    <div role="radiogroup" aria-label="Theme" onKeyDown={onKeyDown} className="grid grid-cols-3 gap-2.5">
+      <svg width="0" height="0" className="absolute" aria-hidden>
+        <defs>
+          <linearGradient id="thumb-hero" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#2e2a7a" />
+            <stop offset="1" stopColor="#1b1846" />
+          </linearGradient>
+          <clipPath id="thumb-half">
+            <polygon points="0,0 96,0 0,64" />
+          </clipPath>
+        </defs>
+      </svg>
+      {opts.map((o) => {
+        const on = value === o.value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            tabIndex={on ? 0 : -1}
+            onClick={() => onChange(o.value)}
+            className="group flex flex-col items-center gap-2 rounded-2xl text-sm font-semibold"
+          >
+            <span className={clsx('block w-full overflow-hidden rounded-[14px] ring-2 transition-all group-active:scale-[0.97]', on ? 'ring-accent' : 'ring-line')}>
+              <svg viewBox="0 0 96 64" className="block w-full" aria-hidden>
+                {o.value === 'system' ? (
+                  <>
+                    <ThemeThumb dark />
+                    <g clipPath="url(#thumb-half)">
+                      <ThemeThumb dark={false} />
+                    </g>
+                  </>
+                ) : (
+                  <ThemeThumb dark={o.value === 'dark'} />
+                )}
+              </svg>
+            </span>
+            <span className={clsx('inline-flex items-center gap-1.5', on ? 'text-ink' : 'text-muted')}>
+              {o.icon} {o.label}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Settings() {
   const navigate = useNavigate()
   const store = useStore()
@@ -128,7 +210,7 @@ export default function Settings() {
       <PageHeader title="Settings" />
 
       <Card className="mb-8 flex items-center gap-4 p-4 sm:p-5">
-        <span className="stamp flex size-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-2xl text-on-accent">{(profile.name || 'A').slice(0, 1).toUpperCase()}</span>
+        <span className="stamp flex size-14 shrink-0 items-center justify-center rounded-2xl bg-hero text-2xl text-on-hero">{(profile.name || 'A').slice(0, 1).toUpperCase()}</span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-lg font-semibold">{profile.name || 'Athlete'}</div>
           <div className="text-sm text-muted">
@@ -139,24 +221,15 @@ export default function Settings() {
 
       <div className="flex flex-col gap-8">
         <ListGroup title="Appearance" footer="System follows your device’s light or dark mode.">
-          <ListRow
-            stack
-            icon={<Moon size={18} />}
-            title="Theme"
-            control={
-              <Segmented<ThemePref>
-                label="Theme"
-                value={settings.theme}
-                onChange={(theme) => store.updateSettings({ theme })}
-                className="w-full"
-                options={[
-                  { value: 'light', label: <span className="inline-flex items-center gap-1.5"><Sun size={15} /> Light</span> },
-                  { value: 'dark', label: <span className="inline-flex items-center gap-1.5"><Moon size={15} /> Dark</span> },
-                  { value: 'system', label: <span className="inline-flex items-center gap-1.5"><Monitor size={15} /> System</span> },
-                ]}
-              />
-            }
-          />
+          <div className="px-4 py-4">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
+                <Moon size={18} />
+              </span>
+              <span className="text-[15px] font-medium">Theme</span>
+            </div>
+            <ThemePicker value={settings.theme} onChange={(theme) => store.updateSettings({ theme })} />
+          </div>
           <ListRow
             stack
             icon={<Ruler size={18} />}
@@ -254,7 +327,7 @@ export default function Settings() {
                       if (!next.length) return toast('Keep at least one training day', { tone: 'error' })
                       store.updateProfile({ trainingDays: next, daysPerWeek: next.length })
                     }}
-                    className={clsx('flex h-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors', on ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-2 hover:text-ink')}
+                    className={clsx('flex h-11 items-center justify-center rounded-full text-sm font-semibold transition-colors', on ? 'bg-accent text-on-accent' : 'bg-surface-2 text-ink-2 hover:text-ink')}
                   >
                     {WEEKDAY_SHORT[d]}
                   </button>

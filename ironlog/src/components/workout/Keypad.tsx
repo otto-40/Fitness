@@ -112,13 +112,13 @@ export function Keypad(p: KeypadProps) {
         aria-pressed={on}
         onClick={() => switchField(f)}
         className={clsx(
-          'flex flex-1 flex-col items-start rounded-2xl border-2 px-4 py-2.5 text-left transition-colors',
+          'flex flex-1 flex-col items-start rounded-[20px] border-2 px-4 py-2.5 text-left transition-colors',
           on ? 'border-accent bg-accent-soft/40' : 'border-transparent bg-surface-2',
         )}
       >
         <span className="eyebrow">{label}</span>
         <span className="mt-1 flex items-baseline gap-1">
-          <span className={clsx('stamp text-[40px]', !shown && 'text-muted/60')}>{shown || placeholder || '0'}</span>
+          <span className={clsx('stamp text-[40px]', !shown && 'text-muted')}>{shown || placeholder || '0'}</span>
           {unit && <span className="text-sm font-medium text-muted">{unit}</span>}
           {on && <span className="ml-0.5 h-8 w-0.5 animate-pulse self-center bg-accent" aria-hidden />}
         </span>
@@ -141,10 +141,10 @@ export function Keypad(p: KeypadProps) {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => nudge(-step)} className="stamp h-12 rounded-xl bg-surface-2 text-xl hover:bg-surface-3 active:scale-[0.97]">
+          <button type="button" onClick={() => nudge(-step)} className="stamp h-12 rounded-[14px] bg-accent-soft text-xl text-accent-ink hover:brightness-95 active:scale-[0.97] dark:hover:brightness-125">
             −{step}
           </button>
-          <button type="button" onClick={() => nudge(step)} className="stamp h-12 rounded-xl bg-surface-2 text-xl hover:bg-surface-3 active:scale-[0.97]">
+          <button type="button" onClick={() => nudge(step)} className="stamp h-12 rounded-[14px] bg-accent-soft text-xl text-accent-ink hover:brightness-95 active:scale-[0.97] dark:hover:brightness-125">
             +{step}
           </button>
         </div>
@@ -157,7 +157,7 @@ export function Keypad(p: KeypadProps) {
               onClick={() => press(k)}
               disabled={k === '.' && p.field !== 'weight'}
               aria-label={k === 'back' ? 'Delete' : k === '.' ? 'Decimal point' : k}
-              className="stamp flex h-14 items-center justify-center rounded-xl bg-surface text-[26px] ring-1 ring-line transition-colors ring-inset hover:bg-surface-2 active:scale-[0.97] active:bg-surface-3 disabled:opacity-30"
+              className="stamp flex h-14 items-center justify-center rounded-[14px] bg-surface-2 text-[26px] transition-colors hover:bg-surface-3 active:scale-[0.97] active:bg-surface-3 disabled:opacity-30"
             >
               {k === 'back' ? <Delete size={22} /> : k}
             </button>
@@ -177,7 +177,7 @@ export function Keypad(p: KeypadProps) {
           </button>
           {aerobic ? (
             p.onLog && !p.completed ? (
-              <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-good text-[15px] font-semibold text-on-good hover:brightness-110">
+              <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent text-[15px] font-semibold text-on-accent hover:bg-accent-hover">
                 <Check size={20} strokeWidth={3} /> Log minutes
               </button>
             ) : (
@@ -188,7 +188,7 @@ export function Keypad(p: KeypadProps) {
               Reps <ArrowRight size={18} />
             </button>
           ) : p.onLog && !p.completed ? (
-            <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-good text-[15px] font-semibold text-on-good hover:brightness-110">
+            <button type="button" onClick={advance} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent text-[15px] font-semibold text-on-accent hover:bg-accent-hover">
               <Check size={20} strokeWidth={3} /> Log set
             </button>
           ) : (

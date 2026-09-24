@@ -3,7 +3,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTML
 import { forwardRef, useId } from 'react'
 
 export const inputClass =
-  'h-11 w-full rounded-xl border border-transparent bg-surface-2 px-3 text-[15px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent/25 aria-[invalid=true]:border-danger'
+  'h-12 w-full rounded-xl border border-transparent bg-surface-2 px-3.5 text-[15px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent/25 aria-[invalid=true]:border-danger'
 
 export function Field({
   label,
@@ -84,7 +84,7 @@ export function Segmented<T extends string>({
     requestAnimationFrame(() => (e.currentTarget as HTMLElement).querySelector<HTMLElement>('[aria-checked="true"]')?.focus())
   }
   return (
-    <div role="radiogroup" aria-label={label} onKeyDown={onKeyDown} className={clsx('inline-flex rounded-full bg-surface-2 p-1', className)}>
+    <div role="radiogroup" aria-label={label} onKeyDown={onKeyDown} className={clsx('inline-flex rounded-full bg-surface-3/70 p-1 dark:bg-surface-2', className)}>
       {options.map((o) => {
         const active = o.value === value
         return (
@@ -98,7 +98,7 @@ export function Segmented<T extends string>({
             className={clsx(
               'hit flex-1 rounded-full px-3.5 font-semibold whitespace-nowrap transition-all',
               size === 'sm' ? 'h-8 text-[13px]' : 'h-9 text-sm',
-              active ? 'bg-surface text-ink shadow-card dark:bg-surface-3' : 'text-muted hover:text-ink',
+              active ? 'bg-surface text-ink shadow-[0_1px_3px_rgb(0_0_0/0.12)] dark:bg-surface-3' : 'text-muted hover:text-ink',
             )}
           >
             {o.label}
@@ -127,7 +127,7 @@ export function Chip({
       onClick={onClick}
       className={clsx(
         'hit inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
-        active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink',
+        active ? 'border-ink bg-ink text-bg' : 'border-transparent bg-surface text-ink-2 shadow-card hover:text-ink dark:border-line',
         className,
       )}
     >
@@ -198,7 +198,7 @@ export function DropdownChip({
         aria-hidden
         className={clsx(
           'pointer-events-none absolute inset-x-0 inset-y-1 rounded-full border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg',
-          active ? 'border-ink bg-ink' : 'border-line bg-surface peer-hover:border-line-strong',
+          active ? 'border-ink bg-ink' : 'border-transparent bg-surface shadow-card dark:border-line',
         )}
       />
       <svg viewBox="0 0 24 24" className={clsx('pointer-events-none absolute top-1/2 right-2.5 z-10 size-4 -translate-y-1/2', active ? 'text-bg' : 'text-muted')} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>

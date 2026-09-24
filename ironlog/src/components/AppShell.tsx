@@ -39,8 +39,8 @@ function MiniPlayer({ compact }: { compact?: boolean }) {
       to="/workout"
       aria-label={`Resume ${active.name}${rest ? `, resting ${clock(rest.endsAt - now)}` : ''}`}
       className={clsx(
-        'animate-rise flex items-center gap-3 rounded-full bg-hero text-on-hero shadow-float transition-transform active:scale-[0.98]',
-        compact ? 'py-2 pr-2 pl-2' : 'py-2 pr-2 pl-2',
+        'animate-rise flex items-center gap-3 rounded-full bg-hero py-2 pr-2 pl-2 text-on-hero shadow-float transition-transform active:scale-[0.98]',
+        compact && 'rounded-[22px]',
       )}
     >
       <Ring value={rest ? (rest.endsAt - now) / (rest.duration * 1000) : total ? done / total : 0} size={40} stroke={4} trackClass="text-white/15">
@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
 
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh flex-col bg-surface px-4 py-6 shadow-[1px_0_0_var(--line)] lg:flex">
         <Link to="/" className="mb-8 px-2" aria-label="Overload home">
           <Logo />
         </Link>
@@ -92,14 +92,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               end={end}
               className={({ isActive }) =>
                 clsx(
-                  'relative flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
-                  isActive ? 'bg-surface-2 text-ink' : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
+                  'relative flex h-11 items-center gap-3 rounded-[14px] px-3 text-[15px] font-medium transition-colors',
+                  isActive ? 'bg-accent-soft/70 font-semibold text-ink' : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  {isActive && <span className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-r-full bg-accent" aria-hidden />}
                   <Icon size={20} className={isActive ? 'text-accent' : undefined} strokeWidth={isActive ? 2.4 : 2} />
                   {label}
                 </>
@@ -111,8 +110,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="min-w-0">
-        {/* Mobile top bar */}
-        {!inWorkout && (
+        {/* Mobile top bar: only Home carries the logo; other pages open on their large title. */}
+        {pathname === '/' && (
           <div className="flex items-center justify-between px-4 pt-4 lg:hidden">
             <Link to="/" aria-label="Overload home" className="flex h-11 items-center">
               <Logo />
@@ -126,7 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="main"
           className={clsx(
             'mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10',
-            inWorkout ? 'pt-0 pb-60' : clsx('pt-5 lg:pt-10 lg:pb-16', hideNav ? 'pb-28' : active ? 'pb-44' : 'pb-nav'),
+            inWorkout ? 'pt-0 pb-72' : clsx(pathname === '/' ? 'pt-4' : 'pt-[calc(env(safe-area-inset-top)+20px)]', 'lg:pt-10 lg:pb-16', hideNav ? 'pb-28' : active ? 'pb-44' : 'pb-nav'),
           )}
         >
           {children}
@@ -138,7 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:hidden">
           <div className="pointer-events-auto mx-auto flex max-w-md flex-col gap-2">
             <MiniPlayer />
-            <nav aria-label="Main" className="grid grid-cols-5 rounded-3xl border border-line bg-surface/95 p-1.5 shadow-float backdrop-blur">
+            <nav aria-label="Main" className="grid grid-cols-5 rounded-[28px] bg-surface/90 p-1.5 shadow-float ring-1 ring-black/[0.04] backdrop-blur-xl dark:ring-white/[0.06]">
               {MOBILE_PRIMARY.map(({ to, label, icon: Icon, end }) => (
                 <NavLink
                   key={to}
@@ -146,8 +145,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   end={end}
                   className={({ isActive }) =>
                     clsx(
-                      'flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-semibold transition-colors',
-                      isActive ? 'bg-surface-2 text-ink' : 'text-muted hover:text-ink',
+                      'flex h-14 flex-col items-center justify-center gap-0.5 rounded-[22px] text-[11px] font-semibold transition-colors active:scale-95',
+                      isActive ? 'bg-accent-soft/70 text-ink' : 'text-muted hover:text-ink',
                     )
                   }
                 >
@@ -163,8 +162,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onClick={() => setMoreOpen(true)}
                 aria-haspopup="dialog"
                 className={clsx(
-                  'flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-semibold transition-colors',
-                  moreActive ? 'bg-surface-2 text-ink' : 'text-muted hover:text-ink',
+                  'flex h-14 flex-col items-center justify-center gap-0.5 rounded-[22px] text-[11px] font-semibold transition-colors active:scale-95',
+                  moreActive ? 'bg-accent-soft/70 text-ink' : 'text-muted hover:text-ink',
                 )}
               >
                 <MoreHorizontal size={22} className={moreActive ? 'text-accent' : undefined} />
@@ -176,10 +175,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <Modal open={moreOpen} onClose={() => setMoreOpen(false)} title="More" size="sm">
-        <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+        <div className="divide-y divide-line overflow-hidden rounded-[20px] bg-surface-2/60">
           {MOBILE_MORE.map(({ to, label, icon: Icon }) => (
-            <Link key={to} to={to} onClick={() => setMoreOpen(false)} className="flex h-14 items-center gap-3 bg-surface px-4 font-medium hover:bg-surface-2">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 text-accent-ink">
+            <Link key={to} to={to} onClick={() => setMoreOpen(false)} className="flex h-14 items-center gap-3 px-4 font-medium hover:bg-surface-2">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
                 <Icon size={18} />
               </span>
               <span className="flex-1">{label}</span>

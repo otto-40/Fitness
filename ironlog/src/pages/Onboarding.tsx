@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useMemo, useState } from 'react'
-import { Button, Chip, Input, Logo, SegmentBar, Switch } from '../components/ui'
+import { Button, Chip, Input, Logo, Ring, SegmentBar, Switch } from '../components/ui'
 import { useExerciseMap } from '../hooks/useExercises'
 import { WEEKDAY_SHORT } from '../lib/dates'
 import { DEFAULT_TRAINING_DAYS, generateProgram, planLabel } from '../lib/programGen'
@@ -52,7 +52,7 @@ function OptionCard({ selected, onClick, title, body, icon }: { selected: boolea
       onClick={onClick}
       className={clsx(
         'flex min-h-[76px] w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all active:scale-[0.99]',
-        selected ? 'border-accent bg-accent-soft/50' : 'border-transparent bg-surface hover:border-line-strong',
+        selected ? 'border-accent bg-accent-soft/50' : 'border-transparent bg-surface shadow-card',
       )}
     >
       {icon && <span className={clsx('flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors', selected ? 'bg-accent text-on-accent' : 'bg-surface-2 text-ink-2')}>{icon}</span>}
@@ -70,9 +70,47 @@ function OptionCard({ selected, onClick, title, body, icon }: { selected: boolea
 function Question({ title, help }: { title: string; help: string }) {
   return (
     <>
-      <h1 className="mt-3 font-display text-[40px] leading-[0.98] font-semibold tracking-[0.02em] uppercase">{title}</h1>
+      <h1 className="mt-3 text-[32px] leading-[1.08] font-bold tracking-[-0.025em]">{title}</h1>
       <p className="mt-3 text-[15px] text-ink-2">{help}</p>
     </>
+  )
+}
+
+/**
+ * The welcome screen shows the product instead of describing it: the now panel's
+ * up-next set, the rest ring and a week of capsules, drawn with the real parts.
+ */
+function WelcomePreview() {
+  return (
+    <div className="relative mt-7 h-[178px]" aria-hidden>
+      <div className="shadow-hero absolute inset-x-0 top-0 mr-14 rounded-[24px] bg-hero p-4 text-on-hero">
+        <p className="text-[10px] font-semibold tracking-[0.12em] text-accent-ink uppercase">Up next · Set 2 of 4</p>
+        <p className="mt-0.5 text-[16px] font-semibold">Bench Press</p>
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <p className="flex items-baseline gap-1">
+            <span className="stamp text-[34px]">82.5</span>
+            <span className="text-xs text-on-hero-muted">kg ×</span>
+            <span className="stamp text-[34px]">8</span>
+          </p>
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-[#2b2780]">
+            <Check size={15} strokeWidth={3} /> Log set
+          </span>
+        </div>
+      </div>
+      <div className="card absolute right-0 bottom-0 left-16 flex items-center gap-3 p-3">
+        <Ring value={0.62} size={48} stroke={5}>
+          <span className="stamp text-[13px]">1:52</span>
+        </Ring>
+        <div className="flex flex-1 gap-1">
+          {['M', 'T', 'W', 'T', 'F'].map((d, i) => (
+            <span key={i} className={clsx('flex h-11 flex-1 flex-col items-center justify-center rounded-full text-[9px] font-semibold', i < 2 ? 'bg-accent text-on-accent' : i === 2 ? 'bg-accent-soft ring-2 ring-accent ring-inset' : 'bg-surface-2 text-muted')}>
+              {d}
+              {i < 2 ? <Check size={12} strokeWidth={3} /> : <span className="stamp text-[12px]">{21 + i}</span>}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -124,28 +162,26 @@ export default function Onboarding() {
       <div className="flex min-h-dvh flex-col bg-bg">
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+24px)]">
           <Logo />
-          <div className="animate-rise my-auto py-10">
-            <p className="eyebrow mb-4 text-accent-ink">Strength training log</p>
-            <h1 className="font-display text-[56px] leading-[0.9] font-bold tracking-[0.02em] uppercase sm:text-[64px]">
+          <div className="animate-rise my-auto py-8">
+            <h1 className="text-[42px] leading-[1.03] font-bold tracking-[-0.035em] sm:text-[54px]">
               Every rep.
               <br />
               Every plate.
               <br />
               <span className="text-accent">On record.</span>
             </h1>
-            <p className="mt-6 max-w-md text-[17px] text-ink-2">A few quick questions and Overload builds a starting plan around your schedule, goal and equipment.</p>
-            <ul className="mt-8 flex flex-col gap-3">
+            <p className="mt-4 max-w-md text-[16px] text-ink-2">A few quick questions and Overload builds a starting plan around your schedule, goal and equipment.</p>
+            <WelcomePreview />
+            <ul className="mt-6 grid grid-cols-3 gap-2 text-center">
               {[
-                [<Timer size={18} key="t" />, 'Live sessions', 'A rest timer and last time’s numbers on every set'],
-                [<LineChart size={18} key="l" />, 'Real records', 'Estimated 1RM, heaviest weight and volume, all from your log'],
-                [<Lock size={18} key="k" />, 'Private by design', 'No account and no cloud: everything stays on this device'],
+                [<Timer size={17} key="t" />, 'Live sessions', 'Rest timer and last time on every set'],
+                [<LineChart size={17} key="l" />, 'Real records', 'e1RM, best sets and volume from your log'],
+                [<Lock size={17} key="k" />, 'Private', 'No account, no cloud: it stays on this device'],
               ].map(([icon, t, b]) => (
-                <li key={t as string} className="flex items-center gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-accent-ink ring-1 ring-line">{icon}</span>
-                  <span>
-                    <span className="block font-semibold">{t}</span>
-                    <span className="block text-sm text-muted">{b}</span>
-                  </span>
+                <li key={t as string} className="flex flex-col items-center gap-1.5">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">{icon}</span>
+                  <span className="text-[13px] leading-tight font-semibold">{t}</span>
+                  <span className="text-[11px] leading-snug text-muted">{b}</span>
                 </li>
               ))}
             </ul>
@@ -235,7 +271,7 @@ export default function Onboarding() {
                     onClick={() => setUnits(u)}
                     className={clsx(
                       'flex h-36 flex-col items-center justify-center rounded-3xl border-2 transition-all active:scale-[0.98]',
-                      units === u ? 'border-accent bg-accent-soft/50' : 'border-transparent bg-surface hover:border-line-strong',
+                      units === u ? 'border-accent bg-accent-soft/50' : 'border-transparent bg-surface shadow-card',
                     )}
                   >
                     <span className="stamp text-[56px] uppercase">{u}</span>
@@ -270,7 +306,7 @@ export default function Onboarding() {
                     onClick={() => setDayCount(n)}
                     className={clsx(
                       'stamp h-20 rounded-2xl border-2 text-[40px] transition-all active:scale-[0.97]',
-                      daysPerWeek === n ? 'border-accent bg-accent text-on-accent' : 'border-transparent bg-surface hover:border-line-strong',
+                      daysPerWeek === n ? 'border-accent bg-accent text-on-accent' : 'border-transparent bg-surface shadow-card',
                     )}
                   >
                     {n}
@@ -287,7 +323,7 @@ export default function Onboarding() {
                       type="button"
                       aria-pressed={on}
                       onClick={() => toggleDay(d)}
-                      className={clsx('flex h-12 items-center justify-center rounded-xl text-sm font-semibold transition-colors', on ? 'bg-ink text-bg' : 'bg-surface text-ink-2 ring-1 ring-line hover:text-ink')}
+                      className={clsx('flex h-12 items-center justify-center rounded-full text-sm font-semibold transition-colors active:scale-[0.97]', on ? 'bg-accent text-on-accent' : 'bg-surface text-ink-2 shadow-card hover:text-ink dark:ring-1 dark:ring-line')}
                     >
                       {WEEKDAY_SHORT[d]}
                     </button>
@@ -332,7 +368,7 @@ export default function Onboarding() {
                       onClick={() => setEquipment((cur) => (cur.includes(e) ? cur.filter((x) => x !== e) : [...cur, e]))}
                       className={clsx(
                         'flex h-14 items-center justify-between gap-2 rounded-2xl border-2 px-4 text-left text-[15px] font-semibold transition-all active:scale-[0.98]',
-                        on ? 'border-accent bg-accent-soft/50' : 'border-transparent bg-surface text-ink-2 hover:border-line-strong',
+                        on ? 'border-accent bg-accent-soft/50' : 'border-transparent bg-surface text-ink-2 shadow-card',
                       )}
                     >
                       {e}
@@ -350,10 +386,10 @@ export default function Onboarding() {
           {current === 'review' && (
             <>
               <p className="eyebrow text-accent-ink">Your plan is set</p>
-              <h1 className="mt-3 font-display text-[40px] leading-[0.98] font-semibold tracking-[0.02em] uppercase">
+              <h1 className="mt-3 text-[32px] leading-[1.08] font-bold tracking-[-0.025em]">
                 {name.trim() ? `${name.trim()}, here's your plan` : "Here's your plan"}
               </h1>
-              <div className="mt-6 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+              <div className="mt-6 divide-y divide-line overflow-hidden card">
                 {summary.map((s) => (
                   <button key={s.step} type="button" onClick={() => goTo(s.step)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2" aria-label={`${s.label}: ${s.value}. Change`}>
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">{s.icon}</span>
@@ -370,7 +406,7 @@ export default function Onboarding() {
               <p className="eyebrow mt-8 mb-3">{planLabel(daysPerWeek)} · {preview.length} routines</p>
               <ol className="flex flex-col gap-2">
                 {preview.map((r, i) => (
-                  <li key={r.id} className="rounded-2xl border border-line bg-surface p-4">
+                  <li key={r.id} className="card p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <span className="stamp flex size-8 items-center justify-center rounded-lg bg-accent text-lg text-on-accent">{i + 1}</span>
@@ -383,7 +419,7 @@ export default function Onboarding() {
                 ))}
               </ol>
               {hasDemo && (
-                <div className="mt-6 rounded-2xl border border-line bg-surface p-4">
+                <div className="mt-6 card p-4">
                   <Switch
                     checked={keepDemo}
                     onChange={setKeepDemo}

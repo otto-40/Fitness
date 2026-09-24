@@ -3,7 +3,7 @@ import { Plus, Search, SearchX, Star, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ExerciseForm } from '../components/ExerciseForm'
-import { Badge, Button, Chip, DropdownChip, EmptyState, Input, Monogram, PageHeader, Segmented } from '../components/ui'
+import { Badge, IconButton, Button, Chip, DropdownChip, EmptyState, Input, Monogram, PageHeader, Segmented } from '../components/ui'
 import { useExerciseList } from '../hooks/useExercises'
 import { useStore } from '../store/useStore'
 import type { Equipment, Exercise, Muscle } from '../types'
@@ -76,16 +76,16 @@ export default function Library() {
         title="Exercises"
         subtitle={`${plural(all.length, 'exercise')} · ${plural(favorites.length, 'favourite')}`}
         actions={
-          <Button icon={<Plus size={18} />} onClick={() => setCreating(true)}>
-            New exercise
-          </Button>
+          <IconButton label="New exercise" size="lg" onClick={() => setCreating(true)} className="rounded-full bg-accent-soft text-accent-ink hover:bg-accent-soft hover:brightness-95">
+            <Plus size={22} />
+          </IconButton>
         }
       />
 
-      <div className="sticky top-0 z-20 -mx-4 bg-bg/95 px-4 pt-1 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+      <div className="sticky top-0 z-20 -mx-4 -mt-2 bg-bg/90 px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
         <div className="relative">
           <Search size={18} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exercises, muscles or equipment" className="h-12 rounded-2xl pl-11 text-base" aria-label="Search exercises" type="search" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exercises, muscles or equipment" className="h-12 rounded-2xl bg-surface pl-11 text-base shadow-card dark:bg-surface-2" aria-label="Search exercises" type="search" />
         </div>
         <div className="scrollbar-none -mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
           <DropdownChip label="Filter by muscle" placeholder="All muscles" value={muscle ?? ''} onChange={(v) => setParam('muscle', v || null)} options={MUSCLES} />
@@ -104,7 +104,7 @@ export default function Library() {
         </div>
       </div>
 
-      <div className="mt-2 mb-3 flex items-center justify-between gap-3">
+      <div className="mt-1 mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-muted" aria-live="polite">
           {filtered ? `${list.length} match${list.length === 1 ? '' : 'es'}` : plural(list.length, 'exercise')}
         </p>
@@ -140,13 +140,13 @@ export default function Library() {
         <div className="flex flex-col gap-5">
           {sections.map((sec) => (
             <section key={sec.key} aria-label={sort === 'az' ? `Exercises starting with ${sec.key}` : 'Exercises by use'}>
-              {sort === 'az' && <h2 className="stamp mb-2 px-1 text-xl text-accent-ink">{sec.key}</h2>}
-              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface sm:grid sm:grid-cols-2 sm:gap-2 sm:divide-y-0 sm:overflow-visible sm:rounded-none sm:border-0 sm:bg-transparent xl:grid-cols-3">
+              {sort === 'az' && <h2 className="mb-2 px-1 text-[13px] font-bold text-muted">{sec.key}</h2>}
+              <ul className="card divide-y divide-line overflow-hidden sm:grid sm:grid-cols-2 sm:gap-2 sm:divide-y-0 sm:overflow-visible sm:rounded-none sm:bg-transparent sm:shadow-none xl:grid-cols-3">
                 {sec.items.map((e) => {
                   const fav = favorites.includes(e.id)
                   const n = counts.get(e.id) ?? 0
                   return (
-                    <li key={e.id} className="relative sm:overflow-hidden sm:rounded-2xl sm:border sm:border-line sm:bg-surface">
+                    <li key={e.id} className="relative sm:overflow-hidden sm:rounded-[20px] sm:bg-surface sm:shadow-card">
                       <Link to={`/library/${e.id}`} className="flex min-h-16 items-center gap-3 px-3 py-2.5 pr-14 transition-colors hover:bg-surface-2">
                         <Monogram name={e.name} />
                         <span className="min-w-0 flex-1">

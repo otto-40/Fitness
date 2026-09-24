@@ -8,10 +8,12 @@ export function useStartWorkout() {
   const navigate = useNavigate()
   const active = useStore((s) => s.active)
   const startWorkout = useStore((s) => s.startWorkout)
-  const [pending, setPending] = useState<{ routineId: string | null } | null>(null)
+  const repeatWorkout = useStore((s) => s.repeatWorkout)
+  const [pending, setPending] = useState<{ routineId: string | null; repeatId?: string } | null>(null)
 
-  const go = (routineId: string | null) => {
-    startWorkout(routineId)
+  const go = (routineId: string | null, repeatId?: string) => {
+    if (repeatId) repeatWorkout(repeatId)
+    else startWorkout(routineId)
     navigate('/workout')
   }
 
@@ -20,11 +22,17 @@ export function useStartWorkout() {
     else go(routineId)
   }
 
+  /** Starts a new session shaped like a past workout. */
+  const repeat = (workoutId: string) => {
+    if (active) setPending({ routineId: null, repeatId: workoutId })
+    else go(null, workoutId)
+  }
+
   const dialog = (
     <ConfirmDialog
       open={!!pending}
       onClose={() => setPending(null)}
-      onConfirm={() => pending && go(pending.routineId)}
+      onConfirm={() => pending && go(pending.routineId, pending.repeatId)}
       title="Workout in progress"
       message={
         <>
@@ -35,5 +43,5 @@ export function useStartWorkout() {
     />
   )
 
-  return { start, dialog, active }
+  return { start, repeat, dialog, active }
 }

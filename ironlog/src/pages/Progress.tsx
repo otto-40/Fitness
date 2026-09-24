@@ -15,6 +15,12 @@ import { useStore } from '../store/useStore'
 import { plural } from '../lib/format'
 
 type Range = '4' | '12' | '26' | 'all'
+type Tab = 'overview' | 'strength' | 'records'
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'strength', label: 'Strength' },
+  { value: 'records', label: 'Records' },
+]
 
 /** Change versus the previous period of the same length, as an arrow and a percentage. */
 function Delta({ cur, prev, className, label, onHero }: { cur: number; prev: number; className?: string; label?: string; onHero?: boolean }) {
@@ -30,6 +36,19 @@ function Delta({ cur, prev, className, label, onHero }: { cur: number; prev: num
   )
 }
 
+/** Chart cards lead with the takeaway: a label, then the number that matters. */
+function ChartTitle({ label, value, note }: { label: string; value: string; note: string }) {
+  return (
+    <div className="mb-3">
+      <h2 className="text-[13px] font-semibold text-muted">{label}</h2>
+      <p className="mt-0.5 flex items-baseline gap-1.5">
+        <span className="stamp text-[28px]">{value}</span>
+        <span className="text-sm text-muted">{note}</span>
+      </p>
+    </div>
+  )
+}
+
 export default function Progress() {
   const workouts = useStore((s) => s.workouts)
   const units = useStore((s) => s.settings.units)
@@ -39,9 +58,17 @@ export default function Progress() {
   const [range, setRange] = useState<Range>('12')
   const [splitMetric, setSplitMetric] = useState<'volume' | 'sets'>('sets')
   const [recordQuery, setRecordQuery] = useState('')
+  const [tab, setTab] = useState<Tab>(() => (hash === '#records' ? 'records' : 'overview'))
+  const [linkedHash, setLinkedHash] = useState(hash)
+  // Deep links (#records, #aerobic) open the matching tab, also when they change while on the page.
+  if (hash !== linkedHash) {
+    setLinkedHash(hash)
+    if (hash === '#records') setTab('records')
+    else if (hash === '#aerobic') setTab('overview')
+  }
 
   useEffect(() => {
-    if (hash === '#records' || hash === '#aerobic') setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 50)
+    if (hash === '#aerobic') setTimeout(() => document.getElementById('aerobic')?.scrollIntoView({ behavior: 'smooth' }), 50)
   }, [hash])
 
   const weeks = useMemo(() => {
@@ -133,7 +160,6 @@ export default function Progress() {
     <div className="animate-rise">
       <PageHeader
         title="Progress"
-        subtitle="Everything here is calculated from the workouts you have logged."
         actions={
           <Segmented
             label="Time range"
@@ -149,14 +175,38 @@ export default function Progress() {
         }
       />
 
+      <div role="tablist" aria-label="Progress sections" className="sticky top-0 z-20 -mx-4 mb-4 bg-bg/90 px-4 pt-[calc(env(safe-area-inset-top)+6px)] pb-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+        <div className="grid grid-cols-3 rounded-full bg-surface-3/70 p-1 dark:bg-surface-2">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              role="tab"
+              id={`tab-${t.value}`}
+              aria-selected={tab === t.value}
+              aria-controls={`panel-${t.value}`}
+              onClick={() => setTab(t.value)}
+              className={clsx('h-11 rounded-full text-sm font-semibold transition-all', tab === t.value ? 'bg-surface text-ink shadow-[0_1px_3px_rgb(0_0_0/0.12)] dark:bg-surface-3' : 'text-muted hover:text-ink')}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} key={tab} className="animate-swap">
+        {tab === 'overview' && (
+          <>
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
         <HeroCard className="p-5 sm:p-6">
-          <div className="eyebrow text-on-hero-muted">Total volume · {range === 'all' ? 'all time' : `last ${range === '26' ? '6 months' : `${range} weeks`}`}</div>
+          <div className="text-[13px] font-semibold text-on-hero-muted">Total volume · {range === 'all' ? 'all time' : `last ${range === '26' ? '6 months' : `${range} weeks`}`}</div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="stamp text-[56px]">{formatVolume(totalVol, units, false)}</span>
+            <span className="stamp text-[60px]">{formatVolume(totalVol, units, false)}</span>
             <span className="text-base text-on-hero-muted">{units}</span>
           </div>
           {range !== 'all' && <Delta cur={totalVol} prev={prevVol} className="mt-2" label="vs previous period" onHero />}
+          <p className="mt-3 text-sm text-on-hero-muted">
+            {plural(inRange.length, 'workout')} and {plural(curSets, 'working set')}, about {(inRange.length / weeks).toFixed(1)} sessions a week.
+          </p>
         </HeroCard>
         <div className="grid grid-cols-3 gap-3">
           {(
@@ -178,7 +228,7 @@ export default function Progress() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card className="p-4 sm:p-5">
-          <SectionTitle>Volume per week ({units})</SectionTitle>
+          <ChartTitle label={`Volume per week (${units})`} value={formatVolume(buckets.at(-1)?.volume ?? 0, units)} note="this week" />
           <ColumnTrend
             data={volData}
             series={[{ key: 'volume', name: 'Volume' }]}
@@ -189,7 +239,7 @@ export default function Progress() {
           />
         </Card>
         <Card className="p-4 sm:p-5">
-          <SectionTitle>Workouts per week</SectionTitle>
+          <ChartTitle label="Workouts per week" value={(inRange.length / weeks).toFixed(1)} note="a week on average" />
           <ColumnTrend
             data={countData}
             series={[{ key: 'workouts', name: 'Workouts' }]}
@@ -268,9 +318,12 @@ export default function Progress() {
 
       </div>
 
-      <Card className="mt-4 p-4 sm:p-5">
+          </>
+        )}
+        {tab === 'strength' && (
+      <Card className="p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="eyebrow">Strength progression</h2>
+          <h2 className="text-[17px] font-semibold tracking-[-0.01em]">Strength progression</h2>
           <Select value={selected} onChange={(e) => setExerciseId(e.target.value)} aria-label="Exercise" className="w-auto max-w-[220px] text-sm">
             {exerciseOptions.map((o) => (
               <option key={o.id} value={o.id}>
@@ -332,9 +385,11 @@ export default function Progress() {
         </div>
       </Card>
 
-      <section id="records" className="mt-8 scroll-mt-6">
+        )}
+        {tab === 'records' && (
+      <section id="records" className="scroll-mt-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-[26px] font-semibold tracking-[0.04em] uppercase">Personal records</h2>
+          <h2 className="text-[22px] font-bold tracking-[-0.018em]">Personal records</h2>
           <div className="relative w-full sm:w-64">
             <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
             <Input value={recordQuery} onChange={(e) => setRecordQuery(e.target.value)} placeholder="Filter exercises" className="pl-9 text-sm" aria-label="Filter records" />
@@ -343,7 +398,7 @@ export default function Progress() {
         <ul className="flex flex-col gap-2 sm:hidden">
           {filteredRecords.map((r) => (
             <li key={r.exerciseId}>
-              <Link to={`/library/${r.exerciseId}`} className="block rounded-2xl border border-line bg-surface p-4">
+              <Link to={`/library/${r.exerciseId}`} className="block card p-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="truncate font-semibold">{map.get(r.exerciseId)!.name}</span>
                   <span className="shrink-0 text-xs text-muted">{plural(r.sessions, 'session')}</span>
@@ -416,6 +471,8 @@ export default function Progress() {
           </div>
         </Card>
       </section>
+        )}
+      </div>
     </div>
   )
 }

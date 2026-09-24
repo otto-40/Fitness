@@ -21,7 +21,7 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
   const d = parseISO(w.startedAt)
   return (
     <li>
-      <Link to={`/history/${w.id}`} className="relative flex gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-4 pl-5 transition-colors hover:border-line-strong">
+      <Link to={`/history/${w.id}`} className="relative flex gap-4 overflow-hidden card p-4 pl-5 transition-colors hover:bg-surface-2/40">
         <span className={clsx('absolute inset-y-3 left-0 w-1 rounded-r-full', prCount ? 'bg-accent' : 'bg-line-strong')} aria-hidden />
         <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2 leading-none">
           <span className="text-[10px] font-semibold text-muted uppercase">{format(d, 'EEE')}</span>
@@ -66,7 +66,7 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
             <ChevronLeft size={20} />
           </button>
           <div className="text-center">
-            <div className="font-display text-2xl font-semibold tracking-wide uppercase">{format(month, 'MMMM yyyy')}</div>
+            <div className="text-[19px] font-bold tracking-[-0.015em]">{format(month, 'MMMM yyyy')}</div>
             <div className="text-sm text-muted">
               {inMonth.length} workout{inMonth.length === 1 ? '' : 's'}
             </div>
@@ -87,9 +87,14 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
             </span>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-y-1 sm:gap-1" role="grid" aria-label={format(month, 'MMMM yyyy')}>
-          {days.map((d) => {
+        <div className="flex flex-col gap-y-1 sm:gap-1" role="grid" aria-label={format(month, 'MMMM yyyy')}>
+          {Array.from({ length: days.length / 7 }, (_, row) => (
+            <div key={row} role="row" className="grid grid-cols-7 sm:gap-1">
+          {days.slice(row * 7, row * 7 + 7).map((d) => {
             const ws = workouts.filter((w) => isSameDay(parseISO(w.startedAt), d))
+            // Strength days are filled; days with only aerobic work get a green ring.
+            const strength = ws.some((w) => workoutVolume(w) > 0 || !aerobicMinutes(w))
+            const aerobicOnly = ws.length > 0 && !strength
             const cur = isSameMonth(d, month)
             const sel = selected && isSameDay(selected, d)
             return (
@@ -98,7 +103,7 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
                 role="gridcell"
                 disabled={!cur}
                 aria-selected={!!sel}
-                aria-label={`${format(d, 'd MMMM')}${ws.length ? `, ${ws.map((w) => w.name).join(', ')}` : ', no workout'}`}
+                aria-label={`${format(d, 'd MMMM')}${ws.length ? `, ${ws.map((w) => w.name).join(', ')}${aerobicOnly ? ' (aerobic)' : ''}` : ', no workout'}`}
                 onClick={() => setSelected(d)}
                 // The whole cell is the touch target; the circle is drawn inside it.
                 className={clsx('group flex min-h-11 w-full items-center justify-center rounded-full focus-visible:outline-none', !cur && 'invisible')}
@@ -106,7 +111,7 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
                 <span
                   className={clsx(
                     'stamp relative flex aspect-square w-[min(calc(100%_-_4px),48px)] flex-col items-center justify-center rounded-full text-[17px] transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent',
-                    ws.length ? 'bg-accent text-on-accent' : 'group-hover:bg-surface-2',
+                    strength ? 'bg-accent text-on-accent' : aerobicOnly ? 'bg-good-soft text-ink ring-2 ring-good ring-inset' : 'group-hover:bg-surface-2',
                     isToday(d) && !ws.length && 'ring-2 ring-accent ring-inset',
                     sel && 'ring-2 ring-ink ring-offset-2 ring-offset-surface',
                   )}
@@ -117,12 +122,22 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
               </button>
             )
           })}
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex justify-center gap-5 text-xs text-muted" aria-hidden>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-3 rounded-full bg-accent" /> Strength
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-3 rounded-full bg-good-soft ring-2 ring-good ring-inset" /> Aerobic only
+          </span>
         </div>
       </Card>
       <div>
         {selected ? (
           <>
-            <div className="mb-3 flex items-end justify-between gap-3 rounded-2xl bg-surface-2 px-4 py-3">
+            <div className="mb-3 flex items-end justify-between gap-3 rounded-[20px] bg-accent-soft/60 px-4 py-3">
               <div>
                 <div className="eyebrow">Day selected</div>
                 <div className="mt-0.5 font-semibold">{format(selected, 'EEEE d MMMM')}</div>
@@ -141,11 +156,11 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
                 ))}
               </ul>
             ) : (
-              <p className="rounded-2xl border border-dashed border-line-strong p-6 text-center text-sm text-muted">Rest day — nothing logged.</p>
+              <p className="rounded-[20px] bg-surface-2/70 p-6 text-center text-sm text-muted">Rest day — nothing logged.</p>
             )}
           </>
         ) : (
-          <p className="rounded-2xl border border-dashed border-line-strong p-6 text-center text-sm text-muted">Select a day to see what you trained.</p>
+          <p className="rounded-[20px] bg-surface-2/70 p-6 text-center text-sm text-muted">Select a day to see what you trained.</p>
         )}
       </div>
     </div>
@@ -234,7 +249,7 @@ export default function History() {
               {months.slice(0, monthsShown).map(([key, ws]) => (
                 <section key={key}>
                   <div className="mb-3 flex items-baseline justify-between">
-                    <h2 className="font-display text-2xl font-semibold tracking-[0.04em] uppercase">{format(parseISO(`${key}-01`), 'MMMM yyyy')}</h2>
+                    <h2 className="text-[19px] font-bold tracking-[-0.015em]">{format(parseISO(`${key}-01`), 'MMMM yyyy')}</h2>
                     <span className="tnum text-sm text-muted">
                       {ws.length} workout{ws.length === 1 ? '' : 's'} · {formatVolume(ws.reduce((s, w) => s + workoutVolume(w), 0), units)}
                     </span>
