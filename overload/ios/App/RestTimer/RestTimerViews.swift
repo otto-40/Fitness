@@ -101,7 +101,6 @@ struct RestTimerLockScreen: View {
                         .font(.subheadline)
                         .foregroundStyle(Palette.muted)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.85)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
