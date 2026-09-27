@@ -33,10 +33,10 @@ struct RestTimerLiveActivity: Widget {
             let model = RestTimerModel(context)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label(model.rest != nil ? "Rest" : model.restOver ? "Go" : "Up next",
-                          systemImage: model.restOver ? "checkmark.circle.fill" : "dumbbell.fill")
+                    Label(model.rest != nil ? "Rest" : model.finished ? "Done" : model.restOver ? "Go" : "Up next",
+                          systemImage: model.rest == nil && (model.finished || model.restOver) ? "checkmark.circle.fill" : "dumbbell.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(model.restOver ? Palette.ok : Palette.accent)
+                        .foregroundStyle(model.rest == nil && (model.finished || model.restOver) ? Palette.ok : Palette.accent)
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {

@@ -22,6 +22,12 @@ struct RestTimerModel {
 
     /// A rest was started and has run out, but the app hasn't cleared it yet.
     var restOver: Bool { restEndsAt != nil && rest == nil }
+
+    /// Every set is logged; only finishing the workout is left.
+    var finished: Bool { total > 0 && done >= total }
+
+    /// The small heading over the next set.
+    var heading: String { finished ? "WELL DONE" : restOver ? "REST OVER · UP NEXT" : "UP NEXT" }
 }
 
 /// The app's indigo hero palette (src/index.css: --hero, --on-hero-muted, --hero-accent, --hero-ok).
@@ -75,25 +81,27 @@ struct RestTimerLockScreen: View {
                             .foregroundStyle(.white)
                             .frame(minWidth: 92, alignment: .leading)
                     }
-                } else if model.restOver {
+                } else if model.restOver && !model.finished {
                     Label("Go", systemImage: "checkmark.circle.fill")
                         .font(.system(size: 30, weight: .bold).width(.condensed))
                         .foregroundStyle(Palette.ok)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(model.rest != nil ? "UP NEXT" : model.restOver ? "REST OVER · UP NEXT" : "UP NEXT")
+                    Text(model.heading)
                         .font(.caption2.weight(.bold))
                         .kerning(1)
-                        .foregroundStyle(model.restOver ? Palette.ok : Palette.muted)
+                        .foregroundStyle(model.finished || model.restOver ? Palette.ok : Palette.muted)
                     Text(model.next)
                         .font(.headline)
                         .foregroundStyle(.white)
                         .lineLimit(1)
+                    // One line keeps the banner inside the lock screen's 160 pt height limit.
                     Text(model.detail)
                         .font(.subheadline)
                         .foregroundStyle(Palette.muted)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

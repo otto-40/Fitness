@@ -65,7 +65,7 @@ The iPhone app is the same web app wrapped with [Capacitor](https://capacitorjs.
 
 ## Checks on every change
 
-Every push or pull request that touches `overload/` also runs an unsigned simulator build on `macos-26` (Xcode 26, which Apple requires for uploads since April 2026). A broken iOS build shows up before any release. The same run draws the lock-screen timer in four states (resting, rest over, up next, all done) and attaches the images to the run as `live-activity-previews`.
+Every push or pull request that touches `overload/` also runs an unsigned simulator build on `macos-26` (Xcode 26, which Apple requires for uploads since April 2026). A broken iOS build shows up before any release. The same run draws the lock-screen timer in four states (resting, rest over, up next, all done) and attaches the images to the run as `live-activity-previews`. The draining rest bar appears there as a yellow placeholder, because it can only be drawn on an iPhone.
 
 ## If something goes wrong
 
