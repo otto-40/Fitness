@@ -107,7 +107,7 @@ export function NowPanel({ onAddExercise, onFinish }: { onAddExercise: () => voi
       <div key={set.id} className="animate-swap">
         <div className="flex items-center gap-3 px-1 pb-2.5">
           <button type="button" onClick={() => showCard(ex.id)} className="min-h-11 min-w-0 flex-1 text-left" aria-label={`Up next: ${def?.name ?? 'Exercise'}, ${up.position}. Show in list`}>
-            <span className="block text-[11px] font-semibold tracking-[0.12em] text-accent-ink uppercase">Up next · {up.position}</span>
+            <span className="block text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Up next · {up.position}</span>
             <span className="block truncate text-[17px] leading-tight font-semibold">{def?.name ?? 'Exercise'}</span>
           </button>
           <span className="tnum shrink-0 text-right text-xs leading-tight text-muted">

@@ -88,15 +88,15 @@ export default function Routines() {
                     to={`/routines/${r.id}`}
                     className={clsx(
                       'flex h-12 items-center gap-2.5 rounded-full pr-4 pl-1.5 text-sm font-semibold transition-colors',
-                      up ? 'bg-accent-soft text-ink ring-2 ring-accent ring-inset' : 'bg-surface text-ink-2 shadow-card hover:text-ink',
+                      up ? 'bg-surface text-ink shadow-card ring-2 ring-ink ring-inset' : 'bg-surface text-ink-2 shadow-card hover:text-ink',
                     )}
                   >
-                    <span className={clsx('stamp flex size-9 items-center justify-center rounded-full', weekly ? 'text-sm' : 'text-lg', up ? 'bg-accent text-on-accent' : 'bg-surface-2')}>
+                    <span className={clsx('stamp flex size-9 items-center justify-center rounded-full', weekly ? 'text-sm' : 'text-lg', up ? 'bg-ink text-bg' : 'bg-surface-2')}>
                       {weekly ? WEEKDAY_SHORT[r.weekday!] : i + 1}
                     </span>
                     {weekly ? r.name.replace(/^\w+day — /, '') : r.name}
                     {r.optional && <span className="text-xs font-medium text-muted">optional</span>}
-                    {up && <span className="text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">Next</span>}
+                    {up && <span className="text-xs font-bold tracking-[0.1em] text-ink uppercase">Next</span>}
                   </Link>
                 </li>
               )
@@ -130,7 +130,7 @@ export default function Routines() {
               const sets = r.exercises.reduce((n, e) => n + (e.minutes ? 0 : e.sets), 0)
               const shown = r.exercises.slice(0, 4)
               return (
-                <li key={r.id} className={clsx('card flex min-w-0 flex-col p-4 sm:p-5', isNext && 'ring-2 ring-accent/60')}>
+                <li key={r.id} className={clsx('card flex min-w-0 flex-col p-4 sm:p-5', isNext && 'ring-2 ring-ink/15')}>
                   <div className="flex items-start gap-2">
                     <Link to={`/routines/${r.id}`} className="flex min-h-11 min-w-0 flex-1 items-center hover:underline">
                       <h2 className="min-w-0 truncate text-[19px] leading-tight font-bold tracking-[-0.015em]">{r.name}</h2>

@@ -17,7 +17,7 @@ export function Toaster() {
           <span className="flex-1">{t.message}</span>
           {t.action ? (
             <button
-              className="rounded-lg px-2 py-1 font-semibold text-accent hover:bg-white/10"
+              className="rounded-lg px-2 py-1 font-semibold text-accent-inverse hover:bg-white/10"
               onClick={() => {
                 t.action!.run()
                 dismiss(t.id)

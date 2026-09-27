@@ -66,6 +66,8 @@ export default function LiveWorkout() {
   const [editName, setEditName] = useState<string | null>(null)
   useWakeLock()
   const up = active ? nextUp(active.exercises) : null
+  // While resting the now panel is the timer, so the next set's row stays editable.
+  const resting = !!active?.rest && active.rest.endsAt > now
   // Bring the next exercise into view when the session moves on to it (not on every set).
   const lastUpEx = useRef<string | null>(null)
   useEffect(() => {
@@ -160,7 +162,7 @@ export default function LiveWorkout() {
             const d = e.sets.filter((x) => x.completed).length
             return (
               <span key={e.id} className="h-1.5 min-w-2 overflow-hidden rounded-full bg-surface-3" style={{ flexGrow: Math.max(1, e.sets.length) }}>
-                <span className={clsx('block h-full rounded-full transition-[width] duration-300', d === e.sets.length && d > 0 ? 'bg-good' : 'bg-accent')} style={{ width: `${e.sets.length ? (d / e.sets.length) * 100 : 0}%` }} />
+                <span className={clsx('block h-full rounded-full transition-[width] duration-300', d === e.sets.length && d > 0 ? 'bg-good' : 'bg-ink')} style={{ width: `${e.sets.length ? (d / e.sets.length) * 100 : 0}%` }} />
               </span>
             )
           })}
@@ -213,7 +215,7 @@ export default function LiveWorkout() {
             return (
               <div key={ex.id} className="relative">
                 {isSuperset && i > 0 && (
-                  <span className="absolute -top-3 left-1/2 z-10 flex size-6 -translate-x-1/2 items-center justify-center rounded-full bg-accent text-on-accent" aria-hidden>
+                  <span className="absolute -top-3 left-1/2 z-10 flex size-6 -translate-x-1/2 items-center justify-center rounded-full bg-ink text-bg" aria-hidden>
                     <Link2 size={13} />
                   </span>
                 )}
@@ -226,6 +228,7 @@ export default function LiveWorkout() {
                   isFirst={idx === 0}
                   isLast={idx === active.exercises.length - 1}
                   upNextSetId={ex.id === up?.exId ? up.setId : null}
+                  panelSetId={!resting && ex.id === up?.exId ? up.setId : null}
                   onSetChange={(setId, patch) => a.updateSet(ex.id, setId, patch)}
                   onToggle={(setId) => {
                     const r = useStore.getState().completeSet(ex.id, setId)
@@ -251,9 +254,8 @@ export default function LiveWorkout() {
             )
           })
           return isSuperset ? (
-            <section key={g.id} aria-label="Superset" className="relative -mx-2 rounded-[26px] bg-accent-soft/50 p-1 pl-2.5 sm:mx-0 sm:p-1.5 sm:pl-3">
-              <span className="absolute top-4 bottom-4 left-1 w-1 rounded-full bg-accent" aria-hidden />
-              <div className="flex items-center gap-2 px-1.5 pt-1 pb-2 text-xs font-bold tracking-[0.1em] text-accent-ink uppercase">
+            <section key={g.id} aria-label="Superset" className="relative -mx-2 rounded-[26px] bg-surface-3/70 p-1 sm:mx-0 sm:p-1.5">
+              <div className="flex items-center gap-2 px-1.5 pt-1 pb-2 text-xs font-bold tracking-[0.1em] text-ink-2 uppercase">
                 <Link2 size={14} /> Superset · rest after the last exercise
               </div>
               <div className="flex flex-col gap-3">{cards}</div>

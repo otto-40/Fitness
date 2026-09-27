@@ -21,8 +21,7 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
   const d = parseISO(w.startedAt)
   return (
     <li>
-      <Link to={`/history/${w.id}`} className="relative flex gap-4 overflow-hidden card p-4 pl-5 transition-colors hover:bg-surface-2/40">
-        <span className={clsx('absolute inset-y-3 left-0 w-1 rounded-r-full', prCount ? 'bg-accent' : 'bg-line-strong')} aria-hidden />
+      <Link to={`/history/${w.id}`} className="flex gap-4 card p-4 transition-colors hover:bg-surface-2/40">
         <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2 leading-none">
           <span className="text-[10px] font-semibold text-muted uppercase">{format(d, 'EEE')}</span>
           <span className="stamp text-2xl">{format(d, 'd')}</span>
@@ -31,7 +30,7 @@ function WorkoutRow({ w, prCount }: { w: Workout; prCount: number }) {
           <span className="flex items-center gap-2">
             <span className="truncate font-semibold">{w.name}</span>
             {prCount > 0 && (
-              <Badge tone="accent">
+              <Badge>
                 <Medal size={12} /> {prCount} PR{prCount > 1 ? 's' : ''}
               </Badge>
             )}
@@ -111,8 +110,8 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
                 <span
                   className={clsx(
                     'stamp relative flex aspect-square w-[min(calc(100%_-_4px),48px)] flex-col items-center justify-center rounded-full text-[17px] transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent',
-                    strength ? 'bg-accent text-on-accent' : aerobicOnly ? 'bg-good-soft text-ink ring-2 ring-good ring-inset' : 'group-hover:bg-surface-2',
-                    isToday(d) && !ws.length && 'ring-2 ring-accent ring-inset',
+                    strength ? 'bg-good text-on-good' : aerobicOnly ? 'bg-good-soft text-ink ring-2 ring-good ring-inset' : 'group-hover:bg-surface-2',
+                    isToday(d) && !ws.length && 'ring-2 ring-ink ring-inset',
                     sel && 'ring-2 ring-ink ring-offset-2 ring-offset-surface',
                   )}
                 >
@@ -127,7 +126,7 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
         </div>
         <div className="mt-3 flex justify-center gap-5 text-xs text-muted" aria-hidden>
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-accent" /> Strength
+            <span className="size-3 rounded-full bg-good" /> Strength
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="size-3 rounded-full bg-good-soft ring-2 ring-good ring-inset" /> Aerobic only
@@ -137,7 +136,7 @@ function MonthCalendar({ workouts, prCounts }: { workouts: Workout[]; prCounts: 
       <div>
         {selected ? (
           <>
-            <div className="mb-3 flex items-end justify-between gap-3 rounded-[20px] bg-accent-soft/60 px-4 py-3">
+            <div className="mb-3 flex items-end justify-between gap-3 rounded-[20px] bg-surface-2 px-4 py-3">
               <div>
                 <div className="eyebrow">Day selected</div>
                 <div className="mt-0.5 font-semibold">{format(selected, 'EEEE d MMMM')}</div>

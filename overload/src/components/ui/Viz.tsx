@@ -10,7 +10,7 @@ export function Ring({
   className,
   trackClass = 'text-surface-3',
   label,
-  color = 'var(--accent)',
+  color = 'var(--ink)',
 }: {
   /** Stroke colour of the progress arc. */
   color?: string
@@ -54,7 +54,7 @@ export function SegmentBar({ total, filled, className, label }: { total: number;
   return (
     <div className={clsx('flex gap-1', className)} role="img" aria-label={label ?? `${Math.min(filled, total)} of ${total}`}>
       {Array.from({ length: n }, (_, i) => (
-        <span key={i} className={clsx('h-1.5 flex-1 rounded-full transition-colors', i < filled ? 'bg-accent' : 'bg-surface-3')} />
+        <span key={i} className={clsx('h-1.5 flex-1 rounded-full transition-colors', i < filled ? 'bg-ink' : 'bg-surface-3')} />
       ))}
     </div>
   )
@@ -87,7 +87,7 @@ export function MiniBars({ values, labels, className, height = 44 }: { values: n
         <div key={i} className="flex flex-1 flex-col items-center gap-1">
           <div className="flex w-full items-end justify-center" style={{ height }}>
             <div
-              className={clsx('w-full max-w-4 rounded-t-[4px]', i === values.length - 1 ? 'bg-accent' : 'bg-accent/45', v === 0 && 'bg-surface-3')}
+              className={clsx('w-full max-w-4 rounded-t-[4px]', i === values.length - 1 ? 'bg-ink' : 'bg-ink/30', v === 0 && 'bg-surface-3')}
               style={{ height: `${Math.max(v === 0 ? 3 : 6, (v / max) * height)}px` }}
             />
           </div>

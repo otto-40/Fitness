@@ -84,7 +84,7 @@ function WelcomePreview() {
   return (
     <div className="relative mt-7 h-[178px]" aria-hidden>
       <div className="shadow-hero absolute inset-x-0 top-0 mr-14 rounded-[24px] bg-hero p-4 text-on-hero">
-        <p className="text-[10px] font-semibold tracking-[0.12em] text-accent-ink uppercase">Up next · Set 2 of 4</p>
+        <p className="text-[10px] font-semibold tracking-[0.12em] text-on-hero-muted uppercase">Up next · Set 2 of 4</p>
         <p className="mt-0.5 text-[16px] font-semibold">Bench Press</p>
         <div className="mt-2 flex items-end justify-between gap-3">
           <p className="flex items-baseline gap-1">
@@ -92,7 +92,7 @@ function WelcomePreview() {
             <span className="text-xs text-on-hero-muted">kg ×</span>
             <span className="stamp text-[34px]">8</span>
           </p>
-          <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-[#2b2780]">
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-accent px-3.5 text-sm font-semibold text-on-accent">
             <Check size={15} strokeWidth={3} /> Log set
           </span>
         </div>
@@ -103,7 +103,7 @@ function WelcomePreview() {
         </Ring>
         <div className="flex flex-1 gap-1">
           {['M', 'T', 'W', 'T', 'F'].map((d, i) => (
-            <span key={i} className={clsx('flex h-11 flex-1 flex-col items-center justify-center rounded-full text-[9px] font-semibold', i < 2 ? 'bg-accent text-on-accent' : i === 2 ? 'bg-accent-soft ring-2 ring-accent ring-inset' : 'bg-surface-2 text-muted')}>
+            <span key={i} className={clsx('flex h-11 flex-1 flex-col items-center justify-center rounded-full text-[9px] font-semibold', i < 2 ? 'bg-good text-on-good' : i === 2 ? 'bg-surface ring-2 ring-ink ring-inset' : 'bg-surface-2 text-muted')}>
               {d}
               {i < 2 ? <Check size={12} strokeWidth={3} /> : <span className="stamp text-[12px]">{21 + i}</span>}
             </span>
@@ -179,7 +179,7 @@ export default function Onboarding() {
                 [<Lock size={17} key="k" />, 'Private', 'No account, no cloud: it stays on this device'],
               ].map(([icon, t, b]) => (
                 <li key={t as string} className="flex flex-col items-center gap-1.5">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">{icon}</span>
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 text-ink-2">{icon}</span>
                   <span className="text-[13px] leading-tight font-semibold">{t}</span>
                   <span className="text-[11px] leading-snug text-muted">{b}</span>
                 </li>
@@ -385,7 +385,7 @@ export default function Onboarding() {
 
           {current === 'review' && (
             <>
-              <p className="eyebrow text-accent-ink">Your plan is set</p>
+              <p className="eyebrow text-good">Your plan is set</p>
               <h1 className="mt-3 text-[32px] leading-[1.08] font-bold tracking-[-0.025em]">
                 {name.trim() ? `${name.trim()}, here's your plan` : "Here's your plan"}
               </h1>
@@ -409,7 +409,7 @@ export default function Onboarding() {
                   <li key={r.id} className="card p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <span className="stamp flex size-8 items-center justify-center rounded-lg bg-accent text-lg text-on-accent">{i + 1}</span>
+                        <span className="stamp flex size-8 items-center justify-center rounded-lg bg-ink text-lg text-bg">{i + 1}</span>
                         <span className="font-semibold">{r.name}</span>
                       </div>
                       <span className="text-sm text-muted">~{routineMinutes(r)} min</span>

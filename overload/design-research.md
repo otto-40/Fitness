@@ -153,31 +153,34 @@ Overload should feel like **a quiet, premium training companion**: calm surfaces
 
 ### Colour tokens
 
+> **Palette update (Sep 2026).** The indigo palette was replaced by **iron and chalk** from the Overload brand board: charcoal and chalk-white neutrals with one orange accent. The accent now means only *you can act on this* (buttons, selected controls, links, focus); records, charts, streaks, the next-set highlight and moderate effort are neutral, completed days are green, and warn moved from amber to yellow so it can't be mistaken for the accent. The table below is current. Where the rest of this document says "indigo", read "charcoal" for hero surfaces and "orange" for actions. `src/index.css` is the source of truth.
+
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `bg` | `#F2F2F6` | `#0B0B0F` | Canvas |
-| `surface` | `#FFFFFF` | `#17171C` | Cards, sheets |
-| `surface-2` | `#F1F1F5` | `#212128` | Inputs, set cells, secondary buttons |
-| `surface-3` | `#E6E6EC` | `#2B2B33` | Pressed, tracks |
-| `line` | `#E7E7ED` | `#26262E` | Hairlines inside cards |
-| `line-strong` | `#CFCFD8` | `#3D3D47` | Input outlines, dashed empty states |
-| `ink` | `#18181B` | `#F4F4F5` | Primary text |
-| `ink-2` | `#3F3F46` | `#CACAD1` | Secondary text |
-| `muted` | `#52525B` | `#A6A6B0` | Labels, captions (6.9:1 on canvas, 7.4:1 on a dark card) |
-| `accent` | `#4338CA` | `#9A94FF` | Primary action, progress, the next set |
-| `accent-soft` | `#ECEBFC` | `#25234A` | Tints, selected rows |
-| `good` | `#137537` | `#43BF78` | Logged, complete, easy effort, aerobic minutes |
-| `warn` | `#A34A06` | `#F0A64A` | Hold, hard effort, warm-ups |
-| `danger` | `#B91C1C` | `#F4817B` | Destructive only |
-| `hero` | gradient `#2E2A7A → #1B1846` | same | The one hero surface per screen |
-| `on-hero` / `on-hero-muted` | `#FFFFFF` / `#C9C6F2` | same | Text on hero (12.2:1 / 7.4:1 at the lightest point) |
+| `bg` | `#EEEDE8` (chalk) | `#131211` (charcoal) | Canvas |
+| `surface` | `#FBFAF7` | `#1C1B19` | Cards, sheets |
+| `surface-2` | `#F1F0EB` | `#262522` | Inputs, set cells, secondary buttons |
+| `surface-3` | `#E5E3DD` | `#302F2B` | Pressed, tracks |
+| `line` | `#E4E2DC` | `#2A2926` | Hairlines inside cards |
+| `line-strong` | `#CDCAC2` | `#44423D` | Input outlines, dashed empty states |
+| `ink` | `#1D1C1A` | `#F3F2EE` | Primary text, charts, records, the current-exercise tile |
+| `ink-2` | `#3E3C38` | `#CFCCC5` | Secondary text, moderate effort |
+| `muted` | `#5D5A54` | `#A8A59D` | Labels, captions (5.9:1 on canvas, 7.0:1 on a dark card) |
+| `accent` | `#E55A13` | `#FF7A2E` | Things you can act on: buttons, selected controls, focus. Charcoal text on it (4.7:1 / 7.2:1) |
+| `accent-ink` | `#B3440C` | `#FF8A45` | Links and accent text (4.7:1 or better) |
+| `accent-soft` | `#FDE8DC` | `#3A2314` | Selected rows and chips |
+| `good` | `#137537` | `#43BF78` | Logged, complete, trained days, easy effort, aerobic minutes |
+| `warn` | `#8A6400` | `#E8C547` | Hold, hard effort, warm-ups |
+| `danger` | `#B91C1C` | `#F47A8A` | Destructive only |
+| `hero` | `#242321` | `#2A2926` | The one hero surface per screen, flat |
+| `on-hero` / `on-hero-muted` | `#F6F5F1` / `#BCB9B1` | same | Text on hero (14.4:1 / 8.0:1) |
 
 Inside the hero, tokens are re-scoped:
-- **Accent becomes white.** Primary buttons and rings are white, and text on them is `#2B2780` (12.3:1).
-- **Accent text becomes lavender** `#C7C3FF` (7.3:1).
-- **Good becomes** `#6EE7A0` (7.9:1).
+- **Accent is the bright orange** `#FF7A2E` with charcoal text, so the primary button is the one thing to press.
+- **Accent text is** `#FF8A45` (6.7:1).
+- **Good becomes** `#6EE7A0` (10.2:1) and **warn** `#F2CF5B`.
 
-Each colour keeps one meaning, and effort remains shape plus colour: a green circle for easy, an indigo diamond for moderate and an amber triangle for hard.
+Each colour keeps one meaning, and effort remains shape plus colour: a green circle for easy, a neutral diamond for moderate and a yellow triangle for hard.
 
 ### Typography
 

@@ -54,10 +54,10 @@ export default function WorkoutSummary() {
   return (
     <div className="animate-rise mx-auto max-w-2xl">
       <HeroCard className="p-5 pt-7 text-center sm:p-7">
-        <div className="animate-pop mx-auto flex size-20 items-center justify-center rounded-full bg-accent text-on-accent ring-8 ring-white/10">
+        <div className="animate-pop mx-auto flex size-20 items-center justify-center rounded-full bg-good text-on-good ring-8 ring-white/10">
           <Check size={40} strokeWidth={3} />
         </div>
-        <p className="mt-5 text-[13px] font-semibold text-accent-ink">Workout #{count} complete</p>
+        <p className="mt-5 text-[13px] font-semibold text-good">Workout #{count} complete</p>
         <h1 className="mt-1.5 text-[32px] leading-[1.05] font-bold tracking-[-0.025em]">{w.name}</h1>
         <p className="mt-1.5 text-sm text-on-hero-muted">{format(parseISO(w.startedAt), "EEEE d MMMM 'at' HH:mm")}</p>
 
@@ -132,7 +132,7 @@ export default function WorkoutSummary() {
         {prs.length ? (
           <ul className="flex flex-col gap-2">
             {prs.map((e) => (
-              <li key={`${e.exerciseId}-${e.kind}`} className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-accent-soft/50 p-3">
+              <li key={`${e.exerciseId}-${e.kind}`} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent">
                   <Medal size={18} />
                 </span>

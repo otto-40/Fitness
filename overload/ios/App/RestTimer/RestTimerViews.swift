@@ -30,12 +30,12 @@ struct RestTimerModel {
     var heading: String { finished ? "WELL DONE" : restOver ? "REST OVER · UP NEXT" : "UP NEXT" }
 }
 
-/// The app's indigo hero palette (src/index.css: --hero, --on-hero-muted, --hero-accent, --hero-ok).
+/// The app's charcoal hero palette (src/index.css: --hero, --on-hero-muted, --hero-accent, --hero-ok).
 enum Palette {
-    static let hero = Color(red: 0x25 / 255, green: 0x21 / 255, blue: 0x6a / 255)
-    static let heroTo = Color(red: 0x1b / 255, green: 0x18 / 255, blue: 0x46 / 255)
-    static let muted = Color(red: 0xc9 / 255, green: 0xc6 / 255, blue: 0xf2 / 255)
-    static let accent = Color(red: 0xc7 / 255, green: 0xc3 / 255, blue: 0xff / 255)
+    static let hero = Color(red: 0x24 / 255, green: 0x23 / 255, blue: 0x21 / 255)
+    static let heroTo = Color(red: 0x1d / 255, green: 0x1c / 255, blue: 0x1a / 255)
+    static let muted = Color(red: 0xbc / 255, green: 0xb9 / 255, blue: 0xb1 / 255)
+    static let accent = Color(red: 0xff / 255, green: 0x8a / 255, blue: 0x45 / 255)
     static let ok = Color(red: 0x6e / 255, green: 0xe7 / 255, blue: 0xa0 / 255)
 }
 

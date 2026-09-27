@@ -1,10 +1,9 @@
 # Overload
 
 A local-first strength training tracker built with React, TypeScript, Vite and Tailwind CSS.
-It carries three features from Sam's Training Week ("Longevity"):
+It carries two features from Sam's Training Week ("Longevity"):
 - a per-set **effort** rating
 - **aerobic minutes per week**
-- Longevity's indigo **palette**
 
 Sam's program ships built in as **Sam's Weekly Workout**.
 It needs no accounts, no API keys, no environment variables and no network connection.
@@ -25,25 +24,27 @@ Overload also ships as an iPhone app, built from this same code with [Capacitor]
 
 ## Design
 
-The interface uses **Forge 2**, a design system built from two rounds of study of real fitness products on Mobbin, with the colour palette from Sam's Training Week.
+The interface uses **Forge 2**, a design system built from two rounds of study of real fitness products on Mobbin, in the **iron and chalk** palette from the Overload brand board: charcoal, chalk white and one orange accent.
 [`design-research.md`](design-research.md) lists the products and flows examined, the patterns adopted and rejected, the full token set (colour, type, spacing, radii, shadows, motion, charts, forms, accessibility) and the page-by-page redesign plan.
 In short:
 
-- Light and dark themes with true-grey neutrals and a single indigo accent for what you can act on.
+- Light (chalk) and dark (charcoal) themes with warm neutrals and a single orange accent, used only for what you can act on: buttons, selected controls, links and focus.
   - Green means logged, complete or easy.
-  - Amber means hold, hard or warm-up.
+  - Yellow means hold, hard or warm-up.
   - Red means destructive only.
+  - Everything else, including records, charts, streaks and moderate effort, stays neutral charcoal or chalk.
 - Condensed "stamped" numerals (Barlow Condensed) for the numbers you care about. Inter, in sentence case, for words.
-- Borderless cards: elevated on the light canvas, tonal in dark. One deep-indigo **hero** per screen (today's session, the rest timer, the progress headline, bodyweight), matching the app icon.
+- Borderless cards: elevated on the light canvas, tonal in dark. One flat charcoal **hero** per screen (today's session, the rest timer, the progress headline, bodyweight), matching the app icon.
 - **One-handed live workout.** The **now panel** in the thumb zone shows the next set with big ± steppers for load and reps and a 60px **Log set** button.
-  - While you rest, it becomes the rest timer and says what comes next ("Set 2 of 4 · 180 kg × 11 reps").
+  - It is the one place to edit and log the next set: that set's row in the table says "Up next, in the panel" instead of repeating the inputs.
+  - While you rest, it becomes the rest timer and says what comes next ("Set 2 of 4 · 180 kg × 11 reps"), and the next set's row becomes editable again.
   - Inside supersets it alternates exercises round by round.
   - Finish sits at the top, away from the thumb.
 - **Repeat workout** on any past workout starts a new session with the same exercises, set types and rest.
 - A plate-ring, segment-bar and sparkline vocabulary instead of stock photos or body maps.
-- **App icon.** A bigger weight plate stepping up over a smaller one: progressive overload, and an "O". It's white on the indigo tile.
+- **App icon.** A bigger weight plate stepping up over a smaller one: progressive overload, and an "O". It's chalk white, with the smaller plate in orange, on a charcoal tile.
   - The master art is `public/icon.svg`.
-  - It is rendered to `apple-touch-icon.png` (iOS home screen), `icon-192.png` and `icon-512.png` (Android and installs; the 512 doubles as the maskable icon, since the mark sits inside the safe zone), plus `favicon.svg` and `favicon-32.png`.
+  - It is rendered to `apple-touch-icon.png` (iOS home screen), `icon-192.png` and `icon-512.png` (Android and installs; the 512 doubles as the maskable icon, since the mark sits inside the safe zone), plus `favicon.svg` and `favicon-32.png`, the iPhone app icon and the iPhone launch screen.
   - The in-app logo uses the same mark.
 - Large tap targets (52px set cells, 56px primary buttons, 76px now-panel steppers), a floating tab bar with a mini-player for the running workout, and subtle motion that respects reduced-motion settings.
 
@@ -220,7 +221,7 @@ Key decisions:
 
 **Live workout**
 - [x] Running timer, live volume and completed-set count
-- [x] Big-button number pad for weight and reps with plate-step ± buttons, "Reps →" and "Log set" in one flow; the next set to do is highlighted
+- [x] Big-button number pad for weight and reps with plate-step ± buttons, "Reps →" and "Log set" in one flow; the next set to do is logged from the now panel, and its row points there
 - [x] Each set has weight, reps, a completed checkbox and last time's numbers for that same set (tap to copy). Ticking an empty set uses last time's numbers
 - [x] Warm-up, failure and drop sets; add or remove sets; add, remove or reorder exercises mid-workout
 - [x] Easy / Moderate / Hard effort per set, from the number pad (which logs the set) or the rest timer; next-time add-load / hold hint

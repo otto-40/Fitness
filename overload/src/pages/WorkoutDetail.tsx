@@ -259,7 +259,7 @@ export default function WorkoutDetail() {
           <SectionTitle>Records set</SectionTitle>
           <div className="flex flex-wrap gap-2">
             {prs.map((e) => (
-              <Badge key={`${e.exerciseId}-${e.kind}`} tone="accent" className="h-auto py-1.5">
+              <Badge key={`${e.exerciseId}-${e.kind}`} className="h-auto py-1.5">
                 <Medal size={13} /> {map.get(e.exerciseId)?.name} · {PR_LABEL[e.kind]} {prValue(e, units)}
               </Badge>
             ))}
