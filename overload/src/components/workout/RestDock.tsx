@@ -93,7 +93,7 @@ export function RestDock({ next }: { next?: { name: string; detail: string } | n
 
   const nextLine = next && (
     <p className="flex min-w-0 items-center gap-2 text-sm">
-      <span className="shrink-0 text-[11px] font-semibold tracking-[0.12em] text-accent-ink uppercase">Next</span>
+      <span className="shrink-0 text-[11px] font-semibold tracking-[0.12em] text-on-hero-muted uppercase">Next</span>
       <ArrowRight size={14} className="shrink-0 text-on-hero-muted" aria-hidden />
       <span className="min-w-0 truncate">
         {/* The exercise name only when the next set moves on to a different exercise. */}

@@ -157,7 +157,7 @@ export default function Library() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className="truncate font-medium">{e.name}</span>
-                            {e.custom && <Badge tone="accent">Custom</Badge>}
+                            {e.custom && <Badge>Custom</Badge>}
                           </span>
                           <span className="block truncate text-sm text-muted">
                             {e.primary} · {e.equipment}

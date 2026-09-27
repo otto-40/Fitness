@@ -10,7 +10,7 @@ const config: CapacitorConfig = {
   appName: 'Overload',
   webDir: 'dist',
   // Safe areas are handled in CSS with env(safe-area-inset-*), so the web view spans the whole screen.
-  ios: { contentInset: 'never', backgroundColor: '#f2f2f6', scheme: 'Overload' },
+  ios: { contentInset: 'never', backgroundColor: '#eeede8', scheme: 'Overload' },
   plugins: {
     // Rest alerts are scheduled only while the app is in the background, so never show them over the app.
     LocalNotifications: { presentationOptions: [] },

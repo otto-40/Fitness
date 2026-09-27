@@ -44,7 +44,7 @@ function MiniPlayer({ compact }: { compact?: boolean }) {
       )}
     >
       <Ring value={rest ? (rest.endsAt - now) / (rest.duration * 1000) : total ? done / total : 0} size={40} stroke={4} trackClass="text-white/15">
-        {rest ? <span className="stamp text-[11px]">{Math.ceil((rest.endsAt - now) / 1000)}</span> : <span className="size-2 rounded-full bg-accent" />}
+        {rest ? <span className="stamp text-[11px]">{Math.ceil((rest.endsAt - now) / 1000)}</span> : <span className="size-2 rounded-full bg-hero-ok" />}
       </Ring>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{current ? map.get(current.exerciseId)?.name ?? active.name : active.name}</span>

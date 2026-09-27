@@ -3,7 +3,7 @@
 //   swiftc -parse-as-library -o render ios/App/RestTimer/RestTimerViews.swift ios/tools/render-live-activity.swift
 //   ./render out/
 // ImageRenderer can't draw the timer-driven progress bar on a Mac and shows a yellow placeholder
-// in its place; the iPhone draws it as a draining indigo bar.
+// in its place; the iPhone draws it as a draining orange bar.
 import AppKit
 import SwiftUI
 

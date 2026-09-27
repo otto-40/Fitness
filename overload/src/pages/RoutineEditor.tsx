@@ -126,7 +126,7 @@ export default function RoutineEditor() {
       <h1 className="title-lg mb-6">{isNew ? 'New routine' : 'Edit routine'}</h1>
 
       <Card className="flex flex-col gap-4 p-4 sm:p-5">
-        {draft.program && <p className="eyebrow text-accent-ink">{draft.program}</p>}
+        {draft.program && <p className="eyebrow">{draft.program}</p>}
         <Field label="Name" error={errors.name}>
           {(fid, d) => (
             <Input
@@ -176,20 +176,19 @@ export default function RoutineEditor() {
               <div
                 className={clsx(
                   'card relative p-3 sm:p-4',
-                  e.supersetId && 'ring-2 ring-accent/45',
+                  e.supersetId && 'ring-2 ring-ink/15',
                   linkedPrev && 'rounded-t-md',
                   linked && 'rounded-b-md',
                   rowErr && 'ring-2 ring-danger',
                 )}
               >
-                {e.supersetId && <span className="absolute top-3 bottom-3 left-0 w-1 rounded-r-full bg-accent" aria-hidden />}
-                <div className="flex items-start gap-2">
+                                <div className="flex items-start gap-2">
                   <span className="tnum mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 stamp text-lg">{i + 1}</span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{def?.name ?? 'Deleted exercise'}</div>
                     <div className="text-sm text-muted">
                       {def?.primary} · {def?.equipment}
-                      {e.supersetId && <span className="font-semibold text-accent-ink"> · Superset</span>}
+                      {e.supersetId && <span className="font-semibold text-ink"> · Superset</span>}
                     </div>
                   </div>
                   <div className="flex shrink-0">

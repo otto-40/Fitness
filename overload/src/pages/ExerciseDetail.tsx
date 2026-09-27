@@ -80,7 +80,7 @@ export default function ExerciseDetail() {
         <div className="min-w-0 flex-1">
           <h1 className="title-lg">{ex.name}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Badge tone="accent" className="h-7 rounded-full px-2.5">
+            <Badge className="h-7 rounded-full px-2.5 text-ink">
               {ex.primary}
             </Badge>
             {ex.secondary.map((m) => (
@@ -116,7 +116,7 @@ export default function ExerciseDetail() {
 
       {ex.cue && (
         <blockquote className="mb-5 card p-4 text-[15px] text-ink-2">
-          <span className="eyebrow mb-1 block text-accent-ink">Form cue</span>
+          <span className="eyebrow mb-1 block">Form cue</span>
           {ex.cue}
         </blockquote>
       )}
@@ -233,7 +233,7 @@ export default function ExerciseDetail() {
                           if (s.type !== 'warmup') n++
                           const best = s.id === h.bestSet?.id
                           return (
-                            <span key={s.id} className={clsx('inline-flex items-center gap-1.5 rounded-lg py-0.5 pr-2 pl-0.5', best ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2')}>
+                            <span key={s.id} className={clsx('inline-flex items-center gap-1.5 rounded-lg py-0.5 pr-2 pl-0.5', best ? 'bg-ink font-semibold text-bg' : 'bg-surface-2')}>
                               <SetTypeBadge type={s.type} index={n} className="size-6 rounded-md text-sm" />
                               <span className="stamp text-[17px]">{s.weight ? `${formatWeight(s.weight, units, false)}×${s.reps}` : `${s.reps} reps`}</span>
                               {s.effort && <EffortShape effort={s.effort} size={9} />}

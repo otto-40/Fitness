@@ -71,11 +71,11 @@ export function EmptyState({
     <div className={clsx('card flex flex-col items-center px-6 py-10 text-center sm:py-12', className)}>
       {/* The plate ring motif behind the icon tile ties empty states to the rest timer and weekly ring. */}
       <div className="relative mb-5 flex size-24 items-center justify-center">
-        <svg viewBox="0 0 96 96" className="absolute inset-0 text-accent" aria-hidden>
+        <svg viewBox="0 0 96 96" className="absolute inset-0 text-ink" aria-hidden>
           <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" strokeOpacity="0.1" strokeWidth="6" />
           <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="6" strokeLinecap="round" strokeDasharray="276" strokeDashoffset="207" transform="rotate(-90 48 48)" />
         </svg>
-        <div className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent-ink">{icon}</div>
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-surface-2 text-ink-2">{icon}</div>
       </div>
       <h3 className="text-[19px] font-semibold tracking-[-0.01em]">{title}</h3>
       <p className="mt-1.5 max-w-sm text-[15px] text-muted">{body}</p>
@@ -118,7 +118,7 @@ export function Badge({
   className,
 }: {
   children: ReactNode
-  tone?: 'default' | 'accent' | 'good' | 'danger' | 'warn' | 'solid'
+  tone?: 'default' | 'good' | 'danger' | 'warn' | 'solid'
   className?: string
 }) {
   return (
@@ -126,7 +126,6 @@ export function Badge({
       className={clsx(
         'inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-semibold whitespace-nowrap',
         tone === 'default' && 'bg-surface-2 text-ink-2',
-        tone === 'accent' && 'bg-accent-soft text-accent-ink',
         tone === 'good' && 'bg-good-soft text-good',
         tone === 'danger' && 'bg-danger-soft text-danger',
         tone === 'warn' && 'bg-warn-soft text-warn',
@@ -145,20 +144,16 @@ export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={clsx('size-8 rounded-[9px]', className)} aria-hidden>
       <defs>
-        <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5247e6" />
-          <stop offset="1" stopColor="#3730a3" />
-        </linearGradient>
         <mask id={`${id}-m`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
           <rect width="100" height="100" fill="#fff" />
           <circle cx="58" cy="43" r="34" fill="#000" />
         </mask>
       </defs>
-      <rect width="100" height="100" fill={`url(#${id}-bg)`} />
+      <rect width="100" height="100" fill="#1d1c1a" />
       <g transform="translate(50 50) scale(0.8) translate(-50 -50)">
-        <circle cx="35" cy="63" r="17.5" fill="none" stroke="#b9b4ff" strokeWidth="11" mask={`url(#${id}-m)`} />
-        <circle cx="58" cy="43" r="24" fill="none" stroke="#fff" strokeWidth="14" />
-        <circle cx="58" cy="43" r="5.5" fill="#fff" />
+        <circle cx="35" cy="63" r="17.5" fill="none" stroke="#ff7a2e" strokeWidth="11" mask={`url(#${id}-m)`} />
+        <circle cx="58" cy="43" r="24" fill="none" stroke="#f3f2ee" strokeWidth="14" />
+        <circle cx="58" cy="43" r="5.5" fill="#f3f2ee" />
       </g>
     </svg>
   )
@@ -170,7 +165,7 @@ export function Logo({ className, withWord = true }: { className?: string; withW
       <LogoMark />
       {withWord && (
         <span className="font-display text-[22px] leading-none font-bold tracking-[0.08em] uppercase">
-          Over<span className="text-accent">load</span>
+          Overload
         </span>
       )}
     </span>
@@ -205,7 +200,7 @@ export function Monogram({ name, size = 'md', active }: { name: string; size?: '
         size === 'sm' && 'size-9 text-[15px]',
         size === 'md' && 'size-11 text-lg',
         size === 'lg' && 'size-14 rounded-2xl text-2xl',
-        active ? 'bg-accent text-on-accent' : 'bg-surface-2 text-ink-2',
+        active ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-2',
       )}
     >
       {letters}

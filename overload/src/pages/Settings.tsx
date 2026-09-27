@@ -63,17 +63,18 @@ function LockScreenRow() {
   )
 }
 
-/** A miniature of the app in one theme: canvas, the indigo hero card and two content rows. */
+/** A miniature of the app in one theme: canvas, the charcoal hero card and two content rows. */
 function ThemeThumb({ dark }: { dark: boolean }) {
-  const bg = dark ? '#0b0b0f' : '#f2f2f6'
-  const card = dark ? '#17171c' : '#ffffff'
-  const line = dark ? '#2b2b33' : '#e6e6ec'
+  const bg = dark ? '#131211' : '#eeede8'
+  const card = dark ? '#1c1b19' : '#fbfaf7'
+  const line = dark ? '#302f2b' : '#e5e3dd'
+  const hero = dark ? '#2a2926' : '#242321'
   return (
     <g>
       <rect width="96" height="64" fill={bg} />
-      <rect x="8" y="8" width="80" height="22" rx="6" fill="url(#thumb-hero)" />
-      <rect x="14" y="14" width="30" height="4" rx="2" fill="#ffffff" opacity="0.9" />
-      <rect x="14" y="21" width="18" height="4" rx="2" fill="#ffffff" />
+      <rect x="8" y="8" width="80" height="22" rx="6" fill={hero} />
+      <rect x="14" y="14" width="30" height="4" rx="2" fill="#f6f5f1" opacity="0.9" />
+      <rect x="14" y="21" width="18" height="4" rx="2" fill="#ff7a2e" />
       <rect x="8" y="35" width="80" height="22" rx="6" fill={card} />
       <rect x="14" y="41" width="36" height="4" rx="2" fill={line} />
       <rect x="14" y="48" width="24" height="4" rx="2" fill={line} />
@@ -100,10 +101,6 @@ function ThemePicker({ value, onChange }: { value: ThemePref; onChange: (v: Them
     <div role="radiogroup" aria-label="Theme" onKeyDown={onKeyDown} className="grid grid-cols-3 gap-2.5">
       <svg width="0" height="0" className="absolute" aria-hidden>
         <defs>
-          <linearGradient id="thumb-hero" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#2e2a7a" />
-            <stop offset="1" stopColor="#1b1846" />
-          </linearGradient>
           <clipPath id="thumb-half">
             <polygon points="0,0 96,0 0,64" />
           </clipPath>
@@ -263,7 +260,7 @@ export default function Settings() {
       </Card>
 
       <div className="flex flex-col gap-8">
-        <ListGroup title="Appearance" footer="System follows your device’s light or dark mode.">
+        <ListGroup title="Appearance">
           <div className="px-4 py-4">
             <div className="mb-3 flex items-center gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
@@ -272,6 +269,7 @@ export default function Settings() {
               <span className="text-[15px] font-medium">Theme</span>
             </div>
             <ThemePicker value={settings.theme} onChange={(theme) => store.updateSettings({ theme })} />
+            <p className="mt-3 text-xs text-muted">System follows your device’s light or dark mode.</p>
           </div>
           <ListRow
             stack
@@ -394,7 +392,7 @@ export default function Settings() {
             </div>
           </fieldset>
           <button onClick={() => setPending({ kind: 'onboarding' })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
               <Sparkles size={18} />
             </span>
             <span className="min-w-0 flex-1">

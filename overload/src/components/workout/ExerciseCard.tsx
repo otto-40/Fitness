@@ -27,6 +27,8 @@ export interface ExerciseCardProps {
   isLast: boolean
   /** The set the lifter should do next, highlighted as "up next". */
   upNextSetId?: string | null
+  /** The set the now panel is showing. Its row defers to the panel, so the next set has one place to edit and log it. */
+  panelSetId?: string | null
   onSetChange: (setId: string, patch: SetPatch) => void
   onToggle: (setId: string) => void
   onAddSet: (type?: SetType) => void
@@ -50,6 +52,15 @@ function fmtRest(sec: number) {
 const GRID = 'grid grid-cols-[44px_minmax(0,1fr)_minmax(0,76px)_minmax(0,60px)_52px] items-center gap-1.5 sm:gap-2'
 /** Aerobic rows: set, last time, −5 / minutes / +5, done. */
 const GRID_AERO = 'grid grid-cols-[44px_minmax(0,1fr)_minmax(0,140px)_52px] items-center gap-1.5 sm:gap-2'
+
+/** Stands in for a row's inputs while the now panel shows that set. */
+function InPanel({ className }: { className?: string }) {
+  return (
+    <span className={clsx('flex h-[52px] items-center justify-center gap-1.5 rounded-xl bg-surface-2/60 text-[13px] font-semibold text-ink-2', className)}>
+      <ArrowDown size={15} aria-hidden /> Up next, in the panel
+    </span>
+  )
+}
 
 export function ExerciseCard(p: ExerciseCardProps) {
   const { ex, def, prev, units } = p
@@ -104,7 +115,7 @@ export function ExerciseCard(p: ExerciseCardProps) {
       id={`ex-${ex.id}`}
       className={clsx(
         'card scroll-mt-44 scroll-mb-[360px] transition-shadow duration-300',
-        p.upNextSetId ? 'ring-2 ring-accent/55' : allDone && 'ring-1 ring-good/45',
+        p.upNextSetId ? 'ring-2 ring-ink/15' : allDone && 'ring-1 ring-good/45',
       )}
     >
       <div className="flex items-start gap-3 px-3 pt-3 sm:px-4">
@@ -163,21 +174,25 @@ export function ExerciseCard(p: ExerciseCardProps) {
               const ref = refFor(s)
               const mins = s.minutes ?? 0
               const upNext = p.upNextSetId === s.id
+              const inPanel = p.panelSetId === s.id
               return (
-                <li key={s.id} className={clsx(GRID_AERO, 'relative rounded-xl px-1 py-1 transition-colors', s.completed && 'bg-good-soft', (flashId === s.id || flashFromPanel === s.id) && 'animate-flash', upNext && 'ring-2 ring-accent ring-inset')}>
+                <li key={s.id} className={clsx(GRID_AERO, 'relative rounded-xl px-1 py-1 transition-colors', s.completed && 'bg-good-soft', (flashId === s.id || flashFromPanel === s.id) && 'animate-flash', upNext && 'ring-2 ring-ink/15 ring-inset')}>
                   <button onClick={() => setSetMenuFor(s.id)} aria-label={`${label}: delete`} className="flex h-11 w-11 items-center justify-center rounded-lg">
                     <SetTypeBadge type="normal" index={ex.sets.indexOf(s) + 1} className="size-10" />
                   </button>
                   <button
                     type="button"
-                    disabled={!ref || s.completed}
+                    disabled={!ref || s.completed || inPanel}
                     onClick={() => ref?.minutes != null && p.onSetChange(s.id, { minutes: ref.minutes })}
                     className="tnum flex h-[52px] w-full min-w-0 flex-col items-start justify-center overflow-hidden rounded-lg text-left text-[13px] font-medium text-muted enabled:hover:text-ink"
                     aria-label={ref ? `Last time ${refText(ref)}. Tap to copy.` : 'No previous session'}
                   >
-                    {upNext && <span className="text-[10px] leading-tight font-bold tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase">Up next</span>}
                     <span className="whitespace-nowrap">{refText(ref)}</span>
                   </button>
+                  {inPanel ? (
+                    <InPanel className="col-span-2" />
+                  ) : (
+                  <>
                   <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-1">
                     <button type="button" disabled={s.completed || mins <= 5} onClick={() => p.onSetChange(s.id, { minutes: Math.max(5, mins - 5) })} aria-label={`${label}: 5 minutes less`} className="flex h-11 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-3 disabled:opacity-35">
                       <Minus size={18} />
@@ -203,11 +218,13 @@ export function ExerciseCard(p: ExerciseCardProps) {
                     onClick={() => toggle(s.id, s.completed)}
                     className={clsx(
                       'flex size-[52px] items-center justify-center rounded-xl transition-all active:scale-90',
-                      s.completed ? 'animate-pop bg-good text-on-good' : upNext ? 'bg-accent text-on-accent' : 'bg-surface-2 text-muted hover:bg-surface-3 hover:text-ink',
+                      s.completed ? 'animate-pop bg-good text-on-good' : 'bg-surface-2 text-muted hover:bg-surface-3 hover:text-ink',
                     )}
                   >
                     <Check size={24} strokeWidth={3} />
                   </button>
+                  </>
+                  )}
                 </li>
               )
             })}
@@ -232,8 +249,9 @@ export function ExerciseCard(p: ExerciseCardProps) {
             const { n, text: label } = labelFor(s)
             const ref = refFor(s)
             const upNext = p.upNextSetId === s.id
+            const inPanel = p.panelSetId === s.id
             const wPlaceholder = ref?.weight != null && !(bodyweight && !ref.weight) ? formatWeight(ref.weight, units, false) : bodyweight ? '0' : '–'
-            const rPlaceholder = ref?.reps != null ? String(ref.reps) : ex.repMin ? `${ex.repMin}–${ex.repMax}` : '–'
+            const rPlaceholder = ref?.reps != null ? String(ref.reps) : ex.repMin ? (ex.repMin === ex.repMax ? String(ex.repMin) : `${ex.repMin}–${ex.repMax}`) : '–'
             const cell = (field: KeypadField, value: string | null, placeholder: string, aria: string) => (
               <button
                 type="button"
@@ -257,7 +275,7 @@ export function ExerciseCard(p: ExerciseCardProps) {
                   'relative rounded-xl px-1 py-1 transition-colors',
                   s.completed && 'bg-good-soft',
                   (flashId === s.id || flashFromPanel === s.id) && 'animate-flash',
-                  upNext && 'ring-2 ring-accent ring-inset',
+                  upNext && 'ring-2 ring-ink/15 ring-inset',
                 )}
               >
                 <button
@@ -274,12 +292,11 @@ export function ExerciseCard(p: ExerciseCardProps) {
                 </button>
                 <button
                   type="button"
-                  disabled={!ref || s.completed}
+                  disabled={!ref || s.completed || inPanel}
                   onClick={() => ref && p.onSetChange(s.id, { weight: ref.weight, reps: ref.reps })}
                   className="tnum flex h-[52px] w-full min-w-0 flex-col items-start justify-center overflow-hidden rounded-lg text-left text-[13px] font-medium text-muted enabled:hover:text-ink"
                   aria-label={ref ? `Last time ${refText(ref)}. Tap to copy.` : 'No previous set'}
                 >
-                  {upNext && <span className="text-[10px] leading-tight font-bold tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase">Up next</span>}
                   {ref ? (
                     <span className="flex min-w-0 flex-wrap leading-tight">
                       <span className="whitespace-nowrap">{bodyweight && !ref.weight ? 'BW' : formatWeight(ref.weight, units, false)}</span>
@@ -289,6 +306,10 @@ export function ExerciseCard(p: ExerciseCardProps) {
                     <span>—</span>
                   )}
                 </button>
+                {inPanel ? (
+                  <InPanel className="col-span-3" />
+                ) : (
+                <>
                 {cell('weight', s.weight == null ? null : formatWeight(s.weight, units, false), wPlaceholder, `${label} weight: ${s.weight == null ? 'empty' : formatWeight(s.weight, units)}. Edit`)}
                 {cell('reps', s.reps == null ? null : String(s.reps), rPlaceholder, `${label} reps: ${s.reps ?? 'empty'}. Edit`)}
                 <button
@@ -299,11 +320,13 @@ export function ExerciseCard(p: ExerciseCardProps) {
                   onClick={() => toggle(s.id, s.completed)}
                   className={clsx(
                     'flex size-[52px] items-center justify-center rounded-xl transition-all active:scale-90',
-                    s.completed ? 'animate-pop bg-good text-on-good' : upNext ? 'bg-accent text-on-accent' : 'bg-surface-2 text-muted hover:bg-surface-3 hover:text-ink',
+                    s.completed ? 'animate-pop bg-good text-on-good' : 'bg-surface-2 text-muted hover:bg-surface-3 hover:text-ink',
                   )}
                 >
                   <Check size={24} strokeWidth={3} />
                 </button>
+                </>
+                )}
               </li>
             )
           })}

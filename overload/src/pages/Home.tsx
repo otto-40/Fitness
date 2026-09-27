@@ -41,13 +41,13 @@ function WeekStrip() {
             <span
               className={clsx(
                 'flex h-[62px] flex-col items-center justify-center gap-1 rounded-full transition-colors',
-                trained.length ? 'bg-accent text-on-accent' : today ? 'bg-accent-soft text-ink ring-2 ring-accent ring-inset' : planned ? 'bg-surface-2 text-ink' : 'text-muted ring-1 ring-line ring-inset',
+                trained.length ? 'bg-good text-on-good' : today ? 'bg-surface text-ink ring-2 ring-ink ring-inset' : planned ? 'bg-surface-2 text-ink' : 'text-muted ring-1 ring-line ring-inset',
               )}
             >
               <span className={clsx('text-[10px] font-semibold uppercase', !trained.length && !today && 'text-muted')}>{format(d, 'EEEEE')}</span>
               {trained.length ? <Check size={17} strokeWidth={3} /> : <span className="stamp text-[17px]">{format(d, 'd')}</span>}
             </span>
-            <span className={clsx('mx-auto mt-1.5 block size-1 rounded-full', planned && !trained.length ? 'bg-accent/70' : 'bg-transparent')} aria-hidden />
+            <span className={clsx('mx-auto mt-1.5 block size-1 rounded-full', planned && !trained.length ? 'bg-muted' : 'bg-transparent')} aria-hidden />
           </li>
         )
       })}
@@ -64,7 +64,7 @@ function PrTile({ e }: { e: PrEvent }) {
     <li className="w-[72%] shrink-0 sm:w-auto">
       <Link to={`/library/${e.exerciseId}`} className="card flex h-full flex-col p-4 transition-transform active:scale-[0.98]">
         <span className="flex items-center justify-between">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
             <Medal size={17} />
           </span>
           <span className="text-xs text-muted">{friendlyDay(e.date)}</span>
@@ -160,7 +160,7 @@ export default function Home() {
               {completedSetCount(active)} {completedSetCount(active) === 1 ? 'set' : 'sets'} logged · started {format(parseISO(active.startedAt), 'HH:mm')}
             </p>
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${activeTotal ? (activeDone / activeTotal) * 100 : 0}%` }} />
+              <div className="h-full rounded-full bg-good" style={{ width: `${activeTotal ? (activeDone / activeTotal) * 100 : 0}%` }} />
             </div>
             <LinkButton to="/workout" size="xl" className="mt-6 w-full sm:w-auto" icon={<Play size={18} fill="currentColor" />}>
               Resume workout
@@ -231,7 +231,7 @@ export default function Home() {
           <div className="mt-3 grid grid-cols-3 divide-x divide-line border-t border-line pt-3">
             <Link to="/history" className="group min-w-0 pr-3" aria-label={`Streak: ${streak.current} ${streak.current === 1 ? 'week' : 'weeks'}, best ${streak.longest}. Next milestone ${milestone} weeks.`}>
               <span className="flex items-center gap-1 text-xs font-medium text-muted">
-                <Flame size={13} className={streak.current ? 'text-accent-ink' : undefined} /> Streak
+                <Flame size={13} className={streak.current ? 'text-ink' : undefined} /> Streak
               </span>
               <span className="mt-1 flex items-baseline gap-1">
                 <span className="stamp text-[26px]">{streak.current}</span>
@@ -295,7 +295,7 @@ export default function Home() {
           </ul>
         ) : (
           <Card className="flex items-center gap-3 p-4">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
               <Medal size={18} />
             </span>
             <p className="text-sm text-muted">Records show up after your second session of an exercise. Beat your last numbers to set one.</p>
