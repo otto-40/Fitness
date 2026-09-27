@@ -1,0 +1,106 @@
+name: iOS app
+
+# Builds the iPhone app on GitHub's macOS machines, so no Mac is needed.
+# - Every push and pull request that touches the app: an unsigned simulator build, to prove it compiles.
+# - "Run workflow" (Actions → iOS app): a build signed with Xcode cloud signing and uploaded to App Store Connect for TestFlight
+#   and App Store review. Needs the four secrets described in ironlog/IOS.md.
+on:
+  push:
+    branches: [claude/workout-routine-ui-gmzbvt]
+    paths: ['ironlog/**', '.github/workflows/ios.yml']
+  pull_request:
+    branches: [claude/workout-routine-ui-gmzbvt]
+    paths: ['ironlog/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version shown on the App Store (e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  # Must match the App ID registered with Apple and appId in ironlog/capacitor.config.ts.
+  BUNDLE_ID: com.otto40.overload
+
+jobs:
+  simulator-build:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: macos-26
+    defaults:
+      run:
+        working-directory: ironlog
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ironlog/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Build the web app and copy it into the iOS project
+        run: npm run build && npx cap sync ios
+      - name: Build for the iOS simulator (unsigned)
+        run: |
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO build
+
+  app-store-upload:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    defaults:
+      run:
+        working-directory: ironlog
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the App Store Connect secrets are set
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          missing=""
+          for v in ASC_KEY_ID ASC_ISSUER_ID APPLE_TEAM_ID ASC_KEY_P8; do [ -n "${!v}" ] || missing="$missing $v"; done
+          if [ -n "$missing" ]; then echo "::error::Missing secrets:$missing (see ironlog/IOS.md)"; exit 1; fi
+          echo "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ironlog/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Build the web app and copy it into the iOS project
+        run: npm run build && npx cap sync ios
+      # The archive is built unsigned; signing happens only at export, where Xcode's cloud
+      # signing uses the API key to create or reuse the distribution certificate and App Store
+      # profile. So the runner needs no certificates, keychain or registered devices.
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Overload.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            MARKETING_VERSION="${{ inputs.version }}" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            archive
+      - name: Sign and upload to App Store Connect
+        run: |
+          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" ios/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Overload.xcarchive" \
+            -exportOptionsPlist ios/ExportOptions.plist -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"

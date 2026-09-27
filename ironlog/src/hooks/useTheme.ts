@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { setStatusBar } from '../lib/native'
 import { useStore } from '../store/useStore'
 
 export function useApplyTheme() {
@@ -8,6 +9,7 @@ export function useApplyTheme() {
     const apply = () => {
       const dark = theme === 'dark' || (theme === 'system' && mq.matches)
       document.documentElement.classList.toggle('dark', dark)
+      setStatusBar(dark)
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b0b0f' : '#f2f2f6')
     }
     apply()

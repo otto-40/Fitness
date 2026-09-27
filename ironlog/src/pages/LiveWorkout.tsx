@@ -7,6 +7,7 @@ import { Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Modal, Tex
 import { ExerciseCard } from '../components/workout/ExerciseCard'
 import { NowPanel } from '../components/workout/NowPanel'
 import { nextUp } from '../lib/supersets'
+import { keepAwake } from '../lib/native'
 import { useExerciseMap } from '../hooks/useExercises'
 import { useNow } from '../hooks/useNow'
 import { aerobicMinutes, completedSetCount, previousSets, workoutVolume } from '../lib/calc'
@@ -20,6 +21,8 @@ import type { WorkoutExercise } from '../types'
 /** Keeps the phone screen awake during a session where supported. */
 function useWakeLock() {
   useEffect(() => {
+    // The iPhone app keeps the screen on natively.
+    if (keepAwake(true)) return () => void keepAwake(false)
     let lock: { release: () => Promise<void> } | null = null
     const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } }
     const request = () =>

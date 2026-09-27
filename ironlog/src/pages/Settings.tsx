@@ -1,10 +1,10 @@
 import { format } from 'date-fns'
 import clsx from 'clsx'
-import { ChevronRight, Download, Eraser, Footprints, Monitor, Moon, RotateCcw, Ruler, Sparkles, Sun, Timer, Trash2, Upload } from 'lucide-react'
+import { BellRing, ChevronRight, Download, Eraser, Footprints, Monitor, Moon, RotateCcw, Ruler, Sparkles, Sun, Timer, Trash2, Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Chip, ConfirmDialog, Field, Input, ListGroup, ListRow, PageHeader, Segmented, Select, Switch } from '../components/ui'
+import { Button, Card, Chip, ConfirmDialog, Field, Input, ListGroup, ListRow, PageHeader, Segmented, Select, Switch } from '../components/ui'
 import { buildBackup, downloadJson, parseBackup } from '../lib/backup'
 import type { ImportResult } from '../lib/backup'
 import { WEEKDAY_SHORT } from '../lib/dates'
@@ -14,11 +14,38 @@ import { plural } from '../lib/format'
 import { toast } from '../store/useToast'
 import type { Equipment, Experience, Goal, ThemePref, Units } from '../types'
 import { EQUIPMENT } from '../types'
+import { isNative, useAlertPermission } from '../lib/native'
 
 const REST = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const GOAL_LABEL: Record<Goal, string> = { strength: 'Strength', muscle: 'Muscle', general: 'General fitness' }
 
 type Pending = { kind: 'reset' | 'erase' | 'sample' | 'onboarding' } | { kind: 'import'; result: ImportResult }
+
+/** iPhone app only: rest-over notifications on the lock screen while the app is in the background. */
+function RestAlertsRow() {
+  const [permission, request] = useAlertPermission()
+  return (
+    <ListRow
+      stack
+      icon={<BellRing size={18} />}
+      title="Rest alerts"
+      description={
+        permission === 'granted'
+          ? 'On. When you leave the app mid-rest, a notification says what’s next as soon as rest is over.'
+          : permission === 'denied'
+            ? 'Off. Turn on notifications for Overload in the iPhone Settings app.'
+            : 'Get a notification with your next set when rest is over, even with the phone locked.'
+      }
+      control={
+        permission === 'prompt' ? (
+          <Button size="sm" onClick={request}>
+            Turn on
+          </Button>
+        ) : undefined
+      }
+    />
+  )
+}
 
 /** A miniature of the app in one theme: canvas, the indigo hero card and two content rows. */
 function ThemeThumb({ dark }: { dark: boolean }) {
@@ -286,6 +313,7 @@ export default function Settings() {
           <div className="px-4 py-3.5">
             <Switch checked={settings.timerSound} onChange={(timerSound) => store.updateSettings({ timerSound })} label="Rest timer sound" description="A short beep and vibration when rest is over." />
           </div>
+          {isNative && <RestAlertsRow />}
         </ListGroup>
 
         <ListGroup title="Profile" footer="Used for your greeting, weekly target and the next-workout schedule.">
@@ -360,7 +388,7 @@ export default function Settings() {
           </button>
         </ListGroup>
 
-        <ListGroup title="Your data" footer={`Everything lives in this browser’s local storage (about ${storageKb} KB). Imports are checked before anything changes; invalid entries are skipped.`}>
+        <ListGroup title="Your data" footer={`Everything lives ${isNative ? 'on this iPhone' : 'in this browser’s local storage'} (about ${storageKb} KB). Imports are checked before anything changes; invalid entries are skipped.`}>
           <button onClick={exportData} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
               <Download size={18} />

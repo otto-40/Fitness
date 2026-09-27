@@ -26,12 +26,17 @@ export default function Library() {
   const customOnly = params.get('custom') === '1'
   const sort: Sort = params.get('sort') === 'used' ? 'used' : 'az'
 
-  const setParam = (k: string, v: string | null) => {
-    const next = new URLSearchParams(params)
-    if (v) next.set(k, v)
-    else next.delete(k)
-    setParams(next, { replace: true })
-  }
+  // Built from the latest URL, so two filter changes in quick succession both stick.
+  const setParam = (k: string, v: string | null) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (v) next.set(k, v)
+        else next.delete(k)
+        return next
+      },
+      { replace: true },
+    )
 
   const counts = useMemo(() => {
     const m = new Map<string, number>()

@@ -8,6 +8,7 @@ import { useStore } from '../../store/useStore'
 import type { Effort } from '../../types'
 import { EffortPicker } from './Effort'
 import { toast } from '../../store/useToast'
+import { buzz } from '../../lib/native'
 
 function beep() {
   try {
@@ -59,7 +60,7 @@ export function RestDock({ next }: { next?: { name: string; detail: string } | n
     // Only alert if we are close to the moment it ended (not when reopening the app much later).
     if (now - rest.endsAt < 3000) {
       if (sound) beep()
-      navigator.vibrate?.([200, 100, 200])
+      buzz('rest-over')
       toast('Rest over — next set', { tone: 'success' })
     }
     skipRest()

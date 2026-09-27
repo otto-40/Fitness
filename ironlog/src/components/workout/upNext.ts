@@ -7,7 +7,7 @@ import { referenceSet, useStore } from '../../store/useStore'
 import type { ActiveWorkout, Exercise, Units, WorkoutExercise, WorkoutSet } from '../../types'
 
 /** Where the next set sits in its exercise, in the words the set table uses. */
-function position(ex: WorkoutExercise, set: WorkoutSet) {
+export function position(ex: WorkoutExercise, set: WorkoutSet) {
   if (set.minutes != null) {
     const all = ex.sets
     return { short: `Session ${all.indexOf(set) + 1} of ${all.length}` }

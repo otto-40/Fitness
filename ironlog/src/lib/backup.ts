@@ -3,6 +3,7 @@ import type { Effort, Exercise, Measurement, Profile, Routine, Settings, Workout
 import type { DataState } from '../store/useStore'
 import { DEFAULT_SETTINGS, migrateState } from '../store/useStore'
 import { DEMO_PROFILE } from '../data/seed'
+import { isNative, saveJson } from './native'
 
 export const BACKUP_APP = 'Overload'
 /** Backups made before the app was renamed. */
@@ -19,7 +20,13 @@ export function buildBackup(state: DataState) {
   }
 }
 
-export function downloadJson(filename: string, obj: unknown) {
+export async function downloadJson(filename: string, obj: unknown) {
+  // The iPhone app can't download files from its web view, so it offers the share sheet instead.
+  if (isNative) {
+    // Dismissing the share sheet rejects; that is a choice, not an error.
+    await saveJson(filename, obj).catch(() => {})
+    return
+  }
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

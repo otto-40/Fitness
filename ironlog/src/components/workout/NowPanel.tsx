@@ -5,6 +5,7 @@ import { Button } from '../ui'
 import { useNow } from '../../hooks/useNow'
 import { formatWeight, fromDisplayWeight, round, toDisplayWeight, weightStep } from '../../lib/units'
 import { describeNext, useUpNext } from './upNext'
+import { buzz } from '../../lib/native'
 import { useStore } from '../../store/useStore'
 import { toast } from '../../store/useToast'
 import { flashSet, useUi } from '../../store/useUi'
@@ -84,7 +85,7 @@ export function NowPanel({ onAddExercise, onFinish }: { onAddExercise: () => voi
         return
       }
       flashSet(set.id)
-      navigator.vibrate?.(12)
+      buzz('log')
     }
     const kg = set.weight ?? ref?.weight ?? null
     const weightShown = kg == null ? null : bodyweight && !kg && set.weight == null ? null : String(round(toDisplayWeight(kg, units), 2))
