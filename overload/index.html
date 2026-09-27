@@ -15,7 +15,7 @@
     <script>
       // Apply the saved theme before first paint to avoid a flash.
       try {
-        var s = JSON.parse(localStorage.getItem('ironlog-v1') || '{}');
+        var s = JSON.parse(localStorage.getItem('overload-v1') || '{}');
         var t = (s.state && s.state.settings && s.state.settings.theme) || 'system';
         var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         if (dark) {

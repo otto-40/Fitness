@@ -18,9 +18,10 @@ import { BUILT_IN_EXERCISES } from '../data/exercises'
 import { uid } from '../lib/id'
 import { isDone, previousSets } from '../lib/calc'
 import { generateProgram } from '../lib/programGen'
+import { STORE_KEY } from '../lib/storageKey'
 import { normalizeSupersets } from '../lib/supersets'
 
-export const STORAGE_KEY = 'ironlog-v1'
+export const STORAGE_KEY = STORE_KEY
 export const DEMO_PREFIX = 'demo-'
 
 export interface DataState {

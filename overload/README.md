@@ -1,7 +1,7 @@
 # Overload
 
 A local-first strength training tracker built with React, TypeScript, Vite and Tailwind CSS.
-It was previously called IronLog. It now carries three features from Sam's Training Week ("Longevity"):
+It carries three features from Sam's Training Week ("Longevity"):
 - a per-set **effort** rating
 - **aerobic minutes per week**
 - Longevity's indigo **palette**
@@ -10,7 +10,7 @@ Sam's program ships built in as **Sam's Weekly Workout**.
 It needs no accounts, no API keys, no environment variables and no network connection.
 Everything, including a workout you are halfway through, is saved in your browser's `localStorage`.
 
-**Live app:** https://otto-40.github.io/Fitness/ironlog/. The repo's Pages workflow builds `ironlog/` and publishes the output there on every deploy.
+**Live app:** https://otto-40.github.io/Fitness/overload/. The repo's Pages workflow builds `overload/` and publishes the output there on every deploy.
 The folder and the address keep the old name on purpose, so existing home-screen tiles and saved data keep working.
 Data is stored per browser, so the live site and `localhost` keep separate logs.
 
@@ -88,18 +88,18 @@ In short:
 - **Weekly scheduling.** It is the default plan and is grouped under its own heading on the Routines page. Because each routine is pinned to a weekday, "Next workout" follows the calendar (today's session, or the next planned day) rather than a rotation.
 - **After onboarding.** Building a plan in onboarding switches to that plan. Sam's routines stay available, and you can add them back to the plan from their menus.
 
-**Upgrading.** Data saved by IronLog is upgraded in place on first load (stored data v1 → v2).
+**Upgrading.** Data saved by earlier versions is upgraded in place on first load (stored data v1 → v2).
 - Every workout, measurement and routine is kept.
 - Sam's Weekly Workout is added and made the plan.
 - The aerobic target is set to 150 min.
-- Old `IronLog` backup files still import, with the same upgrade.
+- Backup files from earlier versions still import, with the same upgrade.
 
 ## Setup
 
 Requires Node.js 20 or newer.
 
 ```bash
-cd ironlog
+cd overload
 npm ci             # or npm install
 npm run dev        # http://localhost:5173
 ```
@@ -123,7 +123,7 @@ Sample records carry a `demo-` id prefix, so **Settings → Remove sample data**
 Overload is a static web app. `npm run build` writes everything to `dist/`: an `index.html`, hashed JS and CSS in `dist/assets/`, the icon and a web app manifest.
 Upload the contents of `dist/` to any static host or web server. No server-side code, environment variables, database or build-time configuration is needed.
 
-- **Any path works.** Asset URLs are relative (`base: './'` in `vite.config.ts`), so the app runs from a domain root or a subfolder such as `/apps/ironlog/` without changes.
+- **Any path works.** Asset URLs are relative (`base: './'` in `vite.config.ts`), so the app runs from a domain root or a subfolder such as `/apps/overload/` without changes.
 - **No rewrite rules.** Routing uses URL hashes (`#/history`), so the server only ever serves `index.html` and the files in `assets/`. Deep links and refreshes work on any host.
 - **Caching.** Files in `assets/` have content hashes in their names and can be cached for a long time. Serve `index.html` with a short cache, or none, so users pick up new releases.
 - **HTTPS.** Browsers only allow "Add to Home Screen" installs, and some storage guarantees, over HTTPS. Most static hosts provide it by default.
@@ -137,7 +137,7 @@ npm ci && npm run build
 npx serve dist          # or: python3 -m http.server --directory dist 8080
 ```
 
-This repository publishes to GitHub Pages through `.github/workflows/pages.yml`. That workflow builds `ironlog/` and swaps the source folder for `dist/` in the uploaded site. It is one example of deploying the build; nothing in the app depends on GitHub Pages.
+This repository publishes to GitHub Pages through `.github/workflows/pages.yml`. That workflow builds `overload/` and swaps the source folder for `dist/` in the uploaded site. It is one example of deploying the build; nothing in the app depends on GitHub Pages.
 
 ## Architecture
 
@@ -149,9 +149,9 @@ src/
     seed.ts             Sam's Weekly Workout, starter routines, deterministic demo history (effort-rated, with
                         game nights and zone 2 walks), unit snapping for demo loads
   store/
-    useStore.ts         Single Zustand store with the persist middleware (key "ironlog-v1", kept after the
-                        rename so existing data loads). Holds all data and every action, including the live
-                        session and rateSet; migrateState upgrades stored data and old backups
+    useStore.ts         Single Zustand store with the persist middleware (key "overload-v1"; data saved by
+                        earlier versions is adopted on first load). Holds all data and every action, including
+                        the live session and rateSet; migrateState upgrades stored data and old backups
     useToast.ts         Toast queue (not persisted)
     useUi.ts            Transient UI flags (focus mode hides the tab bar in editors)
   lib/

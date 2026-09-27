@@ -9,7 +9,7 @@ Paste these into App Store Connect → your app → the version page and App Inf
 | **Category** | Health & Fitness (secondary: Lifestyle) | |
 | **Price** | Free | |
 | **Age rating** | 4+ (answer "None" to every question) | |
-| **Privacy policy URL** | https://otto-40.github.io/Fitness/ironlog/privacy.html | |
+| **Privacy policy URL** | https://otto-40.github.io/Fitness/overload/privacy.html | |
 | **Support URL** | https://github.com/otto-40/Fitness | |
 | **Copyright** | 2026 followed by your name as it appears on your Apple developer account | |
 

@@ -123,8 +123,8 @@ describe('upgrading existing data', () => {
     expect(migrateState(up, 2)).toBe(up)
   })
 
-  it('imports IronLog backups with the same upgrade, and round-trips effort and minutes', () => {
-    const res = parseBackup(JSON.stringify({ app: 'IronLog', version: 1, data: old() }))
+  it('imports version 1 backups with the same upgrade, and round-trips effort and minutes', () => {
+    const res = parseBackup(JSON.stringify({ version: 1, data: old() }))
     expect(res.data.routines.some((r) => r.id === 'sam-mon' && r.inPlan)).toBe(true)
     const withNew = { ...old(), workouts: [workout('w2', '2026-09-02T10:00:00', [['bench-press', [set(80, 5, 'hard')]], ['incline-walk', [walk(30)]]])] }
     const back = parseBackup(JSON.stringify({ app: 'Overload', version: 2, data: withNew }))

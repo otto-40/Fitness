@@ -1,15 +1,15 @@
 import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
-
-/** Where the app keeps its data (the name predates the rename to Overload). */
-export const STORE_KEY = 'ironlog-v1'
+import { adoptEarlierData, STORE_KEY } from './storageKey'
 
 /**
  * In the iPhone app, data is also kept in native storage, which iOS does not clear the
- * way it can clear a web view's local storage. Runs before the store loads: if local
- * storage came back empty, it is restored from the native copy.
+ * way it can clear a web view's local storage. Runs before the store loads: data saved
+ * by an earlier version under another key is adopted first, then, if local storage is
+ * still empty, it is restored from the native copy.
  */
 export async function restoreNativeData() {
+  adoptEarlierData()
   if (!Capacitor.isNativePlatform()) return
   try {
     if (localStorage.getItem(STORE_KEY)) return

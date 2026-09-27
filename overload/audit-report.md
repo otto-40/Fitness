@@ -1,4 +1,4 @@
-# IronLog final audit
+# Overload final audit
 
 > Historical record. This audit was run before the app was renamed **Overload** and gained effort ratings, aerobic minutes and Sam's Weekly Workout. Those later changes were checked with the same audit suites, extended to cover them.
 
@@ -21,7 +21,7 @@ Every issue found was fixed. No feature was removed, and no interaction was repl
 Environment:
 - Chromium through Playwright, with touch emulation on phone widths.
 - Light, dark and system themes, including a live OS theme change.
-- The dev server, and the production build served by a plain static file server (`python3 -m http.server`) from the site root and from `/some/sub/ironlog/`.
+- The dev server, and the production build served by a plain static file server (`python3 -m http.server`) from the site root and from `/some/sub/overload/`.
 - Every run recorded browser console errors and warnings: there were **none**.
 
 ## What was tested
@@ -78,8 +78,8 @@ These looked like failures during the audit but are correct behaviour. They are 
 - The build is fully static and works from any path, with no server configuration:
   - `base: './'` makes every asset URL relative.
   - `HashRouter` means deep links never reach the server.
-  - This was verified by serving `dist/` with a plain static server at `/` and at `/some/sub/ironlog/`.
-- A web app manifest (`manifest.webmanifest`) was added, so phones can add IronLog to the home screen as a standalone app.
+  - This was verified by serving `dist/` with a plain static server at `/` and at `/some/sub/overload/`.
+- A web app manifest (`manifest.webmanifest`) was added, so phones can add Overload to the home screen as a standalone app.
 - An `engines` field requires Node 20 or newer.
 - A new `npm run check` runs type-check, lint, unit tests and build in one step.
 - The README has provider-neutral deployment instructions.

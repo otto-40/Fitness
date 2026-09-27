@@ -64,7 +64,7 @@ The iPhone app is the same web app wrapped with [Capacitor](https://capacitorjs.
 
 ## Checks on every change
 
-Every push or pull request that touches `ironlog/` also runs an unsigned simulator build on `macos-26` (Xcode 26, which Apple requires for uploads since April 2026). A broken iOS build shows up before any release.
+Every push or pull request that touches `overload/` also runs an unsigned simulator build on `macos-26` (Xcode 26, which Apple requires for uploads since April 2026). A broken iOS build shows up before any release.
 
 ## If something goes wrong
 

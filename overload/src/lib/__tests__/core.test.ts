@@ -108,16 +108,16 @@ describe('program generation', () => {
 })
 
 describe('backup import', () => {
-  it('rejects non-Overload files and accepts backups from before the rename', () => {
+  it('rejects other files and accepts version 1 backups from an earlier release by their shape', () => {
     expect(() => parseBackup('nope')).toThrow(/valid JSON/)
     expect(() => parseBackup('{"app":"Other"}')).toThrow(/not an Overload backup/)
-    expect(parseBackup(JSON.stringify({ app: 'IronLog', version: 1, data: {} })).counts.workouts).toBe(0)
+    expect(() => parseBackup(JSON.stringify({ app: 'Other', version: 1, data: {} }))).toThrow(/not an Overload backup/)
+    expect(parseBackup(JSON.stringify({ version: 1, data: { workouts: [], routines: [] } })).counts.workouts).toBe(0)
   })
 
   it('keeps valid records and skips malformed ones', () => {
     const good = w('a', '2026-01-01T10:00:00Z', [[100, 5]])
     const text = JSON.stringify({
-      app: 'IronLog',
       version: 1,
       data: { workouts: [good, { id: 'bad' }], routines: [], measurements: [{ id: 'm', date: '2026-01-01', weight: 80 }, { id: 'x', date: 'soon' }], settings: { units: 'lb', theme: 'weird' } },
     })

@@ -6,8 +6,6 @@ import { DEMO_PROFILE } from '../data/seed'
 import { isNative, saveJson } from './native'
 
 export const BACKUP_APP = 'Overload'
-/** Backups made before the app was renamed. */
-const LEGACY_APPS = ['IronLog']
 /** v2 adds effort, aerobic minutes, routine notes, weekdays and programs. v1 files still import. */
 export const BACKUP_VERSION = 2
 
@@ -219,7 +217,9 @@ export function parseBackup(text: string): ImportResult {
   } catch {
     throw new Error('That file is not valid JSON.')
   }
-  if (!isObj(raw) || !(raw.app === BACKUP_APP || LEGACY_APPS.includes(raw.app as string)) || !isObj(raw.data)) throw new Error('That file is not an Overload backup.')
+  // Version 1 files come from an earlier release that labelled them differently; they are recognised by their shape.
+  const earlier = isObj(raw) && raw.version === 1 && isObj(raw.data) && Array.isArray(raw.data.workouts) && Array.isArray(raw.data.routines)
+  if (!isObj(raw) || !(raw.app === BACKUP_APP || earlier) || !isObj(raw.data)) throw new Error('That file is not an Overload backup.')
   if (typeof raw.version !== 'number' || raw.version > BACKUP_VERSION)
     throw new Error('This backup was made by a newer version of Overload.')
   const d = raw.data

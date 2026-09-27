@@ -9,7 +9,7 @@ import { Share } from '@capacitor/share'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore'
-import { STORE_KEY } from './nativeBoot'
+import { STORE_KEY } from './storageKey'
 import { restAlert } from './restAlert'
 
 /**
