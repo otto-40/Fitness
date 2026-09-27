@@ -14,7 +14,7 @@ Paste these into App Store Connect → your app → the version page and App Inf
 | **Copyright** | 2026 followed by your name as it appears on your Apple developer account | |
 
 ## Promotional text (170)
-Rest alerts on your lock screen tell you exactly what's next: the exercise, the set, the weight and the reps. Log your next set with one thumb.
+Your rest counts down on the lock screen and in the Dynamic Island, with exactly what's next: the exercise, the set, the weight and the reps.
 
 ## Description (4000)
 Overload is a strength training log built for the gym floor: one hand, big buttons and nothing in the way.
@@ -23,7 +23,7 @@ LOG A SET WITH ONE THUMB
 The next set is always at the bottom of the screen: the exercise, set 2 of 4, last time's numbers, and big +/− buttons for weight and reps. Tap Log set and the rest timer starts.
 
 KNOW WHAT'S NEXT
-While you rest, Overload shows the countdown and your next set. Lock your phone and a notification tells you when rest is over, with the exercise, weight and reps.
+While you rest, Overload shows the countdown and your next set. Lock your phone and the countdown carries on on the lock screen and in the Dynamic Island, and a notification tells you when rest is over, with the exercise, weight and reps.
 
 PROGRESSIVE OVERLOAD, MADE VISIBLE
 • Estimated 1RM, heaviest weight, best volume and rep records for every exercise
@@ -50,7 +50,7 @@ First release.
 ## App Review information
 - Sign-in required: **No**.
 - Notes for the reviewer:
-  > No account is needed. Tap "Skip and explore the demo" on the first screen to load sample workouts, then Routines → Start on any routine. Log a set with the button at the bottom of the screen. The rest timer starts, and if you leave the app during rest, a local notification arrives when rest ends. All data is stored on the device, and there is no server.
+  > No account is needed. Tap "Skip and explore the demo" on the first screen to load sample workouts, then Routines → Start on any routine. Log a set with the button at the bottom of the screen. The rest timer starts and a Live Activity counts it down on the lock screen and in the Dynamic Island. If you leave the app during rest, a local notification also arrives when rest ends. All data is stored on the device, and there is no server.
 
 ## Screenshots
 `screenshots/` holds six 1320 × 2868 PNGs, Apple's 6.9-inch iPhone size. Apple scales them down for smaller iPhones. The app is iPhone only, so no iPad screenshots are needed.

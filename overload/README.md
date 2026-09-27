@@ -19,7 +19,7 @@ Data is stored per browser, so the live site and `localhost` keep separate logs.
 ## iPhone app
 
 Overload also ships as an iPhone app, built from this same code with [Capacitor](https://capacitorjs.com).
-- **What the app adds:** lock-screen rest alerts naming your next set, haptics, keep-awake during workouts, share-sheet export, and native storage for your data.
+- **What the app adds:** a lock-screen and Dynamic Island rest countdown showing your next set, rest-over alerts, haptics, keep-awake during workouts, share-sheet export, and native storage for your data.
 - **Building it:** GitHub builds it on macOS (`.github/workflows/ios.yml`), so no Mac is needed.
 - **Publishing it:** [`IOS.md`](IOS.md) is the step-by-step guide for the App Store, and [`app-store/`](app-store/) holds the listing text and screenshots.
 

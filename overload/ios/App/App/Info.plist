@@ -59,6 +59,9 @@
 	<!-- Only standard HTTPS/TLS from the OS, so no export-compliance questions on each upload. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- The rest countdown on the lock screen and in the Dynamic Island (RestTimer extension). -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 </dict>
