@@ -1,6 +1,6 @@
 # Publishing Overload on the App Store (no Mac needed)
 
-The iPhone app is the same web app wrapped with [Capacitor](https://capacitorjs.com), plus native rest alerts, haptics, keep-awake and a share-sheet export. GitHub builds it on Apple's macOS machines (the `iOS app` workflow), so every step below works from a PC or phone browser.
+The iPhone app is the same web app wrapped with [Capacitor](https://capacitorjs.com), plus native rest alerts, a lock-screen and Dynamic Island rest countdown (a Live Activity), haptics, keep-awake and a share-sheet export. GitHub builds it on Apple's macOS machines (the `iOS app` workflow), so every step below works from a PC or phone browser.
 
 - **What I (Claude) set up:** everything in the repo.
 - **What only you can do:** the Apple account steps, because they need your identity and payment.
@@ -17,7 +17,8 @@ The iPhone app is the same web app wrapped with [Capacitor](https://capacitorjs.
    - Description: `Overload`.
    - Bundle ID: *Explicit*, `com.otto40.overload`.
    - No extra capabilities are needed: rest alerts are local notifications, not push.
-   - Want a different bundle ID? Tell me before the first upload. It is set in `capacitor.config.ts`, the Xcode project and `.github/workflows/ios.yml`, and can't change after release.
+   - Then register a second ID the same way for the lock-screen timer, which is an app extension: Description `Overload Rest Timer`, Bundle ID *Explicit*, `com.otto40.overload.RestTimer`, no capabilities.
+   - Want a different bundle ID? Tell me before the first upload. It is set in `capacitor.config.ts` and the Xcode project (the timer's ID is always the app's plus `.RestTimer`), and can't change after release.
 
 4. **Create the app in App Store Connect.** Go to [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → Apps → **+** → New App.
    - Platform: iOS.
@@ -47,7 +48,7 @@ The iPhone app is the same web app wrapped with [Capacitor](https://capacitorjs.
 3. **Try it on your iPhone first.**
    - Install **TestFlight** from the App Store.
    - In App Store Connect → TestFlight → Internal Testing, add yourself.
-   - Install Overload from TestFlight and check rest alerts: log a set, lock the phone, and wait for the notification.
+   - Install Overload from TestFlight and check rest alerts: log a set and lock the phone. The lock screen counts down the rest and shows the next set, and a notification arrives when rest is over.
 4. **Bring your data across.**
    - In the web app, open Settings → Export JSON and save the file to Files.
    - In the iPhone app, open Settings → Import JSON and pick it.
@@ -64,17 +65,18 @@ The iPhone app is the same web app wrapped with [Capacitor](https://capacitorjs.
 
 ## Checks on every change
 
-Every push or pull request that touches `overload/` also runs an unsigned simulator build on `macos-26` (Xcode 26, which Apple requires for uploads since April 2026). A broken iOS build shows up before any release.
+Every push or pull request that touches `overload/` also runs an unsigned simulator build on `macos-26` (Xcode 26, which Apple requires for uploads since April 2026). A broken iOS build shows up before any release. The same run draws the lock-screen timer in four states (resting, rest over, up next, all done) and attaches the images to the run as `live-activity-previews`.
 
 ## If something goes wrong
 
 - **"Missing secrets"**: one of the four secrets in step 6 is empty or misnamed.
 - **Signing or certificate errors in "Sign and upload"**: the API key needs **Admin** access (step 5). A key with a lower role can't create the cloud distribution certificate.
 - **"No suitable application records were found"**: the App Store Connect app (step 4) doesn't exist yet, or its bundle ID differs from `com.otto40.overload`.
-- **Rejected under Guideline 4.2 (minimum functionality)**: Apple sometimes rejects wrapped websites. Reply in App Store Connect and point to the native features: lock-screen rest alerts, haptics, share-sheet export, and working fully offline. The next phase, the lock-screen countdown (a Live Activity), strengthens this further.
+- **Rejected under Guideline 4.2 (minimum functionality)**: Apple sometimes rejects wrapped websites. Reply in App Store Connect and point to the native features: lock-screen rest alerts, the lock-screen and Dynamic Island rest countdown (a Live Activity), haptics, share-sheet export, and working fully offline.
 
 ## Working on the iOS project locally
 
 - `npm run ios:sync` builds the web app and copies it into `ios/App/App/public`.
 - The Xcode project is `ios/App/App.xcodeproj`, and it uses Swift Package Manager, so there's no CocoaPods.
+- The lock-screen timer is the `RestTimer` widget extension (`ios/App/RestTimer/`). The app starts and updates it through `LiveActivityPlugin.swift`, registered in `MainViewController.swift`; `Shared/RestTimerAttributes.swift` is compiled into both.
 - Opening the project needs a Mac. Nothing in the normal workflow does.

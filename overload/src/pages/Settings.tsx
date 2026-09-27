@@ -14,7 +14,7 @@ import { plural } from '../lib/format'
 import { toast } from '../store/useToast'
 import type { Equipment, Experience, Goal, ThemePref, Units } from '../types'
 import { EQUIPMENT } from '../types'
-import { isNative, useAlertPermission } from '../lib/native'
+import { isNative, useAlertPermission, useLiveActivityEnabled } from '../lib/native'
 
 const REST = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const GOAL_LABEL: Record<Goal, string> = { strength: 'Strength', muscle: 'Muscle', general: 'General fitness' }
@@ -42,6 +42,22 @@ function RestAlertsRow() {
             Turn on
           </Button>
         ) : undefined
+      }
+    />
+  )
+}
+
+function LockScreenRow() {
+  const enabled = useLiveActivityEnabled()
+  return (
+    <ListRow
+      stack
+      icon={<Timer size={18} />}
+      title="Lock-screen timer"
+      description={
+        enabled === false
+          ? 'Off. Turn on Live Activities for Overload in the iPhone Settings app.'
+          : 'During a workout, the lock screen and Dynamic Island count down each rest and show your next set.'
       }
     />
   )
@@ -314,6 +330,7 @@ export default function Settings() {
             <Switch checked={settings.timerSound} onChange={(timerSound) => store.updateSettings({ timerSound })} label="Rest timer sound" description="A short beep and vibration when rest is over." />
           </div>
           {isNative && <RestAlertsRow />}
+          {isNative && <LockScreenRow />}
         </ListGroup>
 
         <ListGroup title="Profile" footer="Used for your greeting, weekly target and the next-workout schedule.">
