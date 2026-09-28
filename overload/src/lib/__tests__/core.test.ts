@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computePrEvents, e1rm, exerciseRecords, previousSets, workoutVolume } from '../calc'
+import { computePrEvents, e1rm, exerciseRecords, previousSets, weightAdded, workoutVolume } from '../calc'
 import { applyLinks, linkedToNext, nextUp, toggleLink } from '../supersets'
 import { parseBackup } from '../backup'
 import { generateProgram } from '../programGen'
@@ -17,6 +17,30 @@ const w = (id: string, date: string, sets: [number, number, ('normal' | 'warmup'
 })
 
 describe('calculations', () => {
+  it('adds up weight added: each exercise’s best minus where it started', () => {
+    const hist = [
+      w('a', '2026-01-01T10:00:00Z', [[60, 8, 'warmup'], [100, 5]]),
+      w('b', '2026-01-08T10:00:00Z', [[110, 5]]),
+      w('c', '2026-01-15T10:00:00Z', [[105, 5]]), // a lighter day never takes weight away
+      w('d', '2026-01-02T10:00:00Z', [[40, 10]], 'lat-pulldown'),
+      w('e', '2026-01-16T10:00:00Z', [[50, 10]], 'lat-pulldown'),
+      w('f', '2026-01-03T10:00:00Z', [[0, 12]], 'push-up'), // bodyweight: nothing to add
+    ]
+    const all = weightAdded(hist)
+    expect(all.total).toBe(20)
+    expect(all.gains.map((g) => [g.exerciseId, g.from, g.to])).toEqual([
+      ['bench-press', 100, 110],
+      ['lat-pulldown', 40, 50],
+    ])
+    // A period counts from the best before it; an exercise new in the period from its first session.
+    expect(weightAdded(hist, '2026-01-10T00:00:00Z').total).toBe(10)
+    expect(weightAdded(hist, '2026-01-01T00:00:00Z', '2026-01-10T00:00:00Z').total).toBe(10)
+    // Periods add up to all time.
+    const early = weightAdded(hist, undefined, '2026-01-10T00:00:00Z').total
+    const late = weightAdded(hist, '2026-01-10T00:00:00Z').total
+    expect(early + late).toBe(all.total)
+  })
+
   it('estimates 1RM with Epley and treats a single as its own max', () => {
     expect(e1rm(100, 1)).toBe(100)
     expect(e1rm(100, 10)).toBeCloseTo(133.33, 1)

@@ -164,6 +164,44 @@ export function previousSets(workouts: Workout[], exerciseId: string, before?: s
   return latest.exercises.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets.filter(isDone))
 }
 
+export interface WeightGain {
+  exerciseId: string
+  /** Heaviest working set before the period (or the first session's, for an exercise new in it), kg. */
+  from: number
+  /** Heaviest working set by the end of the period, kg. */
+  to: number
+  gain: number
+}
+
+/**
+ * Weight added: for every exercise lifted with load, the heaviest working set by the end
+ * of the period minus the heaviest before it began, summed. An exercise first done in the
+ * period starts from its first session's top set. Over all time this is each exercise's
+ * best minus where it started. Periods add up, and a total never goes down.
+ * `from` / `to` are ISO timestamps; omit them for all time.
+ */
+export function weightAdded(workouts: Workout[], from?: string, to?: string): { total: number; gains: WeightGain[] } {
+  const start = new Map<string, number>()
+  const best = new Map<string, number>()
+  for (const w of [...workouts].sort(byDateAsc)) {
+    if (to && w.startedAt >= to) break
+    const before = !!from && w.startedAt < from
+    for (const id of new Set(w.exercises.map((e) => e.exerciseId))) {
+      const top = summariseSets(w.exercises.filter((e) => e.exerciseId === id).flatMap((e) => e.sets)).topWeight
+      if (top <= 0) continue
+      if (before || !start.has(id)) start.set(id, Math.max(before ? (start.get(id) ?? 0) : 0, top))
+      best.set(id, Math.max(best.get(id) ?? 0, top))
+    }
+  }
+  const gains: WeightGain[] = []
+  for (const [id, top] of best) {
+    const gain = top - start.get(id)!
+    if (gain > 0) gains.push({ exerciseId: id, from: start.get(id)!, to: top, gain })
+  }
+  gains.sort((a, b) => b.gain - a.gain)
+  return { total: gains.reduce((n, g) => n + g.gain, 0), gains }
+}
+
 export type PrKind = 'weight' | 'e1rm' | 'volume' | 'reps'
 
 export interface PrEvent {

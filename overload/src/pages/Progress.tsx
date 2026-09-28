@@ -7,7 +7,7 @@ import { ColumnTrend, LineTrend, RankBars } from '../components/charts/Charts'
 import { Card, EmptyState, HeroCard, Input, LinkButton, PageHeader, Ring, SectionTitle, Segmented, Select, Sparkline } from '../components/ui'
 import { EffortLegend } from '../components/workout/Effort'
 import { useExerciseMap } from '../hooks/useExercises'
-import { byDateAsc, completedSetCount, durationMs, exerciseHistory, exerciseRecords, workoutVolume } from '../lib/calc'
+import { byDateAsc, completedSetCount, durationMs, exerciseHistory, exerciseRecords, weightAdded } from '../lib/calc'
 import { formatDuration, friendlyDay, WEEK_OPTS } from '../lib/dates'
 import { muscleSplit, weeklyBuckets } from '../lib/stats'
 import { formatEstimate, formatVolume, formatWeight, round, toDisplayWeight } from '../lib/units'
@@ -88,6 +88,8 @@ export default function Progress() {
       return d >= prevFrom && d < from
     })
   }, [workouts, from, weeks])
+  const added = useMemo(() => weightAdded(workouts, range === 'all' ? undefined : from.toISOString()), [workouts, range, from])
+  const prevAdded = useMemo(() => weightAdded(workouts, subWeeks(from, weeks).toISOString(), from.toISOString()).total, [workouts, from, weeks])
   const split = useMemo(() => muscleSplit(inRange, map, splitMetric), [inRange, map, splitMetric])
 
   const exerciseOptions = useMemo(() => {
@@ -135,8 +137,6 @@ export default function Progress() {
       </div>
     )
 
-  const totalVol = inRange.reduce((s, w) => s + workoutVolume(w), 0)
-  const prevVol = prevRange.reduce((s, w) => s + workoutVolume(w), 0)
   const avgDur = inRange.length ? inRange.reduce((s, w) => s + durationMs(w), 0) / inRange.length : 0
   const prevAvg = prevRange.length ? prevRange.reduce((s, w) => s + durationMs(w), 0) / prevRange.length : 0
   const curSets = inRange.reduce((s, w) => s + completedSetCount(w), 0)
@@ -198,15 +198,30 @@ export default function Progress() {
           <>
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
         <HeroCard className="p-5 sm:p-6">
-          <div className="text-[13px] font-semibold text-on-hero-muted">Total volume · {range === 'all' ? 'all time' : `last ${range === '26' ? '6 months' : `${range} weeks`}`}</div>
+          <div className="text-[13px] font-semibold text-on-hero-muted">Weight added · {range === 'all' ? 'all time' : `last ${range === '26' ? '6 months' : `${range} weeks`}`}</div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="stamp text-[60px]">{formatVolume(totalVol, units, false)}</span>
+            <span className="stamp text-[60px]">+{formatWeight(added.total, units, false)}</span>
             <span className="text-base text-on-hero-muted">{units}</span>
           </div>
-          {range !== 'all' && <Delta cur={totalVol} prev={prevVol} className="mt-2" label="vs previous period" onHero />}
+          {range !== 'all' && prevAdded > 0 && <Delta cur={added.total} prev={prevAdded} className="mt-2" label="vs previous period" onHero />}
           <p className="mt-3 text-sm text-on-hero-muted">
-            {plural(inRange.length, 'workout')} and {plural(curSets, 'working set')}, about {(inRange.length / weeks).toFixed(1)} sessions a week.
+            {added.gains.length
+              ? `Your heaviest set on each lift minus where it started${range === 'all' ? '' : ' this period'}, across ${plural(added.gains.length, 'exercise')}.`
+              : `No heavier top sets ${range === 'all' ? 'yet' : 'this period yet'}. Beat your best on any lift and the extra weight counts here.`}
           </p>
+          {added.gains.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+              {added.gains.slice(0, 3).map((g) => (
+                <li key={g.exerciseId} className="flex items-baseline gap-2">
+                  <span className="min-w-0 flex-1 truncate font-semibold">{map.get(g.exerciseId)?.name ?? 'Exercise'}</span>
+                  <span className="tnum text-on-hero-muted">
+                    {formatWeight(g.from, units, false)} → {formatWeight(g.to, units)}
+                  </span>
+                  <span className="tnum w-16 text-right font-semibold text-hero-ok">+{formatWeight(g.gain, units, false)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </HeroCard>
         <div className="grid grid-cols-3 gap-3">
           {(
