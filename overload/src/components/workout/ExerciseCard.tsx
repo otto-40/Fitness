@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { referenceSet } from '../../store/useStore'
 import type { Effort, Exercise, SetType, Units, WorkoutExercise, WorkoutSet } from '../../types'
-import { effortAdvice } from '../../lib/calc'
+import { effortAdvice, sessionEffort } from '../../lib/calc'
 import { EffortShape } from './Effort'
 import { EFFORT_META } from './effortMeta'
 import { formatWeight, fromDisplayWeight, toDisplayWeight, weightStep } from '../../lib/units'
@@ -84,6 +84,8 @@ export function ExerciseCard(p: ExerciseCardProps) {
   const bodyweight = def?.equipment === 'Bodyweight'
   const aerobic = !!def?.aerobic || ex.sets.some((s) => s.minutes != null)
   const advice = p.mode === 'live' && !aerobic ? effortAdvice(prev, fromDisplayWeight(weightStep(units), units)) : null
+  // The advice line already says how last time felt when every set agreed.
+  const lastEffort = advice ? null : sessionEffort(prev)
   const done = ex.sets.filter((s) => s.completed).length
   const allDone = done === ex.sets.length && done > 0
   const menuSet = ex.sets.find((s) => s.id === setMenuFor)
@@ -133,6 +135,11 @@ export function ExerciseCard(p: ExerciseCardProps) {
                 </span>
               )}
             </span>
+            {p.mode === 'live' && lastEffort && (
+              <span className="mt-0.5 flex items-center gap-1 text-[13px] text-muted">
+                <EffortShape effort={lastEffort} size={10} /> {EFFORT_META[lastEffort].label} last time
+              </span>
+            )}
           </span>
         </button>
         <span className={clsx('tnum mt-2.5 inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-bold', allDone ? 'bg-good-soft text-good' : 'bg-surface-2 text-muted')}>
@@ -295,12 +302,15 @@ export function ExerciseCard(p: ExerciseCardProps) {
                   disabled={!ref || s.completed || inPanel}
                   onClick={() => ref && p.onSetChange(s.id, { weight: ref.weight, reps: ref.reps })}
                   className="tnum flex h-[52px] w-full min-w-0 flex-col items-start justify-center overflow-hidden rounded-lg text-left text-[13px] font-medium text-muted enabled:hover:text-ink"
-                  aria-label={ref ? `Last time ${refText(ref)}. Tap to copy.` : 'No previous set'}
+                  aria-label={ref ? `Last time ${refText(ref)}${ref.effort ? `, ${EFFORT_META[ref.effort].label.toLowerCase()}` : ''}. Tap to copy.` : 'No previous set'}
                 >
                   {ref ? (
-                    <span className="flex min-w-0 flex-wrap leading-tight">
+                    <span className="flex min-w-0 flex-wrap items-center leading-tight">
                       <span className="whitespace-nowrap">{bodyweight && !ref.weight ? 'BW' : formatWeight(ref.weight, units, false)}</span>
-                      <span className="whitespace-nowrap">&nbsp;× {ref.reps}</span>
+                      <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                        &nbsp;× {ref.reps}
+                        {ref.effort && <EffortShape effort={ref.effort} size={9} />}
+                      </span>
                     </span>
                   ) : (
                     <span>—</span>
@@ -494,8 +504,10 @@ export function ExerciseCard(p: ExerciseCardProps) {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {prev.map((s) => (
-                    <span key={s.id} className="tnum rounded-lg bg-surface-2 px-2 py-1 text-sm font-medium">
+                    <span key={s.id} className="tnum inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-2 py-1 text-sm font-medium">
                       {formatWeight(s.weight, units, false)} × {s.reps}
+                      {s.effort && <EffortShape effort={s.effort} size={10} />}
+                      {s.effort && <span className="sr-only">{EFFORT_META[s.effort].label}</span>}
                     </span>
                   ))}
                 </div>

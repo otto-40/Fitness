@@ -56,6 +56,7 @@ In short:
 - **Changing your mind.** Tapping the chosen rating again clears it. The set stays logged.
 - **Where ratings show:**
   - on the set row, as a small shape
+  - before you lift, in the live workout: the now panel shows how the same set felt last time ("180 × 11 · Moderate"), each set's "Last time" column carries its shape, and the exercise header says how the whole exercise felt last time
   - in the workout summary, as a breakdown
   - in past workouts, as an Effort column
   - on the strength charts: each session's point is shaped and coloured by how it felt (circle easy, diamond moderate, triangle hard, hollow if unrated)
@@ -235,6 +236,7 @@ Key decisions:
 - [x] Set-by-set breakdown with e1RM; edit (name, time, duration, notes, sets, exercises) or delete with undo
 
 **Progress**
+- [x] **Weight added**, the headline: for each lift, your heaviest working set minus where it started, summed across lifts, with the three biggest gains. It follows the time range: "All" is each lift's best minus its first session; a shorter range counts from each lift's best before the range, so periods add up to the all-time total and it never goes down
 - [x] Volume per week, workouts per week, muscle-group split (sets or volume)
 - [x] Per-exercise strength progression (e1RM and top set weight) with a sparkline picker for your most-trained lifts; points shaped and coloured by effort
 - [x] Aerobic minutes per week against the target, weeks at target and weekly average

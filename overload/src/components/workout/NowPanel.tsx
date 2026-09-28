@@ -10,6 +10,8 @@ import { useStore } from '../../store/useStore'
 import { toast } from '../../store/useToast'
 import { flashSet, useUi } from '../../store/useUi'
 import { RestDock } from './RestDock'
+import { EffortShape } from './Effort'
+import { EFFORT_META } from './effortMeta'
 
 function BigStepper({
   label,
@@ -115,6 +117,12 @@ export function NowPanel({ onAddExercise, onFinish }: { onAddExercise: () => voi
             <span className="block text-[13px] font-semibold text-ink-2">
               {ref ? (ref.minutes != null ? `${ref.minutes} min` : `${bodyweight && !ref.weight ? 'BW' : formatWeight(ref.weight, units, false)} × ${ref.reps}`) : '—'}
             </span>
+            {ref?.effort && (
+              <span className="mt-0.5 flex items-center justify-end gap-1 font-medium text-ink-2">
+                <EffortShape effort={ref.effort} size={10} />
+                {EFFORT_META[ref.effort].label}
+              </span>
+            )}
           </span>
         </div>
         {aerobic ? (
